@@ -25,6 +25,9 @@
 | [02-04 分布式架构](02-architecture/04-distributed-architecture.md) | 分布式执行和记忆同步 |
 | [02-05 上下文层](02-architecture/05-context-layer.md) | L3 上下文层详解 |
 | [02-06 云基础设施](02-architecture/06-cloud-infrastructure.md) | Cloud 基础设施架构 |
+| [02-07 Self-Bootstrap 架构](02-architecture/07-self-bootstrap-architecture.md) | LLM 作为处理器的 Self-Bootstrap |
+| [02-08 语义 VM 架构](02-architecture/08-semantic-vm-architecture.md) | 语义 VM = Self-Bootstrap 基础 |
+| [02-09 完整 Self-Bootstrap](02-architecture/09-self-bootstrap-complete.md) | 完整的 Self-Bootstrap 实现 |
 
 ### 第三部分：编译器 (Compiler) ✅
 
@@ -119,13 +122,13 @@
 | 章节 | 已完成 | 总计 | 进度 |
 |------|--------|------|------|
 | 01-intro | 4 | 4 | 100% ✅ |
-| 02-architecture | 6 | 6 | 100% ✅ |
+| 02-architecture | 9 | 9 | 100% ✅ |
 | 03-compiler | 4 | 4 | 100% ✅ |
 | 04-memory | 4 | 4 | 100% ✅ |
 | 05-execution | 4 | 4 | 100% ✅ |
 | 06-api | 4 | 4 | 100% ✅ |
 | 07-guides | 4 | 4 | 100% ✅ |
-| **总计** | **30** | **30** | **100%** 🎉 |
+| **总计** | **33** | **33** | **100%** 🎉 |
 
 ---
 
