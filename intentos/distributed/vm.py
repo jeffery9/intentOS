@@ -16,11 +16,14 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, Optional, Union
 from datetime import datetime
 import uuid
 import json
 import hashlib
+import asyncio
+import aiohttp
+from aiohttp import web
 
 
 # =============================================================================
@@ -68,7 +71,108 @@ class DistributedSemanticMemory:
     def __init__(self, nodes: Optional[list[VMNode]] = None):
         self.nodes = nodes or []
         self.ring: dict[int, VMNode] = {}  # 一致性哈希环
+        self.local_storage = SemanticMemory()  # 本地缓存或主存储
         self._rebuild_ring()
+    
+    def get_state(self) -> dict[str, Any]:
+        """获取内存状态"""
+        # 返回本地存储状态作为集群状态的代理
+        return self.local_storage.get_state()
+    
+    async def get(self, store: str, key: str) -> Optional[Any]:
+        """获取数据"""
+        node = self._get_node_for_key(f"{store}:{key}")
+        if not node:
+            return None
+        
+        # 如果是本地节点，直接返回
+        if node.host == "localhost":
+            return self.local_storage.get(store, key)
+        
+        return await self._remote_get(node, store, key)
+    
+    async def set(self, store: str, key: str, value: Any) -> None:
+        """设置数据"""
+        node = self._get_node_for_key(f"{store}:{key}")
+        if not node:
+            return
+        
+        # 如果是本地节点，直接设置
+        if node.host == "localhost":
+            self.local_storage.set(store, key, value)
+            return
+            
+        await self._remote_set(node, store, key, value)
+    
+    async def delete(self, store: str, key: str) -> bool:
+        """删除数据"""
+        node = self._get_node_for_key(f"{store}:{key}")
+        if not node:
+            return False
+        
+        # 如果是本地节点，直接删除
+        if node.host == "localhost":
+            return self.local_storage.delete(store, key)
+            
+        return await self._remote_delete(node, store, key)
+    
+    async def _remote_get(self, node: VMNode, store: str, key: str) -> Optional[Any]:
+        """通过 HTTP 调用远程节点获取数据"""
+        url = f"http://{node.host}:{node.port}/memory/get"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json={"store": store, "key": key}, timeout=5) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        return data.get("value")
+        except Exception:
+            return None
+        return None
+    
+    async def _remote_set(self, node: VMNode, store: str, key: str, value: Any) -> None:
+        """通过 HTTP 调用远程节点设置数据"""
+        url = f"http://{node.host}:{node.port}/memory/set"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json={"store": store, "key": key, "value": value}, timeout=5) as resp:
+                    pass
+        except Exception:
+            pass
+    
+    async def _remote_delete(self, node: VMNode, store: str, key: str) -> bool:
+        """通过 HTTP 调用远程节点删除数据"""
+        url = f"http://{node.host}:{node.port}/memory/delete"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json={"store": store, "key": key}, timeout=5) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        return data.get("success", False)
+        except Exception:
+            return False
+        return False
+    
+    def log_audit(self, action: str, details: dict) -> str:
+        """记录审计日志"""
+        return self.local_storage.log_audit(action, details)
+    
+    def add_node(self, node: VMNode) -> None:
+        """添加节点"""
+        self.nodes.append(node)
+        self._rebuild_ring()
+    
+    def remove_node(self, node_id: str) -> None:
+        """移除节点"""
+        self.nodes = [n for n in self.nodes if n.node_id != node_id]
+        self._rebuild_ring()
+    
+    def get_nodes(self) -> list[VMNode]:
+        """获取所有节点"""
+        return self.nodes.copy()
+    
+    def get_active_nodes(self) -> list[VMNode]:
+        """获取活跃节点"""
+        return [n for n in self.nodes if n.status == "active"]
     
     def _rebuild_ring(self) -> None:
         """重建一致性哈希环"""
@@ -102,48 +206,6 @@ class DistributedSemanticMemory:
         
         # 如果没找到，返回第一个节点 (环绕)
         return next(iter(self.ring.values()))
-    
-    async def get(self, store: str, key: str) -> Optional[Any]:
-        """获取数据"""
-        node = self._get_node_for_key(f"{store}:{key}")
-        if not node:
-            return None
-        
-        # 实际实现应该通过 RPC 调用远程节点
-        # 这里简化为本地存储
-        return await self._local_get(node, store, key)
-    
-    async def set(self, store: str, key: str, value: Any) -> None:
-        """设置数据"""
-        node = self._get_node_for_key(f"{store}:{key}")
-        if not node:
-            return
-        
-        # 实际实现应该通过 RPC 调用远程节点
-        await self._local_set(node, store, key, value)
-    
-    async def delete(self, store: str, key: str) -> bool:
-        """删除数据"""
-        node = self._get_node_for_key(f"{store}:{key}")
-        if not node:
-            return False
-        
-        return await self._local_delete(node, store, key)
-    
-    async def _local_get(self, node: VMNode, store: str, key: str) -> Optional[Any]:
-        """本地获取 (简化实现)"""
-        # 实际应该通过 gRPC/HTTP 调用远程节点
-        pass
-    
-    async def _local_set(self, node: VMNode, store: str, key: str, value: Any) -> None:
-        """本地设置 (简化实现)"""
-        pass
-    
-    async def _local_delete(self, node: VMNode, store: str, key: str) -> bool:
-        """本地删除 (简化实现)"""
-        return True
-    
-    def add_node(self, node: VMNode) -> None:
         """添加节点"""
         self.nodes.append(node)
         self._rebuild_ring()
@@ -202,8 +264,9 @@ class DistributedCoordinator:
     协调多个 VM 节点的程序执行
     """
     
-    def __init__(self, memory: DistributedSemanticMemory):
+    def __init__(self, memory: DistributedSemanticMemory, local_vm: Any = None):
         self.memory = memory
+        self.local_vm = local_vm
         self.program_counters: dict[str, DistributedProgramCounter] = {}
         self.results: dict[str, dict] = {}
     
@@ -237,9 +300,13 @@ class DistributedCoordinator:
         )
         self.program_counters[exec_id] = pc
         
-        # 在选定节点上执行程序
-        # 实际实现应该通过 RPC 调用远程节点
-        await self._execute_on_node(exec_id, program, node, context)
+        # 如果是本地节点，直接执行
+        if node.host == "localhost" and self.local_vm:
+            asyncio.create_task(self.local_vm.execute_program(program.name, context))
+            self.results[exec_id] = {"success": True, "message": "Program started locally"}
+        else:
+            # 在远程节点上执行程序
+            await self._execute_on_node(exec_id, program, node, context)
         
         return exec_id
     
@@ -261,9 +328,16 @@ class DistributedCoordinator:
         context: Optional[dict] = None,
     ) -> None:
         """在节点上执行程序"""
-        # 实际实现应该通过 gRPC/HTTP 调用远程节点
-        # 这里简化为直接执行
-        pass
+        url = f"http://{node.host}:{node.port}/execute"
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json={"program": program.to_dict(), "context": context or {}}, timeout=5) as resp:
+                    if resp.status == 200:
+                        self.results[exec_id] = {"success": True, "message": "Program started on remote node"}
+                    else:
+                        self.results[exec_id] = {"success": False, "error": f"Failed to start on node: {resp.status}"}
+        except Exception as e:
+            self.results[exec_id] = {"success": False, "error": str(e)}
     
     def _create_error_result(self, exec_id: str, error: str) -> str:
         """创建错误结果"""
@@ -304,8 +378,20 @@ class DistributedSemanticVM:
         Args:
             llm_executor: LLM 执行器 (用于所有节点)
         """
+        from intentos.semantic_vm import SemanticVM
+        self.local_vm = SemanticVM(llm_executor)
+        
         self.memory = DistributedSemanticMemory()
-        self.coordinator = DistributedCoordinator(self.memory)
+        
+        # 让 local_vm 使用分布式内存 (部分覆盖)
+        # 注意：SemanticVM.memory 是 SemanticMemory 类型，
+        # DistributedSemanticMemory 接口略有不同，但我们可以进行桥接
+        self.local_vm.memory = self.memory
+        
+        # 替换为分布式处理器
+        self.local_vm.processor = DistributedProcessor(llm_executor, self)
+        
+        self.coordinator = DistributedCoordinator(self.memory, self.local_vm)
         self.llm_executor = llm_executor
         
         # 本地节点
@@ -315,8 +401,15 @@ class DistributedSemanticVM:
             capabilities=["CREATE", "MODIFY", "DELETE", "QUERY", "EXECUTE", "LOOP", "WHILE", "IF"],
         )
         
+        # 本地服务器
+        self.server = VMServer(self.local_node, self.local_vm)
+        
         # 添加本地节点到集群
         self.memory.add_node(self.local_node)
+    
+    async def start(self):
+        """启动本地节点服务器"""
+        await self.server.start()
     
     async def add_node(
         self,
@@ -401,6 +494,145 @@ class DistributedOpcode(Enum):
     SPAWN = "spawn"             # 在新节点上生成子程序
     SYNC = "sync"               # 同步多个节点的执行
     BARRIER = "barrier"         # 执行屏障 (等待所有节点)
+
+
+from intentos.semantic_vm import LLMProcessor, SemanticOpcode, SemanticMemory, SemanticInstruction
+
+class DistributedProcessor(LLMProcessor):
+    """
+    分布式 LLM 处理器
+    
+    支持分布式语义指令 (REPLICATE, SPAWN, BROADCAST...)
+    """
+    
+    def __init__(self, llm_executor: Any, cluster: DistributedSemanticVM):
+        super().__init__(llm_executor)
+        self.cluster = cluster
+    
+    async def execute(
+        self,
+        instruction: Union[SemanticInstruction, Any],
+        memory: SemanticMemory,
+    ) -> dict[str, Any]:
+        """执行指令，支持分布式操作码"""
+        
+        # 处理分布式操作码
+        opcode = instruction.opcode
+        
+        if isinstance(opcode, DistributedOpcode):
+            return await self._execute_distributed(instruction, memory)
+        
+        # 处理基础操作码 (如果被标记为分布式)
+        # 例如：BROADCAST CREATE ...
+        
+        return await super().execute(instruction, memory)
+    
+    async def _execute_distributed(self, instruction, memory) -> dict[str, Any]:
+        opcode = instruction.opcode
+        
+        if opcode == DistributedOpcode.REPLICATE:
+            # 复制数据到远程节点
+            target = instruction.target
+            name = instruction.target_name
+            node_id = instruction.parameters.get("node")
+            
+            value = memory.get(target, name)
+            if value:
+                # 实际应该找到特定节点并设置
+                # 简化为全局设置 (会自动哈希到对应节点)
+                await self.cluster.memory.set(target, name, value)
+                return {"success": True, "message": f"Replicated {target}:{name}"}
+        
+        elif opcode == DistributedOpcode.SPAWN:
+            # 在新节点上生成程序
+            target_name = instruction.target_name
+            program = memory.get("PROGRAM", target_name)
+            if program:
+                exec_id = await self.cluster.execute_program(program, instruction.parameters.get("context"))
+                return {"success": True, "exec_id": exec_id}
+        
+        elif opcode == DistributedOpcode.BROADCAST:
+            # 广播修改到所有节点
+            target = instruction.target
+            name = instruction.target_name
+            value = instruction.parameters.get("value")
+            
+            nodes = self.cluster.memory.get_active_nodes()
+            for node in nodes:
+                # 这里简化为直接调用远程设置
+                await self.cluster.memory._remote_set(node, target, name, value)
+            
+            return {"success": True, "message": f"Broadcasted {target}:{name}"}
+        
+        return {"success": False, "error": f"Unsupported distributed opcode: {opcode}"}
+
+
+# =============================================================================
+# VM 节点服务器
+# =============================================================================
+
+class VMServer:
+    """
+    VM 节点服务器
+    
+    处理来自其他节点的 RPC 调用
+    """
+    
+    def __init__(self, node: VMNode, vm: Any):
+        self.node = node
+        self.vm = vm
+        self.app = web.Application()
+        self._setup_routes()
+    
+    def _setup_routes(self):
+        """设置路由"""
+        self.app.router.add_post("/memory/get", self._handle_get)
+        self.app.router.add_post("/memory/set", self._handle_set)
+        self.app.router.add_post("/memory/delete", self._handle_delete)
+        self.app.router.add_post("/execute", self._handle_execute)
+        self.app.router.add_get("/status", self._handle_status)
+    
+    async def _handle_get(self, request):
+        data = await request.json()
+        store, key = data.get("store"), data.get("key")
+        value = self.vm.memory.get(store, key)
+        return web.json_response({"value": value})
+    
+    async def _handle_set(self, request):
+        data = await request.json()
+        store, key, value = data.get("store"), data.get("key"), data.get("value")
+        self.vm.memory.set(store, key, value)
+        return web.json_response({"success": True})
+    
+    async def _handle_delete(self, request):
+        data = await request.json()
+        store, key = data.get("store"), data.get("key")
+        success = self.vm.memory.delete(store, key)
+        return web.json_response({"success": success})
+    
+    async def _handle_execute(self, request):
+        data = await request.json()
+        program_data = data.get("program")
+        context = data.get("context", {})
+        
+        from intentos.semantic_vm import SemanticProgram
+        program = SemanticProgram.from_dict(program_data)
+        
+        # 异步执行，不阻塞 HTTP 响应
+        asyncio.create_task(self.vm.execute_program(program.name, context))
+        
+        return web.json_response({"success": True, "message": "Program execution started"})
+    
+    async def _handle_status(self, request):
+        return web.json_response(self.node.to_dict())
+    
+    async def start(self):
+        """启动服务器"""
+        runner = web.AppRunner(self.app)
+        await runner.setup()
+        site = web.TCPSite(runner, self.node.host, self.node.port)
+        await site.start()
+        print(f"VM Node {self.node.node_id} started on {self.node.host}:{self.node.port}")
 
 
 # =============================================================================
