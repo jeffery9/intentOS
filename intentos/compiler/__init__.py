@@ -28,6 +28,12 @@ from .optimizer import (
     create_prompt_optimizer,
     create_strategy_selector,
     LLM_PROFILES,
+    # Map/Reduce 优化
+    MapReduceStrategy,
+    NodeCapability,
+    MapReduceOptimizer,
+    DataLocalityOptimizer,
+    MemoryLocalityAwareScheduler,
 )
 
 __all__ = [
@@ -57,4 +63,10 @@ __all__ = [
     "create_prompt_optimizer",
     "create_strategy_selector",
     "LLM_PROFILES",
+    # Map/Reduce 优化
+    "MapReduceStrategy",
+    "NodeCapability",
+    "MapReduceOptimizer",
+    "DataLocalityOptimizer",
+    "MemoryLocalityAwareScheduler",
 ]

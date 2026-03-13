@@ -468,3 +468,307 @@ def create_strategy_selector(model: str) -> StrategySelector:
     """创建策略选择器"""
     profile = get_llm_profile(model)
     return StrategySelector(profile)
+
+
+# =============================================================================
+# 分布式 Map/Reduce 优化
+# =============================================================================
+
+class MapReduceStrategy(Enum):
+    """Map/Reduce 策略"""
+    CENTRALIZED = "centralized"  # 中央处理 (默认)
+    MAP_REDUCE = "map_reduce"    # Map/Reduce (数据本地化)
+    HYBRID = "hybrid"            # 混合模式
+
+
+@dataclass
+class NodeCapability:
+    """节点能力"""
+    node_id: str
+    has_llm: bool  # 是否有本地 LLM
+    llm_model: Optional[str] = None  # LLM 模型
+    memory_size: int = 0  # 本地记忆大小 (tokens)
+    compute_power: float = 1.0  # 计算能力 (0-1)
+    network_bandwidth: float = 100.0  # 网络带宽 (Mbps)
+    has_memory: bool = True  # 是否有记忆数据
+    
+    def to_dict(self) -> dict[str, Any]:
+        """转换为字典"""
+        return {
+            "node_id": self.node_id,
+            "has_llm": self.has_llm,
+            "llm_model": self.llm_model,
+            "memory_size": self.memory_size,
+            "compute_power": self.compute_power,
+            "network_bandwidth": self.network_bandwidth,
+            "has_memory": self.has_memory,
+        }
+
+
+class MapReduceOptimizer:
+    """
+    Map/Reduce 优化器
+    
+    核心思想:
+    - 将计算移动到数据附近 (类似 Hadoop)
+    - 减少记忆数据的网络传输
+    - 在靠近记忆的节点提交 LLM
+    
+    策略选择:
+    - 数据量小 → 中央处理
+    - 数据量大 + 节点有 LLM → Map/Reduce
+    - 部分节点有 LLM → 混合模式
+    """
+    
+    def __init__(self, nodes: list[NodeCapability]):
+        self.nodes = nodes
+    
+    def select_strategy(
+        self,
+        total_memory_size: int,
+        network_cost: float = 1.0,
+    ) -> MapReduceStrategy:
+        """
+        选择 Map/Reduce 策略
+        
+        Args:
+            total_memory_size: 总记忆大小 (tokens)
+            network_cost: 网络传输成本系数
+        
+        Returns:
+            Map/Reduce 策略
+        """
+        # 检查有多少节点有 LLM
+        nodes_with_llm = sum(1 for n in self.nodes if n.has_llm)
+        llm_ratio = nodes_with_llm / len(self.nodes) if self.nodes else 0
+        
+        # 策略选择逻辑
+        if total_memory_size < 1000:
+            # 数据量小，中央处理
+            return MapReduceStrategy.CENTRALIZED
+        elif llm_ratio > 0.5:
+            # 大部分节点有 LLM，使用 Map/Reduce
+            return MapReduceStrategy.MAP_REDUCE
+        else:
+            # 部分节点有 LLM，混合模式
+            return MapReduceStrategy.HYBRID
+    
+    def plan_map_reduce(
+        self,
+        intent: Any,
+        memories: dict[str, list[Any]],  # node_id -> memories
+    ) -> dict[str, Any]:
+        """
+        规划 Map/Reduce 执行
+        
+        Args:
+            intent: 意图
+            memories: 各节点的记忆数据
+        
+        Returns:
+            执行计划
+        """
+        plan = {
+            "map_tasks": [],
+            "reduce_tasks": [],
+            "estimated_network_cost": 0,
+        }
+        
+        # Map 阶段：在每个节点本地处理
+        for node_id, node_memories in memories.items():
+            node = self._get_node(node_id)
+            
+            if node and node.has_llm:
+                # 节点有 LLM，本地处理
+                map_task = {
+                    "node_id": node_id,
+                    "type": "local_llm",
+                    "input": {
+                        "intent": intent,
+                        "memories": node_memories,
+                    },
+                    "output_size": self._estimate_output_size(node_memories),
+                }
+                plan["map_tasks"].append(map_task)
+            else:
+                # 节点无 LLM，需要传输数据
+                plan["estimated_network_cost"] += sum(len(str(m)) for m in node_memories)
+        
+        # Reduce 阶段：聚合结果
+        reduce_task = {
+            "type": "aggregate",
+            "inputs": [t["node_id"] for t in plan["map_tasks"]],
+            "operation": "merge_results",
+        }
+        plan["reduce_tasks"].append(reduce_task)
+        
+        return plan
+    
+    def _get_node(self, node_id: str) -> Optional[NodeCapability]:
+        """获取节点信息"""
+        for node in self.nodes:
+            if node.node_id == node_id:
+                return node
+        return None
+    
+    def _estimate_output_size(self, memories: list[Any]) -> int:
+        """估算输出大小 (通常是输入的 10-20%)"""
+        input_size = sum(len(str(m)) for m in memories)
+        return int(input_size * 0.15)  # 15% 压缩率
+
+
+class DataLocalityOptimizer:
+    """
+    数据本地性优化器
+    
+    核心思想:
+    - 优先使用有本地记忆的节点
+    - 优先使用有本地 LLM 的节点
+    - 最小化数据跨节点传输
+    """
+    
+    @staticmethod
+    def calculate_data_locality_score(
+        node: NodeCapability,
+        required_memories: list[str],
+        required_llm: bool,
+    ) -> float:
+        """
+        计算数据本地性评分
+        
+        Args:
+            node: 节点
+            required_memories: 需要的记忆列表
+            required_llm: 是否需要 LLM
+        
+        Returns:
+            本地性评分 (0-1)
+        """
+        score = 0.0
+        
+        # LLM 本地性 (40% 权重)
+        if required_llm:
+            if node.has_llm:
+                score += 0.4
+            else:
+                # 需要远程 LLM，扣分
+                score += 0.1
+        else:
+            # 不需要 LLM，也给基础分
+            score += 0.2
+        
+        # 记忆本地性 (60% 权重)
+        if node.has_memory:
+            score += 0.6
+        
+        return score
+    
+    @staticmethod
+    def select_best_node(
+        nodes: list[NodeCapability],
+        required_memories: list[str],
+        required_llm: bool,
+    ) -> NodeCapability:
+        """
+        选择最佳节点
+        
+        基于数据本地性评分选择最优节点
+        """
+        if not nodes:
+            raise ValueError("节点列表为空")
+        
+        scores = []
+        for node in nodes:
+            score = DataLocalityOptimizer.calculate_data_locality_score(
+                node,
+                required_memories,
+                required_llm,
+            )
+            scores.append((node, score))
+        
+        # 选择评分最高的节点
+        best_node, best_score = max(scores, key=lambda x: x[1])
+        
+        return best_node
+
+
+class MemoryLocalityAwareScheduler:
+    """
+    记忆本地性感知调度器
+    
+    核心思想:
+    - 在记忆所在节点执行 Map 任务
+    - 如果节点无 LLM，将 LLM 移动到节点
+    - 最小化记忆数据传输
+    """
+    
+    def __init__(self, nodes: list[NodeCapability]):
+        self.nodes = nodes
+        self.optimizer = MapReduceOptimizer(nodes)
+        self.locality_optimizer = DataLocalityOptimizer()
+    
+    def schedule(
+        self,
+        intent: Any,
+        memories: dict[str, list[Any]],
+    ) -> dict[str, Any]:
+        """
+        调度 Map/Reduce 任务
+        
+        Args:
+            intent: 意图
+            memories: 各节点的记忆数据
+        
+        Returns:
+            调度计划
+        """
+        # 选择策略
+        total_memory = sum(len(m) for m in memories.values())
+        strategy = self.optimizer.select_strategy(total_memory)
+        
+        # 生成计划
+        plan = self.optimizer.plan_map_reduce(intent, memories)
+        plan["strategy"] = strategy.value
+        
+        # 优化 Map 任务分配
+        plan["map_tasks"] = self._optimize_map_tasks(plan["map_tasks"], memories)
+        
+        return plan
+    
+    def _optimize_map_tasks(
+        self,
+        map_tasks: list[dict],
+        memories: dict[str, list[Any]],
+    ) -> list[dict]:
+        """优化 Map 任务分配"""
+        optimized = []
+        
+        for task in map_tasks:
+            node_id = task["node_id"]
+            node = self.optimizer._get_node(node_id)
+            
+            if node and node.has_llm:
+                # 节点有 LLM，保持本地处理
+                task["optimization"] = "local_processing"
+                task["estimated_time"] = self._estimate_local_time(task, node)
+            else:
+                # 节点无 LLM，需要调度
+                task["optimization"] = "remote_scheduling"
+                task["target_node"] = self._find_nearest_llm_node(node_id)
+            
+            optimized.append(task)
+        
+        return optimized
+    
+    def _estimate_local_time(self, task: dict, node: NodeCapability) -> float:
+        """估算本地处理时间"""
+        # 简化估算：数据量 / 计算能力
+        data_size = task["output_size"]
+        return data_size / (node.compute_power * 1000)  # ms
+    
+    def _find_nearest_llm_node(self, current_node_id: str) -> Optional[str]:
+        """查找最近的有 LLM 的节点"""
+        for node in self.nodes:
+            if node.node_id != current_node_id and node.has_llm:
+                return node.node_id
+        return None
