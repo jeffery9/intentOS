@@ -104,8 +104,13 @@ class IntentOS:
     统一的系统入口
     """
     
-    def __init__(self):
+    def __init__(self, llm_executor: Any = None):
+        from ..distributed.vm import create_distributed_vm
+        from ..bootstrap.executor import create_bootstrap_executor
+        
         self.registry = IntentRegistry()
+        self.vm = create_distributed_vm(llm_executor)
+        self.bootstrap = create_bootstrap_executor(self.vm)
         self.interface = IntentInterface(self.registry)
         self._initialized = False
     
@@ -114,6 +119,19 @@ class IntentOS:
         self._register_builtin_capabilities()
         self._register_builtin_templates()
         self._initialized = True
+    
+    async def get_kernel_status(self) -> dict:
+        """获取详细内核状态"""
+        cluster_status = await self.vm.get_cluster_status()
+        memory_state = self.vm.local_vm.memory.get_state()
+        bootstrap_history = self.bootstrap.get_bootstrap_history(limit=5)
+        
+        return {
+            "cluster": cluster_status,
+            "memory": memory_state,
+            "bootstrap": [r.to_dict() for r in bootstrap_history],
+            "registry": self.registry.introspect()
+        }
     
     def _register_builtin_capabilities(self) -> None:
         """注册内置能力"""
