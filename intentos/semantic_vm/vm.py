@@ -15,7 +15,7 @@ IntentOS 的本质是一个语义虚拟机：
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Any, Optional, Callable
+from typing import Any, Optional, Callable, Union
 from enum import Enum
 from datetime import datetime
 import uuid
@@ -67,36 +67,10 @@ class SemanticOpcode(Enum):
 class SemanticInstruction:
     """
     语义指令
-    
-    示例:
-    ```python
-    # 创建意图模板
-    instr = SemanticInstruction(
-        opcode=SemanticOpcode.CREATE,
-        target="TEMPLATE",
-        parameters={
-            "name": "sales_analysis",
-            "steps": ["query_sales", "analyze_trends"],
-        },
-    )
-    
-    # 条件循环
-    instr = SemanticInstruction(
-        opcode=SemanticOpcode.WHILE,
-        condition="error_rate > 0.1",
-        body=[
-            SemanticInstruction(
-                opcode=SemanticOpcode.MODIFY,
-                target="TEMPLATE",
-                parameters={"name": "sales_analysis", ...},
-            ),
-        ],
-    )
-    ```
     """
     
     # 操作码
-    opcode: SemanticOpcode
+    opcode: Union[SemanticOpcode, Any]
     
     # 目标类型 (TEMPLATE/CAPABILITY/POLICY/CONFIG/PROGRAM)
     target: Optional[str] = None
@@ -127,7 +101,7 @@ class SemanticInstruction:
         """转换为字典"""
         return {
             "id": self.id,
-            "opcode": self.opcode.value,
+            "opcode": self.opcode.value if hasattr(self.opcode, 'value') else self.opcode,
             "target": self.target,
             "target_name": self.target_name,
             "parameters": self.parameters,
@@ -141,9 +115,20 @@ class SemanticInstruction:
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> SemanticInstruction:
         """从字典创建"""
+        raw_opcode = data["opcode"]
+        try:
+            opcode = SemanticOpcode(raw_opcode)
+        except (ValueError, KeyError):
+            # 可能是分布式操作码或自定义操作码
+            from intentos.distributed import DistributedOpcode
+            try:
+                opcode = DistributedOpcode(raw_opcode)
+            except (ValueError, KeyError, ImportError):
+                opcode = raw_opcode
+                
         return cls(
             id=data.get("id", str(uuid.uuid4())),
-            opcode=SemanticOpcode(data["opcode"]),
+            opcode=opcode,
             target=data.get("target"),
             target_name=data.get("target_name"),
             parameters=data.get("parameters", {}),
@@ -156,6 +141,7 @@ class SemanticInstruction:
     
     def to_natural_language(self) -> str:
         """转换为自然语言"""
+        opcode_val = self.opcode.value if hasattr(self.opcode, 'value') else str(self.opcode)
         if self.opcode == SemanticOpcode.CREATE:
             return f"CREATE {self.target} {self.target_name} WITH {self.parameters}"
         elif self.opcode == SemanticOpcode.MODIFY:
@@ -168,7 +154,7 @@ class SemanticInstruction:
             times = self.parameters.get("times", "∞")
             return f"LOOP {times} TIMES [...]"
         else:
-            return f"{self.opcode.value.upper()} {self.target or ''}"
+            return f"{opcode_val.upper()} {self.target or ''}"
 
 
 # =============================================================================
@@ -407,7 +393,13 @@ class LLMProcessor:
         Returns:
             执行结果
         """
-        # 构建执行 Prompt
+        # 1. 检查是否有动态处理器 (Self-Bootstrap 扩展)
+        handler_name = f"_handle_{instruction.opcode.value.lower()}"
+        if hasattr(self, handler_name):
+            handler = getattr(self, handler_name)
+            return await handler(self, instruction.parameters, memory)
+            
+        # 2. 构建执行 Prompt
         exec_prompt = self.processor_prompt.format(
             instruction_nl=instruction.to_natural_language(),
             instruction_json=json.dumps(instruction.to_dict(), indent=2, ensure_ascii=False),
@@ -474,6 +466,15 @@ class LLMProcessor:
         
         # 添加更多操作处理...
     
+    async def execute_llm(self, prompt: str, memory: SemanticMemory) -> dict[str, Any]:
+        """执行原始 LLM 提示"""
+        messages = [
+            {"role": "system", "content": "你是语义 VM 处理器。"},
+            {"role": "user", "content": f"当前内存状态: {json.dumps(memory.get_state())}\n\n指令: {prompt}"},
+        ]
+        response = await self.llm_executor.execute(messages)
+        return self._parse_response(response.content)
+
     def update_processor_prompt(self, new_prompt: str) -> None:
         """更新处理器 Prompt (Self-Bootstrap)"""
         self.processor_prompt = new_prompt
