@@ -294,4 +294,4 @@ finance_template = standard_template.override(
 
 **下一篇**: [Self-Bootstrap](03-self-bootstrap.md)
 
-**上一篇**: [三层七层架构](01-three-layer-model.md)
+**上一篇**: [垂直三层 + 水平七级架构](01-three-layer-model.md)

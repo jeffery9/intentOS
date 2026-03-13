@@ -262,7 +262,7 @@ python -m pytest intentos/examples/test_compiler.py -v
 ## 8. 下一步
 
 - [了解什么是 AI 原生软件](01-what-is-ai-native.md)
-- [学习三层七层架构](../02-architecture/01-three-layer-model.md)
+- [学习垂直三层 + 水平七级架构](../02-architecture/01-three-layer-model.md)
 - [构建第一个 App](../07-guides/01-build-first-app.md)
 
 ---
