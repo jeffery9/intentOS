@@ -474,6 +474,5 @@ async def _add_context_memories(self, prompt, context):
 **论文版本**: 2.0 (更新版)  
 **创建日期**: 2026-03-12  
 **最后更新**: 2026-03-13  
-**代码仓库**: `/Users/jeffery/Downloads/IntentOS`  
 **代码行数**: ~10,000 Python  
 **测试用例**: 150+ (99% 通过率)
