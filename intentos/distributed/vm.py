@@ -228,6 +228,51 @@ class DistributedSemanticMemory:
 # 分布式程序计数器
 # =============================================================================
 
+from enum import Enum
+
+class ProcessState(Enum):
+    """进程状态"""
+    NEW = "new"
+    RUNNING = "running"
+    SUSPENDED = "suspended"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    ZOMBIE = "zombie"
+
+@dataclass
+class SemanticProcess:
+    """
+    语义进程 (Process Control Block - PCB)
+    
+    在分布式内核中代表一个正在执行的语义程序
+    """
+    pid: str = field(default_factory=lambda: str(uuid.uuid4()))
+    program_name: str = ""
+    node_id: str = ""
+    state: ProcessState = ProcessState.NEW
+    pc: int = 0  # 程序计数器
+    parent_pid: Optional[str] = None
+    priority: int = 10
+    start_time: datetime = field(default_factory=datetime.now)
+    update_time: datetime = field(default_factory=datetime.now)
+    context: dict[str, Any] = field(default_factory=dict)
+    error: Optional[str] = None
+    
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "pid": self.pid,
+            "program_name": self.program_name,
+            "node_id": self.node_id,
+            "state": self.state.value,
+            "pc": self.pc,
+            "parent_pid": self.parent_pid,
+            "priority": self.priority,
+            "start_time": self.start_time.isoformat(),
+            "update_time": self.update_time.isoformat(),
+            "context": self.context,
+            "error": self.error
+        }
+
 @dataclass
 class DistributedProgramCounter:
     """
@@ -259,57 +304,116 @@ class DistributedProgramCounter:
 
 class DistributedCoordinator:
     """
-    分布式执行协调器
+    分布式执行协调器 / 进程调度器
     
-    协调多个 VM 节点的程序执行
+    协调多个 VM 节点的程序执行并管理 PCB
     """
     
     def __init__(self, memory: DistributedSemanticMemory, local_vm: Any = None):
         self.memory = memory
         self.local_vm = local_vm
-        self.program_counters: dict[str, DistributedProgramCounter] = {}
+        self.processes: dict[str, SemanticProcess] = {}  # 活跃进程表 (PID -> PCB)
         self.results: dict[str, dict] = {}
-    
-    async def submit_program(
+        self.last_sync_time: datetime = datetime.now()
+
+    async def fork_process(
         self,
         program: Any,  # SemanticProgram
         context: Optional[dict] = None,
+        parent_pid: Optional[str] = None
     ) -> str:
         """
-        提交程序执行
+        生成/分发新进程 (Equivalent to fork + exec)
         
         Args:
             program: 语义程序
             context: 执行上下文
+            parent_pid: 父进程 PID
         
         Returns:
-            执行 ID
+            PID
         """
-        exec_id = str(uuid.uuid4())
+        pid = str(uuid.uuid4())
         
-        # 选择最佳节点
+        # 1. 选择最佳节点 (调度策略)
         node = await self._select_best_node()
-        
         if not node:
-            return self._create_error_result(exec_id, "没有可用节点")
+            return self._create_error_result(pid, "调度失败：没有可用节点")
         
-        # 创建程序计数器
-        pc = DistributedProgramCounter(
-            program_id=program.name,
+        # 2. 创建 PCB
+        pcb = SemanticProcess(
+            pid=pid,
+            program_name=program.name,
             node_id=node.node_id,
+            parent_pid=parent_pid,
+            context=context or {},
+            state=ProcessState.NEW
         )
-        self.program_counters[exec_id] = pc
+        self.processes[pid] = pcb
         
-        # 如果是本地节点，直接执行
+        # 3. 跨节点执行
         if node.host == "localhost" and self.local_vm:
-            asyncio.create_task(self.local_vm.execute_program(program.name, context))
-            self.results[exec_id] = {"success": True, "message": "Program started locally"}
+            # 本地直接执行
+            pcb.state = ProcessState.RUNNING
+            asyncio.create_task(self._run_local_executor(pid, program, context))
         else:
-            # 在远程节点上执行程序
-            await self._execute_on_node(exec_id, program, node, context)
-        
-        return exec_id
-    
+            # 远程 RPC 执行
+            await self._execute_on_node(pid, program, node, context)
+            pcb.state = ProcessState.RUNNING
+            
+        return pid
+
+    async def _run_local_executor(self, pid: str, program: Any, context: Optional[dict]):
+        """本地执行包装器，负责更新 PCB"""
+        try:
+            # 在执行过程中实时更新 PC (模拟执行)
+            # 实际需要修改 SemanticVM 以提供回调或 Hook
+            result = await self.local_vm.execute_program(program.name, context)
+            
+            # 更新 PCB 状态
+            if pid in self.processes:
+                pcb = self.processes[pid]
+                pcb.state = ProcessState.COMPLETED
+                pcb.pc = len(program.instructions)
+                pcb.update_time = datetime.now()
+            
+            self.results[pid] = result
+        except Exception as e:
+            if pid in self.processes:
+                pcb = self.processes[pid]
+                pcb.state = ProcessState.FAILED
+                pcb.error = str(e)
+            self.results[pid] = {"success": False, "error": str(e)}
+
+    async def update_pcb(self, pid: str, pc: int, state: str = "running"):
+        """接收节点报告的 PCB 更新 (Heartbeat/Progress)"""
+        if pid in self.processes:
+            pcb = self.processes[pid]
+            pcb.pc = pc
+            pcb.state = ProcessState(state)
+            pcb.update_time = datetime.now()
+
+    async def kill_process(self, pid: str):
+        """杀死进程 (SIGKILL)"""
+        if pid in self.processes:
+            self.processes[pid].state = ProcessState.ZOMBIE
+            # 实际应该发送 RPC 到对应节点停止执行
+            return True
+        return False
+
+    async def get_process_list(self) -> list[SemanticProcess]:
+        """获取进程列表"""
+        # 清理旧僵尸进程
+        now = datetime.now()
+        active_processes = []
+        for pid, pcb in list(self.processes.items()):
+            # 超过 1 小时的完成/失败进程视为过时
+            if pcb.state in [ProcessState.COMPLETED, ProcessState.FAILED, ProcessState.ZOMBIE]:
+                if (now - pcb.update_time).total_seconds() > 3600:
+                    del self.processes[pid]
+                    continue
+            active_processes.append(pcb)
+        return active_processes
     async def _select_best_node(self) -> Optional[VMNode]:
         """选择最佳节点"""
         active_nodes = self.memory.get_active_nodes()
@@ -447,25 +551,20 @@ class DistributedSemanticVM:
         program: Any,  # SemanticProgram
         context: Optional[dict] = None,
     ) -> str:
-        """
-        执行程序 (分布式)
-        
-        Args:
-            program: 语义程序
-            context: 执行上下文
-        
-        Returns:
-            执行 ID
-        """
-        return await self.coordinator.submit_program(program, context)
-    
+        """执行程序 (通过内核 fork)"""
+        return await self.coordinator.fork_process(program, context)
+
+    async def ps(self) -> list[SemanticProcess]:
+        """获取进程列表 (System Call: ps)"""
+        return await self.coordinator.get_process_list()
+
+    async def kill(self, pid: str):
+        """杀死进程 (System Call: kill)"""
+        return await self.coordinator.kill_process(pid)
+
     async def get_execution_result(self, exec_id: str) -> Optional[dict]:
         """获取执行结果"""
-        return await self.coordinator.get_result(exec_id)
-    
-    async def get_execution_status(self, exec_id: str) -> Optional[dict]:
-        """获取执行状态"""
-        return await self.coordinator.get_status(exec_id)
+        return self.coordinator.results.get(exec_id)
 
 
 # =============================================================================

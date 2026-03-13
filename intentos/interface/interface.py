@@ -125,10 +125,12 @@ class IntentOS:
         cluster_status = await self.vm.get_cluster_status()
         memory_state = self.vm.local_vm.memory.get_state()
         bootstrap_history = self.bootstrap.get_bootstrap_history(limit=5)
+        processes = await self.vm.ps()
         
         return {
             "cluster": cluster_status,
             "memory": memory_state,
+            "processes": [p.to_dict() for p in processes],
             "bootstrap": [r.to_dict() for r in bootstrap_history],
             "registry": self.registry.introspect()
         }

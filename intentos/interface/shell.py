@@ -61,17 +61,40 @@ class IntentShell(cmd.Cmd):
     # =========================================================================
 
     def do_ps(self, arg):
-        """Show running semantic programs (processes): ps"""
+        """Show running semantic processes: /ps"""
         status = asyncio.run(self.os.get_kernel_status())
-        table = Table(title="Semantic Program Counter (Processes)")
-        table.add_column("Program ID", style="cyan")
-        table.add_column("Node ID", style="magenta")
-        table.add_column("PC", style="yellow")
-        table.add_row("MainThread", "localhost", "0")
+        processes = status.get("processes", [])
         
-        # Display from coordinator (if we add tracking)
-        # For now, show dummy entry
+        table = Table(title="Semantic Process Table (Active)")
+        table.add_column("PID", style="cyan", no_wrap=True)
+        table.add_column("Program", style="green")
+        table.add_column("Node", style="magenta")
+        table.add_column("State", style="yellow")
+        table.add_column("PC", style="white")
+        table.add_column("Start Time", style="dim")
+        
+        for p in processes:
+            table.add_row(
+                p["pid"][:8],
+                p["program_name"],
+                p["node_id"][:8],
+                p["state"],
+                str(p["pc"]),
+                p["start_time"]
+            )
         self.console.print(table)
+
+    def do_kill(self, arg):
+        """Kill a semantic process: /kill <pid>"""
+        if not arg:
+            self.console.print("Usage: /kill <pid>", style="red")
+            return
+        
+        success = asyncio.run(self.os.vm.kill(arg))
+        if success:
+            self.console.print(f"Signal SIGKILL sent to process {arg}", style="yellow")
+        else:
+            self.console.print(f"Process {arg} not found.", style="red")
 
     def do_top(self, arg):
         """Show cluster load and health: top"""
