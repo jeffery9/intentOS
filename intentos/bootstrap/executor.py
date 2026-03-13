@@ -17,11 +17,15 @@
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Any, Optional, Callable
+from typing import TYPE_CHECKING, Any, Optional
 from datetime import datetime
 import uuid
 import json
 import asyncio
+
+if TYPE_CHECKING:
+    from intentos.semantic_vm import SemanticVM
+    from intentos.distributed import DistributedSemanticVM
 
 
 # =============================================================================
@@ -93,8 +97,8 @@ class SelfBootstrapExecutor:
     
     def __init__(
         self,
-        semantic_vm: Any,  # SemanticVM or DistributedSemanticVM
-        policy: BootstrapPolicy = None,
+        semantic_vm: SemanticVM | DistributedSemanticVM,
+        policy: Optional[BootstrapPolicy] = None,
     ):
         self.vm = semantic_vm
         self.policy = policy or BootstrapPolicy()

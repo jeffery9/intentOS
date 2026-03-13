@@ -65,7 +65,7 @@ class DistributedSemanticMemory:
     使用一致性哈希在多个节点间分布语义数据
     """
     
-    def __init__(self, nodes: list[VMNode] = None):
+    def __init__(self, nodes: Optional[list[VMNode]] = None):
         self.nodes = nodes or []
         self.ring: dict[int, VMNode] = {}  # 一致性哈希环
         self._rebuild_ring()
