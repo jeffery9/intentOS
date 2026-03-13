@@ -2,6 +2,8 @@
 
 欢迎来到 IntentOS 文档中心。本文档集基于《AI 原生软件范式转变》对话录整理而成，系统阐述了 IntentOS 的设计理念、架构实现和使用指南。
 
+**代码仓库**: `https://github.com/jeffery9/IntentOS`
+
 ---
 
 ## 📚 文档导航
@@ -29,7 +31,6 @@
 | [02-08 Self-Bootstrap 架构](02-architecture/08-self-bootstrap-architecture.md) | LLM 作为处理器的 Self-Bootstrap |
 | [02-09 语义 VM 架构](02-architecture/09-semantic-vm-architecture.md) | 语义 VM = Self-Bootstrap 基础 |
 | [02-10 完整 Self-Bootstrap](02-architecture/10-self-bootstrap-complete.md) | 完整的 Self-Bootstrap 实现 |
-| [02-11 架构术语规范](02-architecture/11-architecture-terminology.md) | 三层七级术语规范 |
 
 ### 第三部分：编译器 (Compiler) ✅
 
@@ -104,10 +105,35 @@
 
 ## 🔗 相关资源
 
-- [GitHub 仓库](https://github.com/jeffery9/IntentOS)
-- [论文：三层七层架构](../paper-three-layer-architecture.md)
-- [论文：IntentOS 架构](../paper-intentos-architecture.md)
-- [示例代码](../intentos/examples/)
+| 资源 | 链接 |
+|------|------|
+| **GitHub 仓库** | [github.com/jeffery9/IntentOS](https://github.com/jeffery9/IntentOS) |
+| **主 README** | [README.md](../README.md) |
+| **项目路线图** | [ROADMAP.md](../ROADMAP.md) |
+| **示例代码** | [examples/](../examples/) |
+
+### 核心论文
+
+| 论文 | 链接 |
+|------|------|
+| **语义 VM 论文** | [papers/semantic-vm-paper.md](../papers/semantic-vm-paper.md) |
+| **架构论文** | [papers/intentos-architecture-paper.md](../papers/intentos-architecture-paper.md) |
+| **PEF 与编译器论文** | [papers/pef-compiler-paper.md](../papers/pef-compiler-paper.md) |
+
+---
+
+## 📊 文档统计
+
+| 类别 | 数量 | 字数 |
+|------|------|------|
+| **入门文档** | 4 篇 | ~4,000 字 |
+| **架构文档** | 10 篇 | ~10,000 字 |
+| **编译器文档** | 4 篇 | ~4,000 字 |
+| **记忆文档** | 4 篇 | ~4,000 字 |
+| **执行文档** | 4 篇 | ~4,000 字 |
+| **API 文档** | 4 篇 | ~4,000 字 |
+| **指南文档** | 4 篇 | ~4,000 字 |
+| **总计** | **34 篇** | **~34,000 字** |
 
 ---
 
@@ -115,23 +141,14 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 11.0 | 2026-03-13 | 类型注解补全，更新 GitHub 链接 |
+| 10.0 | 2026-03-13 | 统一 GitHub 仓库链接 |
+| 9.0 | 2026-03-13 | 删除临时文档 |
+| 8.0 | 2026-03-13 | 新增 PEF 与编译器论文 |
+| 7.0 | 2026-03-13 | 删除术语文档 |
+| 6.0 | 2026-03-13 | 术语规范更新 |
 | 1.0 | 2026-03-12 | 初始版本 |
 
 ---
 
-## 📊 完成进度
-
-| 章节 | 已完成 | 总计 | 进度 |
-|------|--------|------|------|
-| 01-intro | 4 | 4 | 100% ✅ |
-| 02-architecture | 9 | 9 | 100% ✅ |
-| 03-compiler | 4 | 4 | 100% ✅ |
-| 04-memory | 4 | 4 | 100% ✅ |
-| 05-execution | 4 | 4 | 100% ✅ |
-| 06-api | 4 | 4 | 100% ✅ |
-| 07-guides | 4 | 4 | 100% ✅ |
-| **总计** | **33** | **33** | **100%** 🎉 |
-
----
-
-**最后更新**: 2026 年 3 月 12 日
+**最后更新**: 2026 年 3 月 13 日
