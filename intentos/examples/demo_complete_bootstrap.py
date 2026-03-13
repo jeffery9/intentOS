@@ -12,7 +12,7 @@
 
 import asyncio
 from datetime import datetime
-from intentos.self_bootstrap_executor import (
+from intentos.bootstrap import (
     SelfBootstrapExecutor,
     BootstrapPolicy,
     BootstrapPrograms,

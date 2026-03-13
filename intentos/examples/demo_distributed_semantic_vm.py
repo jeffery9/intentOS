@@ -9,7 +9,7 @@
 """
 
 import asyncio
-from intentos.distributed_semantic_vm import (
+from intentos.distributed import (
     DistributedSemanticVM,
     DistributedOpcode,
     create_distributed_vm,

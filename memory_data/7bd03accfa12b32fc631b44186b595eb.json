@@ -1,0 +1,24 @@
+{
+  "id": "5c566c89-6e99-42de-b5de-9070b4005952",
+  "key": "knowledge:sales_terms",
+  "value": {
+    "Q3": "\u7b2c\u4e09\u5b63\u5ea6 (7-9 \u6708)",
+    "GMV": "\u5546\u54c1\u4ea4\u6613\u603b\u989d"
+  },
+  "memory_type": "long_term",
+  "priority": 2,
+  "created_at": 1773331050.2664168,
+  "updated_at": 1773331050.266418,
+  "expires_at": 1775923050.26642,
+  "access_count": 0,
+  "last_accessed": 0.0,
+  "tags": [
+    "knowledge",
+    "sales"
+  ],
+  "metadata": {},
+  "version": 1,
+  "parent_id": null,
+  "node_id": "ff418451",
+  "synced": false
+}
