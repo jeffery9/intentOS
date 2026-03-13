@@ -275,6 +275,22 @@ engine = ExecutionEngine(registry)
 result = await engine.execute(intent)
 ```
 
+### 4.3 Kernel & Shell API
+
+内核级控制与交互接口：
+
+```python
+# 1. 内核进程管理
+processes = await os.vm.ps()
+await os.vm.kill(pid="uuid-string")
+
+# 2. 交互式 Shell (启动方式)
+# PYTHONPATH=. python intentos/interface/shell.py
+
+# 3. REST API 网关 (启动方式)
+# PYTHONPATH=. python intentos/interface/api.py
+```
+
 ---
 
 ## 5. LLM 相关

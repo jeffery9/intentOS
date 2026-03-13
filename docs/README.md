@@ -25,7 +25,7 @@
 | [02-02 水平七级流程](02-architecture/02-seven-levels-process.md) | 意图层内部七级处理流程 |
 | [02-03 意图即元语言](02-architecture/03-intent-as-metalanguage.md) | 意图的形式化定义 |
 | [02-04 Self-Bootstrap](02-architecture/04-self-bootstrap.md) | 系统自举机制 |
-| [02-05 分布式架构](02-architecture/05-distributed-architecture.md) | 分布式执行和记忆同步 |
+| [02-05 分布式架构与进程管理](02-architecture/05-distributed-architecture.md) | 分布式执行、PCB 与进程调度 |
 | [02-06 上下文层](02-architecture/06-context-layer.md) | 3 级上下文层详解 |
 | [02-07 云基础设施](02-architecture/07-cloud-infrastructure.md) | Cloud 基础设施架构 |
 | [02-08 Self-Bootstrap 架构](02-architecture/08-self-bootstrap-architecture.md) | LLM 作为处理器的 Self-Bootstrap |
@@ -141,6 +141,7 @@
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| 12.0 | 2026-03-13 | 实现分布式进程管理 (PCB) 与内核接口 (Shell/API) |
 | 11.0 | 2026-03-13 | 类型注解补全，更新 GitHub 链接 |
 | 10.0 | 2026-03-13 | 统一 GitHub 仓库链接 |
 | 9.0 | 2026-03-13 | 删除临时文档 |

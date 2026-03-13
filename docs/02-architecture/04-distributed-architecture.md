@@ -30,7 +30,41 @@
 
 ---
 
-## 2. 分布式执行
+## 2. 分布式内核与进程管理
+
+IntentOS 采用了类似微内核的分布式设计，每个节点运行一个 `VMServer` 并通过 `DistributedCoordinator` 进行全局调度。
+
+### 2.1 核心组件
+
+| 组件 | 说明 |
+|------|------|
+| **VMNode** | 计算节点，运行一个独立的语义虚拟机实例 |
+| **VMServer** | 节点的 RPC 接口（基于 aiohttp），处理内存读写和程序执行 |
+| **DistributedCoordinator** | 内核调度器，管理全局进程表（Process Table） |
+| **Consistent Hash Ring** | 一致性哈希环，负责将意图数据和程序分布到不同节点 |
+
+### 2.2 语义进程 (Semantic Process)
+
+每个执行的语义程序在内核中被抽象为一个 **SemanticProcess (PCB)**：
+
+- **PID**: 进程唯一标识符 (UUID)
+- **State**: 进程状态（NEW, RUNNING, SUSPENDED, COMPLETED, FAILED, ZOMBIE）
+- **PC**: 程序计数器，实时记录执行到的指令行号
+- **NodeID**: 执行该进程的目标节点 ID
+- **Context**: 进程私有的变量空间和执行堆栈
+
+### 2.3 进程生命周期 (Fork/Exec)
+
+内核通过 `fork_process` 机制实现程序的派生：
+1. **Fork**: 创建一个新的 PCB 并分配 PID。
+2. **Schedule**: 协调器根据节点负载 (Load) 选择最优计算节点。
+3. **Dispatch**: 通过 RPC 将程序镜像分发到目标节点。
+4. **Track**: 节点定期汇报 PC 进度，协调器更新全局进程表。
+5. **Reap**: 进程结束后自动回收资源（清理僵尸进程）。
+
+---
+
+## 3. 分布式执行
 
 ### 2.1 执行模式
 
