@@ -19,15 +19,17 @@
 
 | 文档 | 说明 |
 |------|------|
-| [02-01 三层七层架构](02-architecture/01-three-layer-model.md) | App/IntentOS/LLM 三层模型 |
-| [02-02 意图即元语言](02-architecture/02-intent-as-metalanguage.md) | 意图的形式化定义 |
-| [02-03 Self-Bootstrap](02-architecture/03-self-bootstrap.md) | 系统自举机制 |
-| [02-04 分布式架构](02-architecture/04-distributed-architecture.md) | 分布式执行和记忆同步 |
-| [02-05 上下文层](02-architecture/05-context-layer.md) | L3 上下文层详解 |
-| [02-06 云基础设施](02-architecture/06-cloud-infrastructure.md) | Cloud 基础设施架构 |
-| [02-07 Self-Bootstrap 架构](02-architecture/07-self-bootstrap-architecture.md) | LLM 作为处理器的 Self-Bootstrap |
-| [02-08 语义 VM 架构](02-architecture/08-semantic-vm-architecture.md) | 语义 VM = Self-Bootstrap 基础 |
-| [02-09 完整 Self-Bootstrap](02-architecture/09-self-bootstrap-complete.md) | 完整的 Self-Bootstrap 实现 |
+| [02-01 垂直三层架构](02-architecture/01-three-layers-model.md) | 应用层/意图层/模型层 |
+| [02-02 水平七级流程](02-architecture/02-seven-levels-process.md) | 意图层内部七级处理流程 |
+| [02-03 意图即元语言](02-architecture/03-intent-as-metalanguage.md) | 意图的形式化定义 |
+| [02-04 Self-Bootstrap](02-architecture/04-self-bootstrap.md) | 系统自举机制 |
+| [02-05 分布式架构](02-architecture/05-distributed-architecture.md) | 分布式执行和记忆同步 |
+| [02-06 上下文层](02-architecture/06-context-layer.md) | 3 级上下文层详解 |
+| [02-07 云基础设施](02-architecture/07-cloud-infrastructure.md) | Cloud 基础设施架构 |
+| [02-08 Self-Bootstrap 架构](02-architecture/08-self-bootstrap-architecture.md) | LLM 作为处理器的 Self-Bootstrap |
+| [02-09 语义 VM 架构](02-architecture/09-semantic-vm-architecture.md) | 语义 VM = Self-Bootstrap 基础 |
+| [02-10 完整 Self-Bootstrap](02-architecture/10-self-bootstrap-complete.md) | 完整的 Self-Bootstrap 实现 |
+| [02-11 架构术语规范](02-architecture/11-architecture-terminology.md) | 三层七级术语规范 |
 
 ### 第三部分：编译器 (Compiler) ✅
 
