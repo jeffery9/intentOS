@@ -48,6 +48,37 @@ print(f"目标：{prompt.intent.target}")
 print(f"System Prompt: {prompt.system_prompt[:200]}...")
 ```
 
+### 交互式 Shell
+
+IntentOS 提供了一个类似 Linux Shell 的交互式界面，支持自然语言意图输入：
+
+```bash
+# 启动 Shell
+PYTHONPATH=. python intentos/interface/shell.py
+```
+
+在 Shell 中，你可以直接输入自然语言指令，或者使用内置命令：
+- `status`: 查看内核状态
+- `ls`: 列出所有可用的意图模板
+- `clear`: 清除对话历史
+- `exit`: 退出系统
+
+### REST API
+
+可以通过 HTTP 接口远程访问 IntentOS 内核：
+
+```bash
+# 启动 API 服务器 (默认 localhost:8080)
+PYTHONPATH=. python intentos/interface/api.py
+```
+
+**示例请求**:
+```bash
+curl -X POST http://localhost:8080/execute \
+     -H "Content-Type: application/json" \
+     -d '{"intent": "分析销售数据"}'
+```
+
 ### 带记忆注入的编译
 
 ```python
