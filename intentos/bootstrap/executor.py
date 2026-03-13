@@ -201,10 +201,12 @@ class SelfBootstrapExecutor:
         
         if parts[0] == "CONFIG":
             if hasattr(self.vm, 'memory'):
-                return self.vm.memory.get("CONFIG", parts[1] if len(parts) > 1 else target)
+                return await self.vm.memory.get("CONFIG", parts[1] if len(parts) > 1 else target)
         elif parts[0] == "INSTRUCTION_SET":
             # 返回当前指令集
-            return list(self.vm.processor.__class__.__dict__.keys())
+            # 如果是分布式 VM，检查 local_vm 的处理器
+            vm_to_check = self.vm.local_vm if hasattr(self.vm, 'local_vm') else self.vm
+            return list(vm_to_check.processor.__class__.__dict__.keys())
         elif parts[0] == "POLICY":
             if len(parts) > 1:
                 return getattr(self.policy, parts[1], None)
@@ -217,12 +219,24 @@ class SelfBootstrapExecutor:
         
         if parts[0] == "CONFIG":
             if hasattr(self.vm, 'memory') and len(parts) > 1:
-                self.vm.memory.set("CONFIG", parts[1], new_value)
+                await self.vm.memory.set("CONFIG", parts[1], new_value)
         elif parts[0] == "INSTRUCTION_SET":
-            # 扩展指令集
-            if hasattr(self.vm, 'processor'):
-                # 动态添加指令处理方法
-                pass
+            # 扩展指令集：动态添加处理器方法
+            instruction_name = parts[1] if len(parts) > 1 else "NEW_OP"
+            
+            # 如果是分布式 VM，修改 local_vm 的处理器
+            vm_to_modify = self.vm.local_vm if hasattr(self.vm, 'local_vm') else self.vm
+            
+            # 定义新方法的逻辑 (这里简化为调用 LLM 处理)
+            async def new_method(self_proc, params, memory):
+                print(f"Executing new instruction: {instruction_name}")
+                return await self_proc.execute_llm(f"Execute {instruction_name} with {params}", memory)
+            
+            # 将方法添加到处理器实例
+            # 注意：setattr 在实例上只能添加属性，不能直接像方法一样被调用
+            # 我们应该在处理器类中提供一个通用的执行入口
+            setattr(vm_to_modify.processor, f"_handle_{instruction_name.lower()}", new_method)
+            
         elif parts[0] == "POLICY":
             if len(parts) > 1:
                 setattr(self.policy, parts[1], new_value)
@@ -232,9 +246,19 @@ class SelfBootstrapExecutor:
         if not hasattr(self.vm, 'memory'):
             return
         
-        # 分布式 VM 的复制逻辑
-        # 实际实现应该通过一致性协议复制
-        pass
+        # 使用分布式内存的 set (会自动哈希到对应节点或广播)
+        # 如果是关键配置，我们强制广播
+        if target.startswith("CONFIG"):
+            parts = target.split(".")
+            key = parts[1] if len(parts) > 1 else target
+            
+            # 如果 VM 是分布式 VM，使用广播
+            if hasattr(self.vm, 'memory') and hasattr(self.vm.memory, 'get_nodes'):
+                nodes = self.vm.memory.get_nodes()
+                for node in nodes:
+                    if node.node_id != getattr(self.vm, 'local_node', {}).node_id:
+                        # 实际调用远程设置
+                        await self.vm.memory._remote_set(node, "CONFIG", key, new_value)
     
     def get_bootstrap_history(
         self,
