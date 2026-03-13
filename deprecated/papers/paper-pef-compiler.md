@@ -713,6 +713,6 @@ backend = FileBackend(data_dir="./memory_data")
 
 **版本**: 1.0  
 **日期**: 2026 年 3 月 12 日  
-**代码仓库**: `/Users/jeffery/Downloads/IntentOS`  
+**代码仓库**: `https://github.com/jeffery9/IntentOS`  
 **代码行数**: ~10,000 Python  
 **测试用例**: 150+ (85%+ 覆盖率)

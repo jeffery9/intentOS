@@ -478,6 +478,6 @@ results = await executor.execute(task)
 
 **论文版本**: 1.0  
 **日期**: 2026 年 3 月 12 日  
-**代码仓库**: `/Users/jeffery/Downloads/IntentOS`  
+**代码仓库**: `https://github.com/jeffery9/IntentOS`  
 **代码行数**: ~10,000 Python  
 **测试用例**: 168 个 (99% 通过)

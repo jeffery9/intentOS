@@ -104,7 +104,7 @@
 
 ## 🔗 相关资源
 
-- [GitHub 仓库](https://github.com/intentos/intentos)
+- [GitHub 仓库](https://github.com/jeffery9/IntentOS)
 - [论文：三层七层架构](../paper-three-layer-architecture.md)
 - [论文：IntentOS 架构](../paper-intentos-architecture.md)
 - [示例代码](../intentos/examples/)

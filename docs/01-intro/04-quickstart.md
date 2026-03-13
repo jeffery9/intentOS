@@ -10,7 +10,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/intentos/intentos.git
+git clone https://github.com/jeffery9/IntentOS.git
 cd intentos
 
 # 安装依赖
