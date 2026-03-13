@@ -671,6 +671,5 @@ exec_id = await cluster.execute_program(program)
 **论文版本**: 1.0  
 **创建日期**: 2026-03-13  
 **最后更新**: 2026-03-13  
-**代码仓库**: `/Users/jeffery/Downloads/IntentOS`  
 **代码行数**: ~10,000 Python  
 **测试用例**: 150+ (99% 通过率)
