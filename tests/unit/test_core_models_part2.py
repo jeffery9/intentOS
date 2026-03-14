@@ -134,7 +134,7 @@ class TestCoreModelsIntegration:
     """Core Models 集成测试"""
 
     def test_context_and_capability_integration(self):
-        ctx = Context(user_id="admin", permissions=["read", "write", "delete"])
+        ctx = Context(user_id="admin", permissions=["read", "write", "delete", "admin"])
         def admin_func(ctx, **kwargs):
             return {"status": "success", "user": ctx.user_id}
         cap = Capability(

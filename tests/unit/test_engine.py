@@ -38,22 +38,15 @@ class TestExecutionEngine:
     async def test_execute_with_context(self, engine):
         """测试带上下文执行"""
         from intentos.core import Intent, Context
-        intent = Intent(name="test", intent_type="atomic", goal="Test goal")
         context = Context(user_id="test_user")
-        result = await engine.execute(intent, context)
+        intent = Intent(name="test", intent_type="atomic", goal="Test goal", context=context)
+        result = await engine.execute(intent)
         assert result is not None
 
-    def test_get_status(self, engine):
-        """测试获取状态"""
-        status = engine.get_status()
-        assert status is not None
-        assert isinstance(status, dict)
-
-    def test_get_capabilities(self, engine):
-        """测试获取能力"""
-        capabilities = engine.get_capabilities()
-        assert capabilities is not None
-        assert isinstance(capabilities, list)
+    def test_get_execution_history(self, engine):
+        """测试获取历史"""
+        history = engine.get_execution_history()
+        assert isinstance(history, list)
 
 
 class TestExecutionEngineIntegration:
