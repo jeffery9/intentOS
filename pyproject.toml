@@ -48,4 +48,4 @@ target-version = "py310"
 select = ["E", "F", "W", "I"]
 
 [tool.setuptools]
-packages = ["intentos", "intentos.core", "intentos.semantic_vm", "intentos.distributed", "intentos.bootstrap", "intentos.compiler", "intentos.interface", "intentos.llm", "intentos.registry", "intentos.engine", "intentos.parser", "intentos.utils"]
+packages = ["intentos", "intentos.bootstrap", "intentos.compiler", "intentos.core", "intentos.distributed", "intentos.engine", "intentos.interface", "intentos.llm", "intentos.llm.backends", "intentos.parser", "intentos.registry", "intentos.semantic_vm"]
