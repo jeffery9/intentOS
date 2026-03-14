@@ -59,7 +59,7 @@ print(f"System Prompt: {prompt.system_prompt[:200]}...")
 IntentOS 提供了一个类似 Linux Shell 的交互式界面，支持自然语言意图输入：
 
 ```bash
-# 启动 Shell
+# 启动 Shell（交互式）
 PYTHONPATH=. python intentos/interface/shell.py
 ```
 
@@ -69,7 +69,22 @@ PYTHONPATH=. python intentos/interface/shell.py
 - `clear`: 清除对话历史
 - `exit`: 退出系统
 
-### REST API
+### 守护进程模式（推荐）
+
+IntentOS 可以作为后台守护进程持续运行：
+
+```bash
+# 启动守护进程
+PYTHONPATH=. python intentos/interface/daemon.py
+```
+
+守护进程会：
+- ✅ 持续运行，等待请求
+- ✅ 自动处理中断信号（Ctrl+C）
+- ✅ 记录运行时间和状态
+- ✅ 优雅关闭系统资源
+
+### REST API 网关
 
 可以通过 HTTP 接口远程访问 IntentOS 内核：
 

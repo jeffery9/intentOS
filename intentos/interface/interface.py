@@ -121,12 +121,61 @@ class IntentOS:
         self.bootstrap = create_bootstrap_executor(self.vm)
         self.interface = IntentInterface(self.registry)
         self._initialized = False
+        self._running = False
+        self._background_tasks: list = []
 
     def initialize(self) -> None:
         """初始化系统"""
         self._register_builtin_capabilities()
         self._register_builtin_templates()
         self._initialized = True
+        self._running = True
+
+    def shutdown(self) -> None:
+        """关闭系统"""
+        self._running = False
+        # 清理后台任务
+        for task in self._background_tasks:
+            if hasattr(task, 'cancel'):
+                task.cancel()
+        self._background_tasks.clear()
+
+    @property
+    def is_running(self) -> bool:
+        """检查系统是否正在运行"""
+        return self._running
+
+    async def start_background_services(self) -> None:
+        """启动后台服务"""
+        # 这里可以启动各种后台监控服务
+        # 例如：进程监控、内存清理、健康检查等
+        pass
+
+    def run_daemon(self) -> None:
+        """
+        以守护进程模式运行 OS
+        持续运行直到被中断
+        """
+        import signal
+        import sys
+
+        def signal_handler(sig, frame):
+            print("\n🛑 Shutting down IntentOS...")
+            self.shutdown()
+            sys.exit(0)
+
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+
+        print("✅ IntentOS is running as a daemon process")
+        print("Press Ctrl+C to stop")
+
+        # 保持运行
+        try:
+            import asyncio
+            asyncio.get_event_loop().run_forever()
+        except KeyboardInterrupt:
+            self.shutdown()
 
     async def get_kernel_status(self) -> dict:
         """获取详细内核状态"""

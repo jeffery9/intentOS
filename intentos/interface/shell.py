@@ -245,12 +245,21 @@ class IntentShell(cmd.Cmd):
         print("")
         return True
 
+    def do_exit(self, arg):
+        """退出系统"""
+        print("\n🛑  Shutting down IntentOS...")
+        self.os.shutdown()
+        print("👋  Goodbye!")
+        return True
+
 
 def start_shell():
+    shell = IntentShell()
     try:
-        IntentShell().cmdloop()
+        shell.cmdloop()
     except KeyboardInterrupt:
         print("\nInterrupted by user")
+        shell.os.shutdown()
         sys.exit(0)
 
 
