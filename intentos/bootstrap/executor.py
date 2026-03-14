@@ -266,12 +266,14 @@ class SelfBootstrapExecutor:
             if hasattr(self.vm, "memory") and hasattr(self.vm.memory, "get_nodes"):
                 nodes = self.vm.memory.get_nodes()
                 for node in nodes:
-                    if (
-                        hasattr(node, "node_id")
-                        and node.node_id != getattr(self.vm, "local_node", {}).node_id
-                    ):  # type: ignore
-                        # 实际调用远程设置
-                        await self.vm.memory._remote_set(node, "CONFIG", key, new_value)  # type: ignore
+                    if hasattr(node, "node_id") and hasattr(
+                        getattr(self.vm, "local_node", {}), "node_id"
+                    ):
+                        if node.node_id != getattr(self.vm, "local_node").node_id:  # type: ignore
+                            # 实际调用远程设置
+                            await self.vm.memory._remote_set(  # type: ignore
+                                node, "CONFIG", key, new_value
+                            )
 
     def get_bootstrap_history(
         self,
