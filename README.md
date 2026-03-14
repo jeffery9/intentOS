@@ -4,7 +4,7 @@
 
 IntentOS 是一个 **AI 原生操作系统** 原型，核心是**语义虚拟机**——将自然语言意图编译为 LLM 可执行的 Prompt，支持 Self-Bootstrap 和分布式部署。
 
-**代码仓库**: `https://github.com/jeffery9/IntentOS`
+![presentation](./docs/IntentOS_Architecture_Blueprint.pdf)
 
 ---
 
