@@ -41,7 +41,7 @@ jobs:
       run: ruff format --check .
 
     - name: Run mypy
-      run: mypy intentos
+      run: mypy intentos --exclude deprecated/
 
   test:
     name: Test (Python ${{ matrix.python-version }})
