@@ -13,7 +13,7 @@ import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from enum import Enum
 from pathlib import Path
 from typing import Optional
@@ -267,9 +267,49 @@ class CheckpointManager:
         with open(filepath, "wb") as f:
             f.write(data_bytes)
 
-        if checkpoint.metadata.process_id not in self._checkpoints:
-            self._checkpoints[checkpoint.metadata.process_id] = []
-        self._checkpoints[checkpoint.metadata.process_id].append(checkpoint.metadata)
+    def _cleanup_old_checkpoints(self, process_id: str) -> None:
+        """清理旧的检查点"""
+        if process_id not in self._checkpoints:
+            return
+
+        checkpoints_for_process = self._checkpoints[process_id]
+
+        # 按时间戳排序 (最旧在前)
+        checkpoints_for_process.sort(key=lambda c: c.timestamp)
+
+        # 1. 根据 retention_hours 清理
+        retained_by_retention = []
+        if self.config.retention_hours > 0:
+            now = datetime.now()
+            retention_threshold = now - timedelta(hours=self.config.retention_hours)
+            retained_by_retention = [cp for cp in checkpoints_for_process if cp.timestamp >= retention_threshold]
+        else:
+            retained_by_retention = list(checkpoints_for_process)
+
+        # 2. 根据 max_checkpoints_per_process 清理
+        checkpoints_to_keep = []
+        if self.config.max_checkpoints_per_process > 0 and \
+           len(retained_by_retention) > self.config.max_checkpoints_per_process:
+            # 保留最新的 max_checkpoints_per_process 个
+            checkpoints_to_keep = retained_by_retention[-self.config.max_checkpoints_per_process:]
+        else:
+            checkpoints_to_keep = retained_by_retention
+
+        ids_to_keep = {cp.id for cp in checkpoints_to_keep}
+        ids_to_remove = {cp.id for cp in checkpoints_for_process if cp.id not in ids_to_keep}
+
+        for cp_id in ids_to_remove:
+            cp_meta_to_remove = next((cp for cp in checkpoints_for_process if cp.id == cp_id), None)
+            if cp_meta_to_remove:
+                filename = (
+                    f"{cp_meta_to_remove.id}.json.gz" if cp_meta_to_remove.compressed else f"{cp_meta_to_remove.id}.json"
+                )
+                filepath = self._storage_path / process_id / filename
+                if filepath.exists():
+                    filepath.unlink() # 删除文件
+        
+        # 最后，更新内存中的列表
+        self._checkpoints[process_id] = [cp for cp in checkpoints_for_process if cp.id not in ids_to_remove]
 
     def _load_checkpoint(self, checkpoint_id: str) -> Optional[ProcessCheckpoint]:
         """加载检查点"""
@@ -294,7 +334,11 @@ class CheckpointManager:
                     else:
                         data = data_bytes.decode("utf-8")
 
-                    data_dict = json.loads(data)
+                    try:
+                        data_dict = json.loads(data)
+                    except json.JSONDecodeError:
+                        logger.error(f"检查点文件 {filepath} 内容损坏或格式不正确")
+                        return None
                     return ProcessCheckpoint.from_dict(data_dict)
 
         return None
@@ -302,7 +346,7 @@ class CheckpointManager:
     def list_checkpoints(
         self,
         process_id: Optional[str] = None,
-    ) -> list[dict]:
+    ) -> list[CheckpointMetadata]:
         """列出检查点"""
         if process_id:
             checkpoints = self._checkpoints.get(process_id, [])
@@ -312,11 +356,4 @@ class CheckpointManager:
                 all_checkpoints.extend(cps)
             checkpoints = all_checkpoints
 
-        return [
-            {
-                "id": cp.id,
-                "timestamp": cp.timestamp.isoformat(),
-                "process_id": cp.process_id,
-            }
-            for cp in sorted(checkpoints, key=lambda c: c.timestamp, reverse=True)
-        ]
+        return sorted(checkpoints, key=lambda c: c.timestamp, reverse=True)
