@@ -38,20 +38,23 @@ all = [
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["examples"]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
 
 # Ruff 配置
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-exclude = ["examples", "deprecated", ".git", ".mypy_cache", ".pytest_cache", "__pycache__", "*.egg-info", "build", "dist"]
+exclude = ["deprecated", ".git", ".mypy_cache", ".pytest_cache", "__pycache__", "*.egg-info", "build", "dist"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
 ignore = ["E501", "F841"]
 
 [tool.ruff.format]
-exclude = ["examples", "deprecated", "build", "dist"]
+exclude = ["deprecated", "build", "dist"]
 
 [tool.setuptools]
 packages = ["intentos", "intentos.bootstrap", "intentos.compiler", "intentos.core", "intentos.distributed", "intentos.engine", "intentos.interface", "intentos.llm", "intentos.llm.backends", "intentos.parser", "intentos.registry", "intentos.semantic_vm"]
