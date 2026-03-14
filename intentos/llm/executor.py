@@ -91,6 +91,27 @@ class BackendStats:
         self.last_error = error
         self.last_error_time = time.time()
 
+    @property
+    def success_rate(self) -> float:
+        """计算成功率"""
+        if self.total_requests == 0:
+            return 0.0
+        return self.successful_requests / self.total_requests
+
+    def to_dict(self) -> dict[str, Any]:
+        """转换为字典"""
+        return {
+            "total_requests": self.total_requests,
+            "successful_requests": self.successful_requests,
+            "failed_requests": self.failed_requests,
+            "success_rate": self.success_rate,
+            "total_tokens": self.total_tokens,
+            "total_cost": self.total_cost,
+            "avg_latency_ms": self.avg_latency_ms,
+            "last_error": self.last_error,
+            "last_error_time": self.last_error_time,
+        }
+
 
 class LLMRouter:
     """
