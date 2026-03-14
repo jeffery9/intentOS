@@ -4,12 +4,13 @@ IntentOS 意图界面层
 """
 
 from __future__ import annotations
-from typing import Optional, Any
-from dataclasses import dataclass
 
-from ..core import Intent, Context, IntentType
-from ..parser import IntentParser
+from dataclasses import dataclass
+from typing import Any, Optional
+
+from ..core import Context, Intent
 from ..engine import ExecutionEngine
+from ..parser import IntentParser
 from ..registry import IntentRegistry
 
 
@@ -27,14 +28,14 @@ class IntentInterface:
     意图界面
     人类与 IntentOS 交互的主接口
     """
-    
+
     def __init__(self, registry: Optional[IntentRegistry] = None):
         self.registry = registry or IntentRegistry()
         self.parser = IntentParser(self.registry)
         self.engine = ExecutionEngine(self.registry)
         self.context = Context(user_id="anonymous")
         self.conversation_history: list[ConversationTurn] = []
-    
+
     def set_user(self, user_id: str, role: str = "user", permissions: Optional[list[str]] = None) -> None:
         """设置当前用户"""
         self.context = Context(
@@ -43,14 +44,14 @@ class IntentInterface:
             permissions=permissions or [],
             history=[t.content for t in self.conversation_history],
         )
-    
+
     async def chat(self, text: str) -> str:
         """
         与 IntentOS 对话
-        
+
         Args:
             text: 用户输入
-        
+
         Returns:
             系统响应
         """
@@ -59,39 +60,39 @@ class IntentInterface:
             role="user",
             content=text,
         ))
-        
+
         # 解析意图
         intent = self.parser.parse(text, self.context)
-        
+
         # 更新上下文历史
         self.context.history.append(text)
-        
+
         # 执行意图
         result = await self.engine.execute(intent)
-        
+
         # 生成响应
         response = self._generate_response(intent, result)
-        
+
         # 记录系统响应
         self.conversation_history.append(ConversationTurn(
             role="system",
             content=response,
             intent=intent,
         ))
-        
+
         return response
-    
+
     def _generate_response(self, intent: Intent, result: Any) -> str:
         """生成响应文本"""
         if result.success:
             return f"✅ 已完成：{intent.name}\n结果：{result.result}"
         else:
             return f"❌ 执行失败：{result.error}"
-    
+
     def get_history(self) -> list[ConversationTurn]:
         """获取对话历史"""
         return self.conversation_history
-    
+
     def clear_history(self) -> None:
         """清除对话历史"""
         self.conversation_history.clear()
@@ -103,30 +104,30 @@ class IntentOS:
     IntentOS 主类
     统一的系统入口
     """
-    
+
     def __init__(self, llm_executor: Any = None):
-        from ..distributed.vm import create_distributed_vm
         from ..bootstrap.executor import create_bootstrap_executor
-        
+        from ..distributed.vm import create_distributed_vm
+
         self.registry = IntentRegistry()
         self.vm = create_distributed_vm(llm_executor)
         self.bootstrap = create_bootstrap_executor(self.vm)
         self.interface = IntentInterface(self.registry)
         self._initialized = False
-    
+
     def initialize(self) -> None:
         """初始化系统"""
         self._register_builtin_capabilities()
         self._register_builtin_templates()
         self._initialized = True
-    
+
     async def get_kernel_status(self) -> dict:
         """获取详细内核状态"""
         cluster_status = await self.vm.get_cluster_status()
         memory_state = self.vm.local_vm.memory.get_state()
         bootstrap_history = self.bootstrap.get_bootstrap_history(limit=5)
         processes = await self.vm.ps()
-        
+
         return {
             "cluster": cluster_status,
             "memory": memory_state,
@@ -134,11 +135,11 @@ class IntentOS:
             "bootstrap": [r.to_dict() for r in bootstrap_history],
             "registry": self.registry.introspect()
         }
-    
+
     def _register_builtin_capabilities(self) -> None:
         """注册内置能力"""
-        from ..core import Capability, Context
-        
+        from ..core import Capability
+
         # 示例能力：数据查询
         def query_data(context: Context, source: str, **filters) -> dict:
             return {
@@ -147,7 +148,7 @@ class IntentOS:
                 "data": [],  # 模拟数据
                 "count": 0,
             }
-        
+
         query_cap = Capability(
             name="query_data",
             description="查询数据源",
@@ -157,7 +158,7 @@ class IntentOS:
             tags=["data", "query"],
         )
         self.registry.register_capability(query_cap)
-        
+
         # 示例能力：生成报告
         def generate_report(context: Context, title: str, content: str) -> dict:
             return {
@@ -166,7 +167,7 @@ class IntentOS:
                 "format": "text",
                 "generated_at": "now",
             }
-        
+
         report_cap = Capability(
             name="generate_report",
             description="生成报告",
@@ -176,7 +177,7 @@ class IntentOS:
             tags=["report", "output"],
         )
         self.registry.register_capability(report_cap)
-        
+
         # 示例能力：分析数据
         def analyze_data(context: Context, data: list, method: str = "default") -> dict:
             return {
@@ -184,7 +185,7 @@ class IntentOS:
                 "insights": ["分析完成"],
                 "summary": "无异常",
             }
-        
+
         analyze_cap = Capability(
             name="analyze_data",
             description="分析数据",
@@ -194,11 +195,11 @@ class IntentOS:
             tags=["analysis", "ai"],
         )
         self.registry.register_capability(analyze_cap)
-    
+
     def _register_builtin_templates(self) -> None:
         """注册内置意图模板"""
-        from ..core import IntentTemplate, IntentStep, IntentType
-        
+        from ..core import IntentStep, IntentTemplate
+
         # 数据分析模板
         analysis_template = IntentTemplate(
             name="analyze_sales",
@@ -221,14 +222,14 @@ class IntentOS:
                 ),
                 IntentStep(
                     capability_name="generate_report",
-                    params={"title": f"销售分析报告", "content": "${analysis_result}"},
+                    params={"title": "销售分析报告", "content": "${analysis_result}"},
                     output_var="report",
                 ),
             ],
             tags=["sales", "analysis"],
         )
         self.registry.register_template(analysis_template)
-        
+
         # 元意图模板：注册新能力
         register_cap_template = IntentTemplate(
             name="register_capability",
@@ -247,27 +248,27 @@ class IntentOS:
             tags=["meta", "system"],
         )
         self.registry.register_template(register_cap_template)
-    
+
     async def execute(self, text: str) -> str:
         """
         执行自然语言指令
-        
+
         Args:
             text: 用户输入的自然语言
-        
+
         Returns:
             执行结果
         """
         if not self._initialized:
             self.initialize()
-        
+
         return await self.interface.chat(text)
-    
+
     @property
     def context(self) -> Context:
         """获取当前上下文"""
         return self.interface.context
-    
+
     @property
     def registry_introspect(self) -> dict:
         """查看系统注册信息"""

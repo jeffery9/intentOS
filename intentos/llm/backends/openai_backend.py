@@ -8,27 +8,27 @@ OpenAI 后端集成
 """
 
 from __future__ import annotations
+
 import time
-from typing import Optional, AsyncIterator, Any
+from typing import AsyncIterator, Optional
 
 from .base import (
+    AuthenticationError,
     LLMBackend,
+    LLMError,
     LLMResponse,
     LLMUsage,
-    LLMError,
-    RateLimitError,
-    AuthenticationError,
-    TimeoutError,
     Message,
-    ToolDefinition,
+    RateLimitError,
+    TimeoutError,
     ToolCall,
-    LLMRole,
+    ToolDefinition,
 )
 
 
 class OpenAIBackend(LLMBackend):
     """OpenAI LLM 后端"""
-    
+
     def __init__(
         self,
         model: str = "gpt-4o",
@@ -50,7 +50,7 @@ class OpenAIBackend(LLMBackend):
         self.organization = organization
         self._client = None
         self._async_client = None
-    
+
     def _get_client(self):
         """获取同步客户端"""
         if self._client is None:
@@ -58,7 +58,7 @@ class OpenAIBackend(LLMBackend):
                 from openai import OpenAI
             except ImportError:
                 raise ImportError("请安装 openai: pip install openai")
-            
+
             self._client = OpenAI(
                 api_key=self.api_key,
                 base_url=self.base_url,
@@ -67,7 +67,7 @@ class OpenAIBackend(LLMBackend):
                 max_retries=self.max_retries,
             )
         return self._client
-    
+
     def _get_async_client(self):
         """获取异步客户端"""
         if self._async_client is None:
@@ -75,7 +75,7 @@ class OpenAIBackend(LLMBackend):
                 from openai import AsyncOpenAI
             except ImportError:
                 raise ImportError("请安装 openai: pip install openai")
-            
+
             self._async_client = AsyncOpenAI(
                 api_key=self.api_key,
                 base_url=self.base_url,
@@ -84,7 +84,7 @@ class OpenAIBackend(LLMBackend):
                 max_retries=self.max_retries,
             )
         return self._async_client
-    
+
     async def generate(
         self,
         messages: list[Message],
@@ -96,15 +96,15 @@ class OpenAIBackend(LLMBackend):
     ) -> LLMResponse:
         """生成响应"""
         start_time = time.time()
-        
+
         client = self._get_async_client()
-        
+
         # 转换消息格式
         openai_messages = self._convert_messages(messages)
-        
+
         # 转换工具格式
         openai_tools = [t.to_dict() for t in tools] if tools else None
-        
+
         try:
             response = await client.chat.completions.create(
                 model=self.model,
@@ -116,15 +116,15 @@ class OpenAIBackend(LLMBackend):
                 stream=stream,
                 **kwargs,
             )
-            
+
             latency_ms = int((time.time() - start_time) * 1000)
-            
+
             # 解析响应
             choice = response.choices[0]
             content = choice.message.content or ""
             tool_calls = self._parse_tool_calls(choice.message.tool_calls)
             usage = LLMUsage.from_dict(response.model_dump())
-            
+
             return LLMResponse(
                 content=content,
                 model=self.model,
@@ -134,10 +134,10 @@ class OpenAIBackend(LLMBackend):
                 raw_response=response,
                 latency_ms=latency_ms,
             )
-            
+
         except Exception as e:
             raise self._convert_error(e)
-    
+
     async def generate_stream(
         self,
         messages: list[Message],
@@ -150,7 +150,7 @@ class OpenAIBackend(LLMBackend):
         client = self._get_async_client()
         openai_messages = self._convert_messages(messages)
         openai_tools = [t.to_dict() for t in tools] if tools else None
-        
+
         try:
             stream = await client.chat.completions.create(
                 model=self.model,
@@ -161,14 +161,14 @@ class OpenAIBackend(LLMBackend):
                 stream=True,
                 **kwargs,
             )
-            
+
             async for chunk in stream:
                 if chunk.choices and chunk.choices[0].delta.content:
                     yield chunk.choices[0].delta.content
-                    
+
         except Exception as e:
             raise self._convert_error(e)
-    
+
     def validate_connection(self) -> bool:
         """验证连接"""
         try:
@@ -178,7 +178,7 @@ class OpenAIBackend(LLMBackend):
             return True
         except Exception:
             return False
-    
+
     def _convert_messages(self, messages: list[Message]) -> list[dict]:
         """转换消息为 OpenAI 格式"""
         result = []
@@ -190,12 +190,12 @@ class OpenAIBackend(LLMBackend):
                 d["tool_call_id"] = msg.tool_call_id
             result.append(d)
         return result
-    
+
     def _parse_tool_calls(self, tool_calls) -> list[ToolCall]:
         """解析工具调用"""
         if not tool_calls:
             return []
-        
+
         result = []
         for tc in tool_calls:
             import json
@@ -205,16 +205,20 @@ class OpenAIBackend(LLMBackend):
                 arguments=json.loads(tc.function.arguments),
             ))
         return result
-    
+
     def _convert_error(self, error: Exception) -> LLMError:
         """转换错误类型"""
         try:
             from openai import (
-                RateLimitError as OpenAIRateLimit,
-                AuthenticationError as OpenAIAuth,
                 APITimeoutError as OpenAITimeout,
             )
-            
+            from openai import (
+                AuthenticationError as OpenAIAuth,
+            )
+            from openai import (
+                RateLimitError as OpenAIRateLimit,
+            )
+
             if isinstance(error, OpenAIRateLimit):
                 return RateLimitError(
                     str(error),
@@ -235,9 +239,9 @@ class OpenAIBackend(LLMBackend):
                 )
         except ImportError:
             pass
-        
+
         return LLMError(str(error), raw_error=error)
-    
+
     @property
     def provider_name(self) -> str:
         return "OpenAI"

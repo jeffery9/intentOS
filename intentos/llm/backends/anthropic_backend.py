@@ -9,27 +9,28 @@ Anthropic 后端集成
 """
 
 from __future__ import annotations
+
 import time
-from typing import Optional, AsyncIterator
+from typing import AsyncIterator, Optional
 
 from .base import (
-    LLMBackend,
-    LLMResponse,
-    LLMUsage,
-    LLMError,
-    RateLimitError,
     AuthenticationError,
-    TimeoutError,
-    Message,
-    ToolDefinition,
-    ToolCall,
+    LLMBackend,
+    LLMError,
+    LLMResponse,
     LLMRole,
+    LLMUsage,
+    Message,
+    RateLimitError,
+    TimeoutError,
+    ToolCall,
+    ToolDefinition,
 )
 
 
 class AnthropicBackend(LLMBackend):
     """Anthropic LLM 后端"""
-    
+
     def __init__(
         self,
         model: str = "claude-3-5-sonnet-20241022",
@@ -49,7 +50,7 @@ class AnthropicBackend(LLMBackend):
         )
         self._client = None
         self._async_client = None
-    
+
     def _get_client(self):
         """获取同步客户端"""
         if self._client is None:
@@ -57,7 +58,7 @@ class AnthropicBackend(LLMBackend):
                 from anthropic import Anthropic
             except ImportError:
                 raise ImportError("请安装 anthropic: pip install anthropic")
-            
+
             self._client = Anthropic(
                 api_key=self.api_key,
                 base_url=self.base_url,
@@ -65,7 +66,7 @@ class AnthropicBackend(LLMBackend):
                 max_retries=self.max_retries,
             )
         return self._client
-    
+
     def _get_async_client(self):
         """获取异步客户端"""
         if self._async_client is None:
@@ -73,7 +74,7 @@ class AnthropicBackend(LLMBackend):
                 from anthropic import AsyncAnthropic
             except ImportError:
                 raise ImportError("请安装 anthropic: pip install anthropic")
-            
+
             self._async_client = AsyncAnthropic(
                 api_key=self.api_key,
                 base_url=self.base_url,
@@ -81,7 +82,7 @@ class AnthropicBackend(LLMBackend):
                 max_retries=self.max_retries,
             )
         return self._async_client
-    
+
     async def generate(
         self,
         messages: list[Message],
@@ -93,9 +94,9 @@ class AnthropicBackend(LLMBackend):
     ) -> LLMResponse:
         """生成响应"""
         start_time = time.time()
-        
+
         client = self._get_async_client()
-        
+
         # 分离 system 消息
         system_message = ""
         user_messages = []
@@ -104,13 +105,13 @@ class AnthropicBackend(LLMBackend):
                 system_message = msg.content
             else:
                 user_messages.append(msg)
-        
+
         # 转换消息格式
         anthropic_messages = self._convert_messages(user_messages)
-        
+
         # 转换工具格式
         anthropic_tools = self._convert_tools(tools) if tools else None
-        
+
         try:
             response = await client.messages.create(
                 model=self.model,
@@ -122,13 +123,13 @@ class AnthropicBackend(LLMBackend):
                 stream=stream,
                 **kwargs,
             )
-            
+
             latency_ms = int((time.time() - start_time) * 1000)
-            
+
             # 解析响应
             content = ""
             tool_calls = []
-            
+
             for block in response.content:
                 if block.type == "text":
                     content += block.text
@@ -138,13 +139,13 @@ class AnthropicBackend(LLMBackend):
                         name=block.name,
                         arguments=block.input,
                     ))
-            
+
             usage = LLMUsage(
                 prompt_tokens=response.usage.input_tokens,
                 completion_tokens=response.usage.output_tokens,
                 total_tokens=response.usage.input_tokens + response.usage.output_tokens,
             )
-            
+
             return LLMResponse(
                 content=content,
                 model=self.model,
@@ -154,10 +155,10 @@ class AnthropicBackend(LLMBackend):
                 raw_response=response,
                 latency_ms=latency_ms,
             )
-            
+
         except Exception as e:
             raise self._convert_error(e)
-    
+
     async def generate_stream(
         self,
         messages: list[Message],
@@ -168,7 +169,7 @@ class AnthropicBackend(LLMBackend):
     ) -> AsyncIterator[str]:
         """流式生成"""
         client = self._get_async_client()
-        
+
         # 分离 system 消息
         system_message = ""
         user_messages = []
@@ -177,10 +178,10 @@ class AnthropicBackend(LLMBackend):
                 system_message = msg.content
             else:
                 user_messages.append(msg)
-        
+
         anthropic_messages = self._convert_messages(user_messages)
         anthropic_tools = self._convert_tools(tools) if tools else None
-        
+
         try:
             async with client.messages.stream(
                 model=self.model,
@@ -195,7 +196,7 @@ class AnthropicBackend(LLMBackend):
                     yield text
         except Exception as e:
             raise self._convert_error(e)
-    
+
     def validate_connection(self) -> bool:
         """验证连接"""
         try:
@@ -205,7 +206,7 @@ class AnthropicBackend(LLMBackend):
             return True
         except Exception:
             return False
-    
+
     def _convert_messages(self, messages: list[Message]) -> list[dict]:
         """转换消息为 Anthropic 格式"""
         result = []
@@ -233,7 +234,7 @@ class AnthropicBackend(LLMBackend):
                     ],
                 })
         return result
-    
+
     def _convert_tools(self, tools: list[ToolDefinition]) -> list[dict]:
         """转换工具为 Anthropic 格式"""
         result = []
@@ -244,16 +245,20 @@ class AnthropicBackend(LLMBackend):
                 "input_schema": tool.parameters,
             })
         return result
-    
+
     def _convert_error(self, error: Exception) -> LLMError:
         """转换错误类型"""
         try:
             from anthropic import (
-                RateLimitError as AnthropicRateLimit,
-                AuthenticationError as AnthropicAuth,
                 APITimeoutError as AnthropicTimeout,
             )
-            
+            from anthropic import (
+                AuthenticationError as AnthropicAuth,
+            )
+            from anthropic import (
+                RateLimitError as AnthropicRateLimit,
+            )
+
             if isinstance(error, AnthropicRateLimit):
                 return RateLimitError(
                     str(error),
@@ -274,9 +279,9 @@ class AnthropicBackend(LLMBackend):
                 )
         except ImportError:
             pass
-        
+
         return LLMError(str(error), raw_error=error)
-    
+
     @property
     def provider_name(self) -> str:
         return "Anthropic"

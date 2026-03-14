@@ -5,10 +5,10 @@ IntentOS 类型定义
 """
 
 from __future__ import annotations
-from typing import Any, Dict, List, Optional, Callable, AsyncIterator, Union
+
 from dataclasses import dataclass
 from enum import Enum
-
+from typing import Any, AsyncIterator, Callable, Dict, List, Optional
 
 # =============================================================================
 # 基础类型

@@ -1,31 +1,29 @@
 
 import asyncio
 import cmd
-import sys
-import os
 import json
-from typing import Optional
+import sys
+
 from rich.console import Console
-from rich.panel import Panel
 from rich.live import Live
+from rich.panel import Panel
 from rich.spinner import Spinner
 from rich.table import Table
 
 from intentos.interface.interface import IntentOS
-from intentos.semantic_vm import create_program, create_instruction, SemanticOpcode
-from intentos.distributed import DistributedOpcode
+
 
 class IntentShell(cmd.Cmd):
     intro = 'IntentOS Kernel Shell v8.1. Type /help for commands.\n'
     prompt = 'intentos> '
-    
+
     def __init__(self):
         super().__init__()
         self.os = IntentOS()
         self.os.initialize()
         self.console = Console()
         self._print_banner()
-        
+
     def _print_banner(self):
         self.console.print("\n" + "="*40, style="bold blue")
         self.console.print("       IntentOS Shell (v8.1)      ", style="bold blue")
@@ -42,7 +40,7 @@ class IntentShell(cmd.Cmd):
         """
         if not line.strip():
             return False
-            
+
         if line.startswith('/'):
             # 去掉 / 后分发给 do_ 方法
             return super().onecmd(line[1:])
@@ -64,7 +62,7 @@ class IntentShell(cmd.Cmd):
         """Show running semantic processes: /ps"""
         status = asyncio.run(self.os.get_kernel_status())
         processes = status.get("processes", [])
-        
+
         table = Table(title="Semantic Process Table (Active)")
         table.add_column("PID", style="cyan", no_wrap=True)
         table.add_column("Program", style="green")
@@ -72,7 +70,7 @@ class IntentShell(cmd.Cmd):
         table.add_column("State", style="yellow")
         table.add_column("PC", style="white")
         table.add_column("Start Time", style="dim")
-        
+
         for p in processes:
             table.add_row(
                 p["pid"][:8],
@@ -89,7 +87,7 @@ class IntentShell(cmd.Cmd):
         if not arg:
             self.console.print("Usage: /kill <pid>", style="red")
             return
-        
+
         success = asyncio.run(self.os.vm.kill(arg))
         if success:
             self.console.print(f"Signal SIGKILL sent to process {arg}", style="yellow")
@@ -105,7 +103,7 @@ class IntentShell(cmd.Cmd):
         table.add_column("Host:Port", style="green")
         table.add_column("Status", style="yellow")
         table.add_column("Load", style="magenta")
-        
+
         for node in cluster.get("nodes", []):
             table.add_row(
                 node["node_id"][:8],
@@ -120,7 +118,7 @@ class IntentShell(cmd.Cmd):
         status = asyncio.run(self.os.get_kernel_status())
         reg = status["registry"]
         mem = status["memory"]
-        
+
         table = Table(title="Semantic Storage Usage (Disk)")
         table.add_column("Storage Type", style="cyan")
         table.add_column("Item Count", style="magenta")
@@ -160,7 +158,7 @@ class IntentShell(cmd.Cmd):
         if not parts:
             self.do_top("")
             return
-            
+
         action = parts[0]
         try:
             if action == "add" and len(parts) >= 3:
@@ -176,14 +174,14 @@ class IntentShell(cmd.Cmd):
         """Show self-bootstrap history (Kernel logs): history"""
         status = asyncio.run(self.os.get_kernel_status())
         history = status["bootstrap"]
-        
+
         table = Table(title="Self-Bootstrap Audit History (Kernel Logs)")
         table.add_column("ID", style="dim")
         table.add_column("Action", style="cyan")
         table.add_column("Target", style="magenta")
         table.add_column("Status", style="green")
         table.add_column("Time", style="dim")
-        
+
         for record in history:
             table.add_row(
                 record["id"][:8],
@@ -203,14 +201,14 @@ class IntentShell(cmd.Cmd):
         else:
             items = info.get("templates", [])
             title = "Available Intent Templates"
-            
+
         table = Table(title=title)
         table.add_column("Name", style="cyan")
         table.add_column("Description", style="green")
-        
+
         for item in items:
             table.add_row(item["name"], item.get("description", "N/A"))
-            
+
         self.console.print(table)
 
     def do_cat(self, arg):
@@ -218,7 +216,7 @@ class IntentShell(cmd.Cmd):
         if not arg:
             self.console.print("Usage: cat name", style="red")
             return
-        
+
         # Check in templates
         status = asyncio.run(self.os.get_kernel_status())
         templates = status["registry"]["templates"]
@@ -226,7 +224,7 @@ class IntentShell(cmd.Cmd):
             if t["name"] == arg:
                 self.console.print(Panel(json.dumps(t, indent=2, ensure_ascii=False), title=f"Template: {arg}"))
                 return
-        
+
         self.console.print(f"Item {arg} not found.", style="red")
 
     def do_exit(self, arg):

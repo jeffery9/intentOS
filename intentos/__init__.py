@@ -8,42 +8,41 @@ IntentOS - 分布式语义 VM + Self-Bootstrap
 """
 
 # 核心层
-from .core import (
-    Intent,
-    IntentType,
-    IntentStatus,
-    Context,
-    Capability,
+# Self-Bootstrap 层
+from .bootstrap import (
+    BootstrapPolicy,
+    BootstrapPrograms,
+    BootstrapValidator,
+    SelfBootstrapExecutor,
+    create_bootstrap_executor,
+    create_bootstrap_policy,
 )
-
-# 语义 VM 层
-from .semantic_vm import (
-    SemanticVM,
-    SemanticInstruction,
-    SemanticProgram,
-    SemanticOpcode,
-    create_semantic_vm,
-    create_program,
-    create_instruction,
+from .core import (
+    Capability,
+    Context,
+    Intent,
+    IntentStatus,
+    IntentType,
 )
 
 # 分布式层
 from .distributed import (
-    DistributedSemanticVM,
     DistributedOpcode,
+    DistributedSemanticVM,
     VMNode,
     create_distributed_vm,
     create_node,
 )
 
-# Self-Bootstrap 层
-from .bootstrap import (
-    SelfBootstrapExecutor,
-    BootstrapPolicy,
-    BootstrapPrograms,
-    BootstrapValidator,
-    create_bootstrap_executor,
-    create_bootstrap_policy,
+# 语义 VM 层
+from .semantic_vm import (
+    SemanticInstruction,
+    SemanticOpcode,
+    SemanticProgram,
+    SemanticVM,
+    create_instruction,
+    create_program,
+    create_semantic_vm,
 )
 
 # 版本

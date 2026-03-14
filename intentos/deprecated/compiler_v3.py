@@ -15,12 +15,11 @@ IntentOS 编译器 v2.0
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, field
-from typing import Any, Optional, Callable
-from enum import Enum
+
 import time
 import uuid
-
+from dataclasses import dataclass, field
+from typing import Any, Callable, Optional
 
 # =============================================================================
 # 编译中间表示
@@ -30,7 +29,7 @@ import uuid
 class StructuredIntent:
     """
     结构化意图 (编译后的 IR)
-    
+
     由 LLM 从自然语言解析而来
     """
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -40,7 +39,7 @@ class StructuredIntent:
     constraints: dict[str, Any] = field(default_factory=dict)
     context: dict[str, Any] = field(default_factory=dict)
     confidence: float = 1.0
-    
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -62,7 +61,7 @@ class GeneratedPrompt:
     user_prompt: str
     intent: StructuredIntent
     metadata: dict[str, Any] = field(default_factory=dict)
-    
+
     @property
     def messages(self) -> list[dict[str, str]]:
         """转换为 LLM 消息格式"""
@@ -70,7 +69,7 @@ class GeneratedPrompt:
             {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": self.user_prompt},
         ]
-    
+
     def to_dict(self) -> dict:
         return {
             "system_prompt": self.system_prompt,
@@ -87,10 +86,10 @@ class GeneratedPrompt:
 class IntentParser:
     """
     意图解析器
-    
+
     使用 LLM 将自然语言解析为结构化意图
     """
-    
+
     # 解析 Prompt 模板
     PARSE_PROMPT = """
 你是一个意图解析专家。请将用户的自然语言输入解析为结构化的意图。
@@ -129,16 +128,16 @@ class IntentParser:
 
 请解析为结构化意图:
 """
-    
+
     def __init__(self, llm_executor: Any = None):
         """
         初始化解析器
-        
+
         Args:
             llm_executor: LLM 执行器 (用于解析自然语言)
         """
         self.llm_executor = llm_executor
-    
+
     async def parse(
         self,
         source: str,
@@ -146,28 +145,28 @@ class IntentParser:
     ) -> StructuredIntent:
         """
         解析自然语言为结构化意图
-        
+
         Args:
             source: 自然语言输入
             context: 上下文信息
-        
+
         Returns:
             结构化意图
         """
         if not self.llm_executor:
             raise ValueError("需要配置 LLM 执行器")
-        
+
         # 构建解析 Prompt
         parse_prompt = self.PARSE_PROMPT.format(user_input=source)
-        
+
         # 调用 LLM 解析
         messages = [
             {"role": "system", "content": "你是一个意图解析专家。"},
             {"role": "user", "content": parse_prompt},
         ]
-        
+
         response = await self.llm_executor.execute(messages)
-        
+
         # 解析 LLM 返回的 JSON
         import json
         try:
@@ -177,9 +176,9 @@ class IntentParser:
                 json_str = json_str.split("```json")[1].split("```")[0]
             elif "```" in json_str:
                 json_str = json_str.split("```")[1].split("```")[0]
-            
+
             parsed = json.loads(json_str.strip())
-            
+
             return StructuredIntent(
                 action=parsed.get("action", ""),
                 target=parsed.get("target", ""),
@@ -188,7 +187,7 @@ class IntentParser:
                 context=context or {},
                 confidence=parsed.get("confidence", 1.0),
             )
-        except Exception as e:
+        except Exception:
             # 解析失败，返回基本结构
             return StructuredIntent(
                 action="unknown",
@@ -206,10 +205,10 @@ class IntentParser:
 class CodeGenerator:
     """
     代码生成器
-    
+
     将结构化意图转换为可执行的 Prompt
     """
-    
+
     # Prompt 模板库
     TEMPLATES = {
         "atomic": """
@@ -249,16 +248,16 @@ class CodeGenerator:
 最终返回整合后的结果。
 """,
     }
-    
+
     def __init__(self, capabilities: Optional[dict[str, Any]] = None):
         self.capabilities = capabilities or {}
-    
+
     def generate(self, intent: StructuredIntent) -> GeneratedPrompt:
         """生成 Prompt"""
         # 选择模板
         template_name = self._select_template(intent)
         template = self.TEMPLATES.get(template_name, self.TEMPLATES["atomic"])
-        
+
         # 填充模板
         system_prompt = template.format(
             action=intent.action,
@@ -268,9 +267,9 @@ class CodeGenerator:
             steps=self._format_steps(intent),
             context=self._format_context(intent.context),
         )
-        
+
         user_prompt = f"请{intent.action}{intent.target}"
-        
+
         return GeneratedPrompt(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
@@ -281,32 +280,32 @@ class CodeGenerator:
                 "template": template_name,
             },
         )
-    
+
     def _select_template(self, intent: StructuredIntent) -> str:
         """选择模板"""
         # 根据参数复杂度选择
         if len(intent.parameters) > 5:
             return "composite"
         return "atomic"
-    
+
     def _format_params(self, params: dict) -> str:
         """格式化参数"""
         if not params:
             return "（无参数）"
         return "\n".join(f"- {k}: {v}" for k, v in params.items())
-    
+
     def _format_capabilities(self) -> str:
         """格式化能力列表"""
         if not self.capabilities:
             return "（无可用能力）"
-        lines = [f"- **{name}**: {cap.get('description', '')}" 
+        lines = [f"- **{name}**: {cap.get('description', '')}"
                  for name, cap in self.capabilities.items()]
         return "\n".join(lines)
-    
+
     def _format_steps(self, intent: StructuredIntent) -> str:
         """格式化步骤"""
         return "（自动推导执行步骤）"
-    
+
     def _format_context(self, context: dict) -> str:
         """格式化上下文"""
         if not context:
@@ -321,10 +320,10 @@ class CodeGenerator:
 class Linker:
     """
     链接器
-    
+
     将 Prompt 与能力、记忆绑定
     """
-    
+
     def __init__(
         self,
         capabilities: dict[str, Callable],
@@ -332,7 +331,7 @@ class Linker:
     ):
         self.capabilities = capabilities
         self.memory_manager = memory_manager
-    
+
     async def link(
         self,
         prompt: GeneratedPrompt,
@@ -341,20 +340,20 @@ class Linker:
         """链接 Prompt、能力和记忆"""
         # 1. 绑定能力
         capabilities = self._get_relevant_capabilities(prompt.intent)
-        
+
         # 2. 注入记忆 (如果有记忆管理器)
         memories = {}
         if self.memory_manager:
             memories = await self._resolve_memories(prompt)
             prompt = await self._inject_memories(prompt, memories)
-        
+
         return {
             "prompt": prompt.to_dict(),
             "capabilities": capabilities,
             "memories": memories,
             "executable": True,
         }
-    
+
     def _get_relevant_capabilities(self, intent: StructuredIntent) -> list[str]:
         """获取相关能力"""
         action_to_cap = {
@@ -363,14 +362,14 @@ class Linker:
             "generate": ["template_render"],
             "compare": ["data_query", "comparison"],
         }
-        
+
         relevant = []
         for cap in action_to_cap.get(intent.action, []):
             if cap in self.capabilities:
                 relevant.append(cap)
-        
+
         return relevant
-    
+
     async def _resolve_memories(
         self,
         prompt: GeneratedPrompt,
@@ -378,25 +377,25 @@ class Linker:
         """解析记忆引用"""
         import re
         memories = {}
-        
+
         # 提取记忆引用 ${memory.type.key}
         pattern = r'\$\{memory\.([^}]+)\}'
         refs = re.findall(pattern, prompt.system_prompt)
         refs.extend(re.findall(pattern, prompt.user_prompt))
-        
+
         for ref in set(refs):
             parts = ref.split('.', 1)
             key = parts[1] if len(parts) == 2 else ref
-            
+
             try:
                 entry = await self.memory_manager.get(key)
                 if entry:
                     memories[ref] = entry.value
             except Exception:
                 pass
-        
+
         return memories
-    
+
     async def _inject_memories(
         self,
         prompt: GeneratedPrompt,
@@ -404,16 +403,16 @@ class Linker:
     ) -> GeneratedPrompt:
         """注入记忆到 Prompt"""
         import re
-        
+
         system_prompt = prompt.system_prompt
         user_prompt = prompt.user_prompt
-        
+
         for ref, value in memories.items():
             placeholder = f"${{memory.{ref}}}"
             str_value = str(value) if value is not None else ""
             system_prompt = re.sub(re.escape(placeholder), str_value, system_prompt)
             user_prompt = re.sub(re.escape(placeholder), str_value, user_prompt)
-        
+
         return GeneratedPrompt(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
@@ -429,11 +428,11 @@ class Linker:
 class IntentCompiler:
     """
     意图编译器
-    
+
     完整编译流程:
     自然语言 → [LLM 解析] → StructuredIntent → [代码生成] → Prompt → [链接] → Executable
     """
-    
+
     def __init__(
         self,
         llm_executor: Any = None,
@@ -442,7 +441,7 @@ class IntentCompiler:
     ):
         """
         初始化编译器
-        
+
         Args:
             llm_executor: LLM 执行器 (用于解析)
             capabilities: 能力注册表
@@ -454,12 +453,12 @@ class IntentCompiler:
             capabilities=self._extract_callables(capabilities),
             memory_manager=memory_manager,
         )
-    
+
     def _extract_callables(self, capabilities: dict) -> dict[str, Callable]:
         """从能力注册表提取可调用函数"""
         # 简化实现，实际应该从 registry 获取
         return {}
-    
+
     async def compile(
         self,
         source: str,
@@ -467,22 +466,22 @@ class IntentCompiler:
     ) -> GeneratedPrompt:
         """
         编译意图
-        
+
         Args:
             source: 自然语言输入
             context: 上下文信息
-        
+
         Returns:
             生成的 Prompt
         """
         # 1. LLM 解析 (自然语言 → 结构化意图)
         intent = await self.parser.parse(source, context)
-        
+
         # 2. 代码生成 (结构化意图 → Prompt)
         prompt = self.generator.generate(intent)
-        
+
         return prompt
-    
+
     async def compile_and_link(
         self,
         source: str,

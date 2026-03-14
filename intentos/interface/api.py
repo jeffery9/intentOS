@@ -1,16 +1,17 @@
-import asyncio
-import json
 from datetime import datetime
+
 from aiohttp import web
+
 from intentos.interface.interface import IntentOS
+
 
 class IntentOSGateway:
     """
     IntentOS REST API Gateway (v1.0)
-    
+
     内核与外部系统的统一 API 接口
     """
-    
+
     def __init__(self, host="localhost", port=8080):
         self.os = IntentOS()
         self.os.initialize()
@@ -18,25 +19,25 @@ class IntentOSGateway:
         self.port = port
         self.app = web.Application()
         self._setup_routes()
-        
+
     def _setup_routes(self):
         # 1. 执行层 (Execution)
         self.app.router.add_post("/v1/execute", self.handle_execute)
-        
+
         # 2. 状态层 (Status & Health)
         self.app.router.add_get("/v1/status", self.handle_status)
-        
+
         # 3. 存储层 (Storage & Memory)
         self.app.router.add_get("/v1/memory/{store}/{key}", self.handle_get_memory)
         self.app.router.add_post("/v1/memory", self.handle_set_memory)
-        
+
         # 4. 资源层 (Registry)
         self.app.router.add_get("/v1/registry", self.handle_registry)
-        
+
         # 5. 集群层 (Nodes)
         self.app.router.add_get("/v1/nodes", self.handle_list_nodes)
         self.app.router.add_post("/v1/nodes", self.handle_add_node)
-        
+
         # 6. 审计层 (Audit)
         self.app.router.add_get("/v1/audit", self.handle_audit)
 
@@ -49,7 +50,7 @@ class IntentOSGateway:
             intent = data.get("intent")
             if not intent:
                 return self._error_response("Missing 'intent' field", 400)
-            
+
             result = await self.os.execute(intent)
             return self._success_response({"result": result})
         except Exception as e:
@@ -81,7 +82,7 @@ class IntentOSGateway:
             value = data.get("value")
             if not all([store, key, value is not None]):
                 return self._error_response("Missing required fields", 400)
-            
+
             await self.os.vm.memory.set(store, key, value)
             return self._success_response({"message": "Memory updated"})
         except Exception as e:
@@ -104,7 +105,7 @@ class IntentOSGateway:
             host, port = data.get("host"), data.get("port")
             if not host or not port:
                 return self._error_response("Missing host/port", 400)
-            
+
             node = await self.os.vm.add_node(host, int(port))
             return self._success_response(node.to_dict())
         except Exception as e:

@@ -4,26 +4,27 @@
 """
 
 from __future__ import annotations
-from typing import Optional, Any
+
 from datetime import datetime
-from ..core import (
-    Intent,
-    IntentType,
-    IntentStatus,
-    IntentExecutionResult,
-    Context,
-    IntentStep,
-)
-from ..registry import IntentRegistry
+from typing import Any, Optional
+
 from ..compiler import IntentCompiler
+from ..core import (
+    Context,
+    Intent,
+    IntentExecutionResult,
+    IntentStatus,
+    IntentType,
+)
 from ..llm import LLMExecutor
+from ..registry import IntentRegistry
 
 
 class ExecutionEngine:
     """
     意图执行引擎
     负责解析、调度、执行意图
-    
+
     支持两种执行模式:
     1. 直接执行 - 调用预注册的能力
     2. LLM 执行 - 将意图编译为 Prompt，由 LLM 决定如何执行
@@ -40,7 +41,7 @@ class ExecutionEngine:
         self.use_llm = use_llm  # 是否使用 LLM 执行
         self.compiler = IntentCompiler(registry)
         self._execution_history: list[IntentExecutionResult] = []
-    
+
     async def execute(self, intent: Intent) -> IntentExecutionResult:
         """
         执行意图
@@ -96,11 +97,11 @@ class ExecutionEngine:
                 started_at=started_at,
                 completed_at=datetime.now(),
             )
-    
+
     async def _execute_with_llm(self, intent: Intent, trace: list[dict]) -> Any:
         """
         使用 LLM 执行意图
-        
+
         流程:
         1. 将意图编译为 Prompt
         2. LLM 分析并决定调用哪些能力
@@ -109,23 +110,23 @@ class ExecutionEngine:
         """
         # 编译意图为 Prompt
         compiled = self.compiler.compile(intent)
-        
+
         trace.append({
             "step": "compile_intent",
             "template": compiled.metadata.get("template"),
             "timestamp": datetime.now().isoformat(),
         })
-        
+
         # LLM 执行
         llm_response = await self.llm_executor.execute(compiled)
-        
+
         trace.append({
             "step": "llm_generate",
             "content_length": len(llm_response.content),
             "tool_calls": len(llm_response.tool_calls),
             "timestamp": datetime.now().isoformat(),
         })
-        
+
         # 处理工具调用
         if llm_response.tool_calls:
             tool_results = []
@@ -144,49 +145,49 @@ class ExecutionEngine:
                         "result": result,
                         "timestamp": datetime.now().isoformat(),
                     })
-            
+
             return {
                 "llm_content": llm_response.content,
                 "tool_results": tool_results,
             }
-        
+
         return {
             "llm_content": llm_response.content,
             "parsed_result": llm_response.parsed_result,
         }
-    
+
     async def _execute_atomic(self, intent: Intent, trace: list[dict]) -> Any:
         """执行原子意图"""
         # 查找匹配的能力
         capability = self.registry.get_capability(intent.name)
-        
+
         if not capability:
             # 尝试从参数中推断能力
             if "capability" in intent.params:
                 capability = self.registry.get_capability(intent.params["capability"])
-        
+
         if not capability:
             raise ValueError(f"未找到能力：{intent.name}")
-        
+
         # 权限检查
         for perm in capability.requires_permissions:
             if not intent.context.has_permission(perm):
                 raise PermissionError(f"缺少权限：{perm}")
-        
+
         trace.append({
             "step": "execute_capability",
             "capability": capability.name,
             "timestamp": datetime.now().isoformat(),
         })
-        
+
         # 执行能力
         result = capability.execute(intent.context, **intent.params)
         return result
-    
+
     async def _execute_composite(self, intent: Intent, trace: list[dict]) -> Any:
         """执行复合意图"""
         results = {}
-        
+
         for i, step in enumerate(intent.steps):
             # 检查条件
             if step.condition and not self._evaluate_condition(step.condition, intent.context, results):
@@ -197,42 +198,42 @@ class ExecutionEngine:
                     "timestamp": datetime.now().isoformat(),
                 })
                 continue
-            
+
             trace.append({
                 "step": i,
                 "capability": step.capability_name,
                 "params": step.params,
                 "timestamp": datetime.now().isoformat(),
             })
-            
+
             # 执行步骤
             capability = self.registry.get_capability(step.capability_name)
             if not capability:
                 raise ValueError(f"步骤 {i}: 未找到能力 '{step.capability_name}'")
-            
+
             # 解析参数（替换变量引用）
             resolved_params = self._resolve_params(step.params, results)
-            
+
             step_result = capability.execute(intent.context, **resolved_params)
-            
+
             # 绑定输出变量
             if step.output_var:
                 results[step.output_var] = step_result
-        
+
         return results
-    
+
     async def _execute_scenario(self, intent: Intent, trace: list[dict]) -> Any:
         """执行场景意图"""
         # 场景意图本质上是预定义的复合意图
         return await self._execute_composite(intent, trace)
-    
+
     async def _execute_meta(self, intent: Intent, trace: list[dict]) -> Any:
         """
         执行元意图
         元意图用于管理意图系统本身
         """
         action = intent.params.get("action")
-        
+
         if action == "register_template":
             template_data = intent.params.get("template")
             # 动态创建并注册模板
@@ -240,7 +241,7 @@ class ExecutionEngine:
             template = IntentTemplate(**template_data)
             self.registry.register_template(template)
             return {"status": "registered", "name": template.name}
-        
+
         elif action == "register_capability":
             # 动态注册能力
             cap_data = intent.params.get("capability")
@@ -248,27 +249,27 @@ class ExecutionEngine:
             capability = Capability(**cap_data)
             self.registry.register_capability(capability)
             return {"status": "registered", "name": capability.name}
-        
+
         elif action == "introspect":
             return self.registry.introspect()
-        
+
         elif action == "search":
             query = intent.params.get("query", "")
             return self.registry.search(query)
-        
+
         else:
             raise ValueError(f"未知元意图动作：{action}")
-    
+
     def _evaluate_condition(self, condition: str, context: Context, results: dict) -> bool:
         """评估条件表达式"""
         # 简化实现：支持基本的变量检查
         if condition.startswith("exists("):
             var_name = condition[7:-1]
             return var_name in results
-        
+
         # 默认返回 True
         return True
-    
+
     def _resolve_params(self, params: dict, results: dict) -> dict:
         """解析参数中的变量引用"""
         resolved = {}
@@ -279,7 +280,7 @@ class ExecutionEngine:
             else:
                 resolved[key] = value
         return resolved
-    
+
     def get_execution_history(self, limit: int = 100) -> list[IntentExecutionResult]:
         """获取执行历史"""
         return self._execution_history[-limit:]

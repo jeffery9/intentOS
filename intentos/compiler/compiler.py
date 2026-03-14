@@ -4,10 +4,11 @@
 """
 
 from __future__ import annotations
-from typing import Optional, Any
-from dataclasses import dataclass
 
-from ..core import Intent, IntentType, Context, IntentTemplate, Capability
+from dataclasses import dataclass
+from typing import Any, Optional
+
+from ..core import Intent, IntentType
 
 
 @dataclass
@@ -17,11 +18,11 @@ class CompiledPrompt:
     user_prompt: str
     intent: Intent
     metadata: dict[str, Any] = None
-    
+
     def __post_init__(self):
         if self.metadata is None:
             self.metadata = {}
-    
+
     @property
     def messages(self) -> list[dict[str, str]]:
         """转换为 LLM 消息格式"""
@@ -36,12 +37,12 @@ class IntentCompiler:
     意图编译器
     将结构化意图编译为 LLM Prompt
     """
-    
+
     def __init__(self, registry: Optional[Any] = None):
         self.registry = registry
         self._prompt_templates: dict[str, str] = {}
         self._register_default_templates()
-    
+
     def _register_default_templates(self) -> None:
         """注册默认 Prompt 模板"""
         # 原子意图 Prompt 模板
@@ -139,21 +140,21 @@ class IntentCompiler:
     def compile(self, intent: Intent) -> CompiledPrompt:
         """
         将意图编译为 Prompt
-        
+
         Args:
             intent: 结构化意图
-        
+
         Returns:
             编译后的 Prompt
         """
         # 根据意图类型选择模板
         template_name = self._get_template_for_intent(intent)
         template = self._prompt_templates.get(template_name, self._prompt_templates["atomic"])
-        
+
         # 填充模板
         system_prompt = self._fill_template(template, intent)
         user_prompt = self._generate_user_prompt(intent)
-        
+
         return CompiledPrompt(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
@@ -163,7 +164,7 @@ class IntentCompiler:
                 "intent_type": intent.intent_type.value,
             },
         )
-    
+
     def _get_template_for_intent(self, intent: Intent) -> str:
         """根据意图类型获取模板"""
         if intent.intent_type == IntentType.ATOMIC:
@@ -175,18 +176,18 @@ class IntentCompiler:
         elif intent.intent_type == IntentType.META:
             return "meta"
         return "atomic"
-    
+
     def _fill_template(self, template: str, intent: Intent) -> str:
         """填充模板"""
         # 收集可用能力
         capabilities_str = self._format_capabilities()
-        
+
         # 格式化步骤（复合意图）
         steps_str = self._format_steps(intent)
-        
+
         # 格式化系统状态（元意图）
         system_state_str = self._format_system_state()
-        
+
         return template.format(
             intent_name=intent.name,
             goal=intent.goal,
@@ -202,41 +203,41 @@ class IntentCompiler:
             action=intent.params.get("action", "unknown"),
             system_state=system_state_str,
         )
-    
+
     def _generate_user_prompt(self, intent: Intent) -> str:
         """生成用户 Prompt"""
         base_prompt = f"请执行：{intent.goal}"
-        
+
         if intent.params:
             base_prompt += f"\n\n参数：{intent.params}"
-        
+
         if intent.context.history:
             base_prompt += f"\n\n历史对话：{intent.context.history[-3:]}"
-        
+
         return base_prompt
-    
+
     def _format_capabilities(self) -> str:
         """格式化能力列表"""
         if not self.registry:
             return "（无可用能力）"
-        
+
         capabilities = self.registry.list_capabilities()
         if not capabilities:
             return "（无可用能力）"
-        
+
         lines = []
         for cap in capabilities:
             lines.append(f"- **{cap.name}**: {cap.description}")
             lines.append(f"  输入：{cap.input_schema}")
             lines.append(f"  输出：{cap.output_schema}")
-        
+
         return "\n".join(lines)
-    
+
     def _format_steps(self, intent: Intent) -> str:
         """格式化执行步骤"""
         if not intent.steps:
             return "（无预定义步骤）"
-        
+
         lines = []
         for i, step in enumerate(intent.steps, 1):
             lines.append(f"**步骤 {i}**: 调用 `{step.capability_name}`")
@@ -246,40 +247,40 @@ class IntentCompiler:
                 lines.append(f"  条件：{step.condition}")
             if step.output_var:
                 lines.append(f"  输出绑定：${{{step.output_var}}}")
-        
+
         return "\n".join(lines)
-    
+
     def _format_params(self, params: dict) -> str:
         """格式化参数"""
         if not params:
             return "（无参数）"
         return "\n".join(f"- {k}: {v}" for k, v in params.items())
-    
+
     def _format_constraints(self, constraints: dict) -> str:
         """格式化约束"""
         if not constraints:
             return "（无约束）"
         return "\n".join(f"- {k}: {v}" for k, v in constraints.items())
-    
+
     def _format_system_state(self) -> str:
         """格式化系统状态"""
         if not self.registry:
             return "（无法获取系统状态）"
-        
+
         introspect = self.registry.introspect()
         return (
             f"- 模板数量：{len(introspect.get('templates', {}))}\n"
             f"- 能力数量：{len(introspect.get('capabilities', {}))}\n"
             f"- 策略数量：{len(introspect.get('policies', {}))}"
         )
-    
+
     def compile_to_json(self, intent: Intent) -> str:
         """
         将意图编译为 JSON 格式的 Prompt
         适用于支持 Function Calling 的 LLM
         """
         import json
-        
+
         return json.dumps({
             "intent": {
                 "name": intent.name,
@@ -309,16 +310,16 @@ class PromptTemplate:
     """
     可自定义的 Prompt 模板
     """
-    
+
     def __init__(self, name: str, template: str, variables: Optional[list[str]] = None):
         self.name = name
         self.template = template
         self.variables = variables or []
-    
+
     def render(self, **kwargs) -> str:
         """渲染模板"""
         return self.template.format(**kwargs)
-    
+
     def add_variable(self, name: str, default: Any = None) -> None:
         """添加变量"""
         if name not in self.variables:

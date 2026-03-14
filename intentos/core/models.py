@@ -4,11 +4,12 @@ IntentOS 核心数据模型
 """
 
 from __future__ import annotations
+
+import uuid
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Optional
-from datetime import datetime
-import uuid
 
 
 class IntentStatus(Enum):
@@ -43,15 +44,15 @@ class Context:
     permissions: list[str] = field(default_factory=list)
     variables: dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
-    
+
     def has_permission(self, permission: str) -> bool:
         """检查是否有指定权限"""
         return permission in self.permissions or "admin" in self.permissions
-    
+
     def get_variable(self, key: str, default: Any = None) -> Any:
         """获取上下文变量"""
         return self.variables.get(key, default)
-    
+
     def set_variable(self, key: str, value: Any) -> None:
         """设置上下文变量"""
         self.variables[key] = value
@@ -70,14 +71,14 @@ class Capability:
     func: Callable[..., Any]
     requires_permissions: list[str] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
-    
+
     def execute(self, context: Context, **kwargs) -> Any:
         """执行能力"""
         # 权限检查
         for perm in self.requires_permissions:
             if not context.has_permission(perm):
                 raise PermissionError(f"缺少权限：{perm}")
-        
+
         return self.func(context, **kwargs)
 
 
@@ -116,12 +117,12 @@ class Intent:
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    
+
     def __post_init__(self):
         """初始化后处理"""
         if not self.context:
             self.context = Context(user_id="anonymous")
-    
+
     def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
@@ -139,7 +140,7 @@ class Intent:
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
         }
-    
+
     def update_status(self, status: IntentStatus) -> None:
         """更新状态"""
         self.status = status
@@ -161,28 +162,28 @@ class IntentTemplate:
     required_permissions: list[str] = field(default_factory=list)
     version: str = "1.0.0"
     tags: list[str] = field(default_factory=list)
-    
+
     def instantiate(self, context: Context, **params) -> Intent:
         """根据模板实例化意图"""
         # 参数验证和填充
         instantiated_params = self.params_schema.copy()
         for key, value in params.items():
             instantiated_params[key] = value
-        
+
         # 步骤中的参数替换
         instantiated_steps = []
         for step in self.steps:
             instantiated_step = IntentStep(
                 capability_name=step.capability_name,
                 params={
-                    k: self._resolve_param(v, params) 
+                    k: self._resolve_param(v, params)
                     for k, v in step.params.items()
                 },
                 condition=step.condition,
                 output_var=step.output_var,
             )
             instantiated_steps.append(instantiated_step)
-        
+
         return Intent(
             name=self.name,
             intent_type=self.intent_type,
@@ -192,7 +193,7 @@ class IntentTemplate:
             steps=instantiated_steps,
             context=context,
         )
-    
+
     def _resolve_param(self, value: Any, params: dict[str, Any]) -> Any:
         """解析参数中的占位符"""
         if isinstance(value, str):
@@ -211,7 +212,7 @@ class IntentExecutionResult:
     execution_trace: list[dict[str, Any]] = field(default_factory=list)
     started_at: datetime = field(default_factory=datetime.now)
     completed_at: Optional[datetime] = None
-    
+
     def __post_init__(self):
         if not self.completed_at and self.completed_at is not False:
             self.completed_at = datetime.now()

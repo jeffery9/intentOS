@@ -8,12 +8,12 @@
 """
 
 from .vm import (
-    DistributedSemanticVM,
-    DistributedSemanticMemory,
     DistributedCoordinator,
-    DistributedProgramCounter,
-    VMNode,
     DistributedOpcode,
+    DistributedProgramCounter,
+    DistributedSemanticMemory,
+    DistributedSemanticVM,
+    VMNode,
     create_distributed_vm,
     create_node,
 )

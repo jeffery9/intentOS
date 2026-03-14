@@ -6,13 +6,14 @@ Prompt 作为 IntentOS 的"可执行文件格式"
 """
 
 from __future__ import annotations
-from dataclasses import dataclass, field
-from typing import Any, Optional
-from enum import Enum
-import yaml
-import json
-from datetime import datetime
 
+import json
+from dataclasses import dataclass, field
+from datetime import datetime
+from enum import Enum
+from typing import Any
+
+import yaml
 
 # =============================================================================
 # Prompt 可执行文件格式规范 v1.0
@@ -59,16 +60,16 @@ class PromptMetadata:
     modified_at: str = field(default_factory=lambda: datetime.now().isoformat())
     checksum: str = ""                      # 校验和
     signature: str = ""                     # 数字签名 (可选)
-    
+
     # 执行配置
     execution_mode: str = ExecutionMode.SYNC.value
     timeout_seconds: int = 300              # 超时时间
     retry_count: int = 3                    # 重试次数
     priority: int = 5                       # 优先级 (1-10)
-    
+
     # 标签
     tags: list[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> dict:
         return {
             "version": self.version,
@@ -97,20 +98,20 @@ class IntentDeclaration:
     goal: str = ""                          # 目标描述
     intent_type: str = "functional"         # functional | operational
     expected_outcome: str = ""              # 期望结果
-    
+
     # 操作性意图 (SLO/SLA)
     performance_targets: dict[str, Any] = field(default_factory=dict)
     # 示例:
     # latency_p99_ms: 100
     # availability: 99.9%
     # error_rate: 0.1%
-    
+
     # 输入参数
     inputs: dict[str, Any] = field(default_factory=dict)
-    
+
     # 输出格式
     output_format: str = "json"             # json | markdown | html | text
-    
+
     def to_dict(self) -> dict:
         return {
             "goal": self.goal,
@@ -132,17 +133,17 @@ class ContextBinding:
     user_id: str = ""
     user_role: str = ""
     session_id: str = ""
-    
+
     # 业务上下文
     business_context: dict[str, Any] = field(default_factory=dict)
-    
+
     # 技术上下文
     technical_context: dict[str, Any] = field(default_factory=dict)
     # 示例:
     # cluster: "prod-us-east-1"
     # namespace: "default"
     # service: "order-service"
-    
+
     # 历史上下文 (多模态事件)
     event_graph: list[dict[str, Any]] = field(default_factory=list)
     # 示例:
@@ -150,7 +151,7 @@ class ContextBinding:
     # - type: "log", source: "elasticsearch", query: "level:ERROR service:order"
     # - type: "trace", source: "jaeger", trace_id: "abc123"
     # - type: "document", source: "confluence", page_id: "12345"
-    
+
     def to_dict(self) -> dict:
         return {
             "user_id": self.user_id,
@@ -172,17 +173,17 @@ class CapabilityBinding:
     endpoint: str = ""                      # API 端点
     protocol: str = "http"                  # http | grpc | websocket | llm
     authentication: dict[str, str] = field(default_factory=dict)
-    
+
     # LLM 特定配置
     llm_config: dict[str, Any] = field(default_factory=dict)
     # 示例:
     # model: "gpt-4o"
     # temperature: 0.7
     # max_tokens: 2000
-    
+
     # 降级策略
     fallback: list[str] = field(default_factory=list)  # 备用能力
-    
+
     def to_dict(self) -> dict:
         return {
             "name": self.name,
@@ -206,19 +207,19 @@ class ConstraintDefinition:
     # max_tokens: 10000
     # max_api_calls: 100
     # budget_usd: 10.0
-    
+
     # 时间约束
     time_constraints: dict[str, Any] = field(default_factory=dict)
     # 示例:
     # deadline: "2024-12-31T23:59:59Z"
     # business_hours_only: true
-    
+
     # 合规约束
     compliance_rules: list[str] = field(default_factory=list)
     # 示例:
     # "GDPR: no_pii_in_logs"
     # "SOC2: audit_all_actions"
-    
+
     def to_dict(self) -> dict:
         return {
             "resource_limits": self.resource_limits,
@@ -240,7 +241,7 @@ class WorkflowStep:
     params: dict[str, Any] = field(default_factory=dict)
     output_var: str = ""                    # 输出变量名
     retry_policy: dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -261,17 +262,17 @@ class WorkflowDefinition:
     定义任务执行顺序
     """
     steps: list[WorkflowStep] = field(default_factory=list)
-    
+
     # 错误处理
     on_error: list[dict[str, Any]] = field(default_factory=list)
     # 示例:
     # - action: "retry", max_attempts: 3
     # - action: "fallback", use: "backup_capability"
     # - action: "notify", channel: "slack"
-    
+
     # 成功条件
     success_condition: str = ""             # 表达式
-    
+
     def to_dict(self) -> dict:
         return {
             "steps": [step.to_dict() for step in self.steps],
@@ -291,24 +292,24 @@ class OpsModel:
     # 示例:
     # latency_p99_ms: 100
     # availability_percent: 99.9
-    
+
     # 监控指标
     metrics_to_collect: list[str] = field(default_factory=list)
     # 示例:
     # - "execution_duration"
     # - "token_usage"
     # - "api_call_count"
-    
+
     # 告警规则
     alert_rules: list[dict[str, Any]] = field(default_factory=list)
     # 示例:
     # - condition: "error_rate > 0.05", notify: "oncall-slack"
-    
+
     # 自动修复策略
     auto_remediation: list[dict[str, Any]] = field(default_factory=list)
     # 示例:
     # - trigger: "model_timeout", action: "switch_to_backup_model"
-    
+
     def to_dict(self) -> dict:
         return {
             "slo_targets": self.slo_targets,
@@ -326,25 +327,25 @@ class SafetyPolicy:
     """
     # 安全等级
     level: str = SafetyLevel.LOW.value
-    
+
     # 需要审批的操作
     requires_approval_for: list[str] = field(default_factory=list)
     # 示例:
     # - "delete_production_data"
     # - "deploy_to_production"
-    
+
     # 审批人
     approvers: list[str] = field(default_factory=list)
-    
+
     # 审批超时
     approval_timeout_minutes: int = 60
-    
+
     # 审计配置
     audit_config: dict[str, Any] = field(default_factory=dict)
     # 示例:
     # log_all_actions: true
     # retention_days: 365
-    
+
     def to_dict(self) -> dict:
         return {
             "level": self.level,
@@ -373,7 +374,7 @@ class PromptExecutable:
     workflow: WorkflowDefinition = field(default_factory=WorkflowDefinition)
     ops_model: OpsModel = field(default_factory=OpsModel)
     safety: SafetyPolicy = field(default_factory=SafetyPolicy)
-    
+
     def to_dict(self) -> dict:
         """转换为字典"""
         return {
@@ -386,27 +387,27 @@ class PromptExecutable:
             "ops_model": self.ops_model.to_dict(),
             "safety": self.safety.to_dict(),
         }
-    
+
     def to_yaml(self) -> str:
         """导出为 YAML"""
         return yaml.dump(self.to_dict(), allow_unicode=True, default_flow_style=False, sort_keys=False)
-    
+
     def to_json(self, indent: int = 2) -> str:
         """导出为 JSON"""
         return json.dumps(self.to_dict(), indent=indent, ensure_ascii=False)
-    
+
     @classmethod
     def from_yaml(cls, yaml_str: str) -> "PromptExecutable":
         """从 YAML 加载"""
         data = yaml.safe_load(yaml_str)
         return cls._from_dict(data)
-    
+
     @classmethod
     def from_json(cls, json_str: str) -> "PromptExecutable":
         """从 JSON 加载"""
         data = json.loads(json_str)
         return cls._from_dict(data)
-    
+
     @classmethod
     def _from_dict(cls, data: dict) -> "PromptExecutable":
         """从字典构建"""
@@ -421,29 +422,29 @@ class PromptExecutable:
             ops_model=OpsModel(**data.get("ops_model", {})),
             safety=SafetyPolicy(**data.get("safety", {})),
         )
-    
+
     def validate(self) -> list[str]:
         """验证 Prompt 有效性"""
         errors = []
-        
+
         # 必填字段检查
         if not self.metadata.name:
             errors.append("metadata.name is required")
-        
+
         if not self.intent.goal:
             errors.append("intent.goal is required")
-        
+
         # 工作流验证
         step_ids = {step.id for step in self.workflow.steps}
         for step in self.workflow.steps:
             for dep in step.depends_on:
                 if dep not in step_ids:
                     errors.append(f"Workflow step '{step.id}' depends on non-existent step '{dep}'")
-        
+
         # 安全等级验证
         if self.safety.level == SafetyLevel.CRITICAL.value and not self.safety.approvers:
             errors.append("Critical safety level requires at least one approver")
-        
+
         return errors
 
 
@@ -552,13 +553,13 @@ def create_sales_analysis_prompt() -> PromptExecutable:
 if __name__ == "__main__":
     # 创建示例 Prompt
     prompt = create_sales_analysis_prompt()
-    
+
     print("=" * 60)
     print("Prompt Executable Format (PEF) 示例")
     print("=" * 60)
     print()
     print(prompt.to_yaml())
-    
+
     # 验证
     errors = prompt.validate()
     if errors:

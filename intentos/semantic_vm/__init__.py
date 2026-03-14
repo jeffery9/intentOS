@@ -9,15 +9,15 @@ IntentOS 的核心：语义虚拟机
 """
 
 from .vm import (
-    SemanticVM,
-    SemanticInstruction,
-    SemanticProgram,
-    SemanticMemory,
     LLMProcessor,
+    SemanticInstruction,
+    SemanticMemory,
     SemanticOpcode,
-    create_semantic_vm,
-    create_program,
+    SemanticProgram,
+    SemanticVM,
     create_instruction,
+    create_program,
+    create_semantic_vm,
 )
 
 __all__ = [

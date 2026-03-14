@@ -9,21 +9,21 @@ LLM 执行器和路由器
 """
 
 from __future__ import annotations
-from typing import Optional, AsyncIterator, Callable
-from dataclasses import dataclass, field
-import asyncio
-import time
+
 import random
+import time
+from dataclasses import dataclass
+from typing import AsyncIterator, Optional
 
 from .backends.base import (
+    AuthenticationError,
     LLMBackend,
+    LLMError,
     LLMResponse,
     Message,
-    ToolDefinition,
-    LLMError,
     RateLimitError,
-    AuthenticationError,
     TimeoutError,
+    ToolDefinition,
 )
 from .backends.mock_backend import MockBackend
 
@@ -39,11 +39,11 @@ class BackendConfig:
     weight: float = 1.0  # 权重 (用于负载均衡)
     max_qps: float = float("inf")  # 最大每秒请求数
     enabled: bool = True  # 是否启用
-    
+
     # 重试配置
     max_retries: int = 3
     retry_delay: float = 1.0
-    
+
     # 超时配置
     timeout: int = 60
 
@@ -59,21 +59,21 @@ class BackendStats:
     avg_latency_ms: float = 0.0
     last_error: Optional[str] = None
     last_error_time: Optional[float] = None
-    
+
     # 速率限制追踪
     requests_last_second: int = 0
     last_request_time: float = 0.0
-    
+
     def record_success(self, latency_ms: int, tokens: int) -> None:
         """记录成功请求"""
         self.total_requests += 1
         self.successful_requests += 1
         self.total_tokens += tokens
-        
+
         # 指数移动平均更新延迟
         alpha = 0.1
         self.avg_latency_ms = alpha * latency_ms + (1 - alpha) * self.avg_latency_ms
-        
+
         # 更新速率限制追踪
         current_time = time.time()
         if current_time - self.last_request_time > 1.0:
@@ -81,7 +81,7 @@ class BackendStats:
         else:
             self.requests_last_second += 1
         self.last_request_time = current_time
-    
+
     def record_failure(self, error: str) -> None:
         """记录失败请求"""
         self.total_requests += 1
@@ -93,7 +93,7 @@ class BackendStats:
 class LLMRouter:
     """
     LLM 路由器
-    
+
     支持多种路由策略:
     - priority: 优先级路由
     - round_robin: 轮询
@@ -101,19 +101,19 @@ class LLMRouter:
     - latency: 最低延迟优先
     - cost: 成本优化
     """
-    
+
     def __init__(self, configs: list[BackendConfig]):
         self.configs = configs
         self.backends: dict[str, LLMBackend] = {}
         self.stats: dict[str, BackendStats] = {}
         self._round_robin_index = 0
-        
+
         # 初始化后端和统计
         for config in configs:
             if config.enabled:
                 self._create_backend(config)
                 self.stats[config.name] = BackendStats()
-    
+
     def _create_backend(self, config: BackendConfig) -> None:
         """创建后端实例"""
         # 根据配置创建对应的后端
@@ -145,9 +145,9 @@ class LLMRouter:
         else:
             # 默认使用 Mock
             backend = MockBackend(model=config.model)
-        
+
         self.backends[config.name] = backend
-    
+
     def select_backend(self, strategy: str = "priority") -> tuple[str, LLMBackend]:
         """选择后端"""
         available = [
@@ -155,14 +155,14 @@ class LLMRouter:
             for name, backend in self.backends.items()
             if self.stats[name].requests_last_second < self._get_config(name).max_qps
         ]
-        
+
         if not available:
             # 如果所有后端都限流，返回优先级最高的
             available = list(self.backends.items())
-        
+
         if not available:
             raise LLMError("没有可用的后端")
-        
+
         if strategy == "priority":
             return self._select_by_priority(available)
         elif strategy == "round_robin":
@@ -175,7 +175,7 @@ class LLMRouter:
             return self._select_by_cost(available)
         else:
             return available[0]
-    
+
     def _select_by_priority(self, available: list) -> tuple[str, LLMBackend]:
         """按优先级选择"""
         sorted_backends = sorted(
@@ -184,17 +184,17 @@ class LLMRouter:
             reverse=True,
         )
         return sorted_backends[0]
-    
+
     def _select_round_robin(self, available: list) -> tuple[str, LLMBackend]:
         """轮询选择"""
         self._round_robin_index = (self._round_robin_index + 1) % len(available)
         return available[self._round_robin_index]
-    
+
     def _select_weighted(self, available: list) -> tuple[str, LLMBackend]:
         """加权随机选择"""
         weights = [self._get_config(name).weight for name, _ in available]
         return random.choices(available, weights=weights, k=1)[0]
-    
+
     def _select_by_latency(self, available: list) -> tuple[str, LLMBackend]:
         """按延迟选择"""
         sorted_backends = sorted(
@@ -202,20 +202,20 @@ class LLMRouter:
             key=lambda x: self.stats[x[0]].avg_latency_ms,
         )
         return sorted_backends[0]
-    
+
     def _select_by_cost(self, available: list) -> tuple[str, LLMBackend]:
         """按成本选择 (简化实现)"""
         # 这里可以根据模型的每 token 成本排序
         # 简化为随机选择
         return random.choice(available)
-    
+
     def _get_config(self, name: str) -> BackendConfig:
         """获取配置"""
         for config in self.configs:
             if config.name == name:
                 return config
         raise ValueError(f"未知后端：{name}")
-    
+
     async def generate(
         self,
         messages: list[Message],
@@ -230,20 +230,20 @@ class LLMRouter:
         """
         last_error = None
         tried_backends = []
-        
+
         for attempt in range(len(self.backends)):
             try:
                 # 选择后端
                 name, backend = self.select_backend(strategy)
-                
+
                 if name in tried_backends:
                     # 避免重复尝试同一个后端
                     if len(tried_backends) >= len(self.backends):
                         break
                     continue
-                
+
                 tried_backends.append(name)
-                
+
                 # 生成响应
                 response = await backend.generate(
                     messages=messages,
@@ -252,38 +252,38 @@ class LLMRouter:
                     max_tokens=max_tokens,
                     **kwargs,
                 )
-                
+
                 # 记录成功
                 self.stats[name].record_success(
                     latency_ms=response.latency_ms,
                     tokens=response.usage.total_tokens,
                 )
-                
+
                 return response
-                
+
             except (RateLimitError, TimeoutError) as e:
                 # 可重试的错误，尝试下一个后端
                 last_error = e
                 if name in self.stats:
                     self.stats[name].record_failure(str(e))
                 continue
-                
+
             except AuthenticationError as e:
                 # 认证错误，不可重试
                 raise e
-                
+
             except LLMError as e:
                 last_error = e
                 if name in self.stats:
                     self.stats[name].record_failure(str(e))
                 continue
-        
+
         # 所有后端都失败
         raise LLMError(
             f"所有后端都失败：{last_error}",
             raw_error=last_error,
         )
-    
+
     def get_stats(self) -> dict[str, dict]:
         """获取所有后端统计"""
         return {
@@ -305,10 +305,10 @@ class LLMRouter:
 class LLMExecutor:
     """
     LLM 执行器
-    
+
     统一的高层接口，支持单后端和多后端路由
     """
-    
+
     def __init__(
         self,
         provider: str = "mock",
@@ -320,7 +320,7 @@ class LLMExecutor:
     ):
         """
         初始化执行器
-        
+
         Args:
             provider: 提供商名称 (mock, openai, anthropic, ollama)
             model: 模型名称
@@ -331,7 +331,7 @@ class LLMExecutor:
         """
         self.router = router
         self._single_backend = None
-        
+
         if router is None:
             # 单后端模式
             self._single_backend = self._create_backend(
@@ -341,7 +341,7 @@ class LLMExecutor:
                 base_url=base_url,
                 **kwargs,
             )
-    
+
     def _create_backend(
         self,
         provider: str,
@@ -352,10 +352,10 @@ class LLMExecutor:
     ) -> LLMBackend:
         """创建后端实例"""
         provider_lower = provider.lower()
-        
+
         if provider_lower == "mock":
             return MockBackend(model=model or "mock-model")
-        
+
         elif provider_lower == "openai":
             from .backends.openai_backend import OpenAIBackend
             return OpenAIBackend(
@@ -364,7 +364,7 @@ class LLMExecutor:
                 base_url=base_url,
                 **kwargs,
             )
-        
+
         elif provider_lower == "anthropic":
             from .backends.anthropic_backend import AnthropicBackend
             return AnthropicBackend(
@@ -372,7 +372,7 @@ class LLMExecutor:
                 api_key=api_key,
                 **kwargs,
             )
-        
+
         elif provider_lower == "ollama":
             from .backends.ollama_backend import OllamaBackend
             return OllamaBackend(
@@ -380,10 +380,10 @@ class LLMExecutor:
                 host=base_url or "http://localhost:11434",
                 **kwargs,
             )
-        
+
         else:
             raise ValueError(f"未知提供商：{provider}")
-    
+
     async def execute(
         self,
         messages: list[Message],
@@ -415,7 +415,7 @@ class LLMExecutor:
                 stream=stream,
                 **kwargs,
             )
-    
+
     async def generate_stream(
         self,
         messages: list[Message],
@@ -444,7 +444,7 @@ class LLMExecutor:
                 **kwargs,
             ):
                 yield chunk
-    
+
     def get_stats(self) -> dict:
         """获取统计信息"""
         if self.router:

@@ -4,21 +4,22 @@ IntentGarden v2.0 演示
 """
 
 import asyncio
+
+from intentos.intentgarden_v2 import IntentGarden
 from intentos.prompt_format import (
-    PromptExecutable,
-    PromptMetadata,
-    IntentDeclaration,
-    ContextBinding,
     CapabilityBinding,
     ConstraintDefinition,
+    ContextBinding,
+    ExecutionMode,
+    IntentDeclaration,
+    OpsModel,
+    PromptExecutable,
+    PromptMetadata,
+    SafetyLevel,
+    SafetyPolicy,
     WorkflowDefinition,
     WorkflowStep,
-    OpsModel,
-    SafetyPolicy,
-    SafetyLevel,
-    ExecutionMode,
 )
-from intentos.intentgarden_v2 import IntentGarden
 
 
 def create_operational_intent_prompt() -> PromptExecutable:
@@ -215,10 +216,10 @@ async def demo_intentgarden_v2():
     print("IntentGarden v2.0 - Cloud-Native AI 原生操作系统")
     print("=" * 70)
     print()
-    
+
     # 创建 Prompt
     prompt = create_operational_intent_prompt()
-    
+
     print("📄 Prompt 规范预览:")
     print("-" * 40)
     print(f"  名称：{prompt.metadata.name}")
@@ -227,7 +228,7 @@ async def demo_intentgarden_v2():
     print(f"  安全等级：{prompt.safety.level}")
     print(f"  工作流步骤：{len(prompt.workflow.steps)}")
     print()
-    
+
     # 验证 Prompt
     errors = prompt.validate()
     if errors:
@@ -237,7 +238,7 @@ async def demo_intentgarden_v2():
         return
     print("✅ Prompt 验证通过")
     print()
-    
+
     # 导出为 YAML
     print("📋 Prompt YAML (部分):")
     print("-" * 40)
@@ -245,29 +246,29 @@ async def demo_intentgarden_v2():
     # 只显示前 1000 字符
     print(yaml_str[:1000] + "...")
     print()
-    
+
     # 执行
     print("🚀 执行七层架构处理流程...")
     print("-" * 40)
-    
+
     garden = IntentGarden()
     garden.initialize()
-    
+
     result = await garden.execute(prompt)
-    
+
     print()
     print("📊 执行结果:")
     print("-" * 40)
-    
+
     for layer_name, layer_result in result["layer_results"].items():
         status = "✅" if layer_result["success"] else "❌"
         duration = layer_result["metrics"].get("duration_ms", 0)
         print(f"{status} {layer_name}: {duration}ms")
-    
+
     print()
     print(f"总耗时：{result['total_duration_ms']}ms")
     print()
-    
+
     # 导出为 JSON
     print("📄 导出为 JSON:")
     print("-" * 40)
@@ -280,7 +281,7 @@ async def demo_prompt_formats():
     print("\n" + "=" * 70)
     print("Prompt 格式示例对比")
     print("=" * 70)
-    
+
     # 功能意图 Prompt
     functional_prompt = PromptExecutable(
         metadata=PromptMetadata(name="sales_report", tags=["sales", "report"]),
@@ -290,7 +291,7 @@ async def demo_prompt_formats():
             expected_outcome="PDF 格式报告",
         ),
     )
-    
+
     # 操作意图 Prompt
     operational_prompt = PromptExecutable(
         metadata=PromptMetadata(name="api_sla", tags=["sre", "sla"]),
@@ -300,12 +301,12 @@ async def demo_prompt_formats():
             performance_targets={"availability": 99.9},
         ),
     )
-    
+
     print("\n功能意图 Prompt:")
     print("-" * 40)
     print(f"  目标：{functional_prompt.intent.goal}")
     print(f"  类型：{functional_prompt.intent.intent_type}")
-    
+
     print("\n操作意图 Prompt:")
     print("-" * 40)
     print(f"  目标：{operational_prompt.intent.goal}")
@@ -319,10 +320,10 @@ async def main():
     print("IntentGarden v2.0 - Prompt 规范演示")
     print("Prompt 作为 AI 原生操作系统的'可执行文件格式'")
     print("=" * 70 + "\n")
-    
+
     await demo_prompt_formats()
     await demo_intentgarden_v2()
-    
+
     print("\n" + "=" * 70)
     print("演示完成")
     print("=" * 70)
