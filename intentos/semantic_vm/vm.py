@@ -22,6 +22,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Optional, Union
 
+from .safe_eval import SafeConditionEvaluator
+
 # =============================================================================
 # 语义指令类型
 # =============================================================================
@@ -664,17 +666,20 @@ class SemanticVM:
             return result
 
     def _evaluate_condition(self, condition: str, variables: dict) -> bool:
-        """评估条件"""
+        """评估条件（安全版本）"""
         if not condition:
             return True
-
+        
         try:
-            # 支持变量替换
-            for key, value in variables.items():
-                condition = condition.replace(f"${{{key}}}", str(value))
-
-            return eval(condition)
-        except Exception:
+            # 使用安全评估器替代 eval()
+            return SafeConditionEvaluator.evaluate(condition, variables)
+        except ValueError as e:
+            # 记录安全日志
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"不安全或无效的条件表达式：{condition}, 错误：{e}")
+            return False  # 不安全条件视为 False
+        except Exception as e:
             return False
 
     def _find_endif(self, instructions: list[SemanticInstruction], start: int) -> int:
