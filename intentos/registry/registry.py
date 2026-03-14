@@ -5,10 +5,9 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import Any, Callable, Optional
 
-if TYPE_CHECKING:
-    from ..core import Capability, IntentTemplate
+from ..core import Capability, IntentTemplate
 
 
 class IntentRegistry:

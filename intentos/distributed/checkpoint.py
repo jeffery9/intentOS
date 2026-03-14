@@ -267,6 +267,14 @@ class CheckpointManager:
         with open(filepath, "wb") as f:
             f.write(data_bytes)
 
+        # 注册到内存索引
+        if checkpoint.metadata.process_id not in self._checkpoints:
+            self._checkpoints[checkpoint.metadata.process_id] = []
+        self._checkpoints[checkpoint.metadata.process_id].append(checkpoint.metadata)
+
+        # 清理旧检查点
+        self._cleanup_old_checkpoints(checkpoint.metadata.process_id)
+
     def _cleanup_old_checkpoints(self, process_id: str) -> None:
         """清理旧的检查点"""
         if process_id not in self._checkpoints:
