@@ -28,7 +28,7 @@ jobs:
       run: ruff check .
 
     - name: Run Ruff format check
-      run: ruff format --check .
+      run: ruff format --check . --exclude build,dist,examples,deprecated
 
     - name: Run mypy
       run: mypy intentos
