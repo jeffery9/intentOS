@@ -139,7 +139,8 @@ class SafeConditionEvaluator:
             right = SafeConditionEvaluator._eval_node(node.right, variables)
             op_type = type(node.op)
             if op_type in SAFE_OPERATORS:
-                return SAFE_OPERATORS[op_type](left, right)
+                op_func = SAFE_OPERATORS[op_type]
+                return op_func(left, right)  # type: ignore
             else:
                 raise ValueError(f"不支持的操作符：{op_type.__name__}")
 
@@ -153,11 +154,12 @@ class SafeConditionEvaluator:
 
             result = True
             current = left
-            for op_type, comparator in zip(ops, comparators):
+            for op_type in ops:
                 if op_type not in SAFE_OPERATORS:
                     raise ValueError(f"不支持的比较操作符：{op_type.__name__}")
                 op = SAFE_OPERATORS[op_type]
-                result = result and op(current, comparator)
+                comparator = comparators[ops.index(op_type)]
+                result = result and op(current, comparator)  # type: ignore
                 current = comparator
             return result
 
@@ -171,7 +173,7 @@ class SafeConditionEvaluator:
 
             result = values[0]
             for value in values[1:]:
-                result = op(result, value)
+                result = op(result, value)  # type: ignore
             return result
 
         # 一元操作符 (not)

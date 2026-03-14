@@ -164,35 +164,35 @@ class KernelMode:
 
     def sys_read(self, fd: int, buffer: bytearray, size: int) -> int:
         """读取数据"""
-        pass
+        return 0
 
     def sys_write(self, fd: int, buffer: bytes, size: int) -> int:
         """写入数据"""
-        pass
+        return 0
 
     def sys_open(self, path: str, flags: int) -> int:
         """打开文件"""
-        pass
+        return 0
 
     def sys_close(self, fd: int) -> int:
         """关闭文件"""
-        pass
+        return 0
 
     def sys_create(self, target_type: str, name: str, data: Any) -> int:
         """创建意图对象"""
-        pass
+        return 0
 
     def sys_modify(self, target_type: str, name: str, data: Any) -> int:
         """修改意图对象"""
-        pass
+        return 0
 
     def sys_execute(self, program_id: str, context: dict) -> dict:
         """执行程序"""
-        pass
+        return {}
 
     def sys_bootstrap(self, action: str, target: str, value: Any) -> bool:
         """Self-Bootstrap 操作"""
-        pass
+        return True
 
 
 class UserMode:
@@ -200,7 +200,7 @@ class UserMode:
 
     def __init__(self, kernel: KernelMode):
         self.kernel = kernel
-        self.user_memory = {}
+        self.user_memory: dict[str, Any] = {}
 
         self.protection_domain = ProtectionDomain(
             level=PrivilegeLevel.USER,
@@ -216,7 +216,7 @@ class UserMode:
 
     def execute_program(self, program: Any) -> dict:
         """执行程序"""
-        pass
+        return {}
 
 
 @dataclass

@@ -87,11 +87,6 @@ class VersionedValue:
             "checksum": self.checksum,
         }
 
-    def compute_checksum(self) -> str:
-        """计算校验和"""
-        data = f"{self.value}:{self.timestamp.isoformat()}"
-        return hashlib.md5(data.encode()).hexdigest()
-
     def verify_integrity(self) -> bool:
         """验证完整性"""
         return self.checksum == self.compute_checksum()

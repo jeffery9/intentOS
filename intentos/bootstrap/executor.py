@@ -206,12 +206,13 @@ class SelfBootstrapExecutor:
 
         if parts[0] == "CONFIG":
             if hasattr(self.vm, "memory"):
-                return await self.vm.memory.get("CONFIG", parts[1] if len(parts) > 1 else target)
+                result = await self.vm.memory.get("CONFIG", parts[1] if len(parts) > 1 else target)
+                return result  # type: ignore
         elif parts[0] == "INSTRUCTION_SET":
             # 返回当前指令集
             # 如果是分布式 VM，检查 local_vm 的处理器
             vm_to_check = self.vm.local_vm if hasattr(self.vm, "local_vm") else self.vm
-            return list(vm_to_check.processor.__class__.__dict__.keys())
+            return list(vm_to_check.processor.__class__.__dict__.keys())  # type: ignore
         elif parts[0] == "POLICY":
             if len(parts) > 1:
                 return getattr(self.policy, parts[1], None)
@@ -575,7 +576,7 @@ class BootstrapValidator:
 
 def create_bootstrap_executor(
     semantic_vm: Any,
-    policy: BootstrapPolicy = None,
+    policy: Optional[BootstrapPolicy] = None,
 ) -> SelfBootstrapExecutor:
     """创建 Self-Bootstrap 执行器"""
     return SelfBootstrapExecutor(semantic_vm, policy)

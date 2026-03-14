@@ -11,9 +11,8 @@ from typing import TYPE_CHECKING, Optional
 from ..core import Context, Intent, IntentType
 
 if TYPE_CHECKING:
-    from ..registry.registry import IntentRegistry
-else:
     from ..core import IntentTemplate
+    from ..registry.registry import IntentRegistry
 
 
 class IntentParser:
@@ -66,7 +65,7 @@ class IntentParser:
 
         return None
 
-    def _extract_params(self, text: str, template: IntentTemplate) -> dict:
+    def _extract_params(self, text: str, template: IntentTemplate) -> dict:  # type: ignore
         """从文本中提取参数"""
         params = {}
 

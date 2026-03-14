@@ -120,7 +120,7 @@ class ExecutionEngine:
         )
 
         # LLM 执行
-        llm_response = await self.llm_executor.execute(compiled)
+        llm_response = await self.llm_executor.execute(compiled.messages)  # type: ignore
 
         trace.append(
             {
@@ -135,20 +135,20 @@ class ExecutionEngine:
         if llm_response.tool_calls:
             tool_results = []
             for tc in llm_response.tool_calls:
-                capability = self.registry.get_capability(tc["name"])
+                capability = self.registry.get_capability(tc.name)  # type: ignore
                 if capability:
-                    result = capability.execute(intent.context, **tc["arguments"])
+                    result = capability.execute(intent.context, **tc.arguments)  # type: ignore
                     tool_results.append(
                         {
-                            "tool": tc["name"],
+                            "tool": tc.name,  # type: ignore
                             "result": result,
                         }
                     )
                     trace.append(
                         {
                             "step": "tool_call",
-                            "tool": tc["name"],
-                            "arguments": tc["arguments"],
+                            "tool": tc.name,  # type: ignore
+                            "arguments": tc.arguments,  # type: ignore
                             "result": result,
                             "timestamp": datetime.now().isoformat(),
                         }
@@ -161,7 +161,6 @@ class ExecutionEngine:
 
         return {
             "llm_content": llm_response.content,
-            "parsed_result": llm_response.parsed_result,
         }
 
     async def _execute_atomic(self, intent: Intent, trace: list[dict]) -> Any:
@@ -196,7 +195,7 @@ class ExecutionEngine:
 
     async def _execute_composite(self, intent: Intent, trace: list[dict]) -> Any:
         """执行复合意图"""
-        results = {}
+        results: dict[str, Any] = {}
 
         for i, step in enumerate(intent.steps):
             # 检查条件

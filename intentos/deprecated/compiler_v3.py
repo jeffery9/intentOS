@@ -389,7 +389,7 @@ class Linker:
 
             try:
                 entry = await self.memory_manager.get(key)
-                if entry:
+                if entry is not None:
                     memories[ref] = entry.value
             except Exception:
                 pass
@@ -450,11 +450,11 @@ class IntentCompiler:
         self.parser = IntentParser(llm_executor)
         self.generator = CodeGenerator(capabilities)
         self.linker = Linker(
-            capabilities=self._extract_callables(capabilities),
+            capabilities=self._extract_callables(capabilities or {}),
             memory_manager=memory_manager,
         )
 
-    def _extract_callables(self, capabilities: dict) -> dict[str, Callable]:
+    def _extract_callables(self, capabilities: dict[str, Any]) -> dict[str, Callable]:
         """从能力注册表提取可调用函数"""
         # 简化实现，实际应该从 registry 获取
         return {}

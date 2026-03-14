@@ -5,9 +5,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Optional
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
-from ..core import Capability, IntentTemplate
+if TYPE_CHECKING:
+    from ..core import Capability, IntentTemplate
 
 
 class IntentRegistry:
@@ -16,7 +17,7 @@ class IntentRegistry:
     存储和管理可复用的意图模板和能力
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._templates: dict[str, IntentTemplate] = {}
         self._capabilities: dict[str, Capability] = {}
         self._policies: dict[str, dict[str, Any]] = {}
@@ -141,11 +142,11 @@ class IntentRegistry:
 def capability(
     name: str,
     description: str = "",
-    input_schema: Optional[dict] = None,
-    output_schema: Optional[dict] = None,
+    input_schema: Optional[dict[str, Any]] = None,
+    output_schema: Optional[dict[str, Any]] = None,
     requires_permissions: Optional[list[str]] = None,
     tags: Optional[list[str]] = None,
-):
+) -> Callable[[Callable], Callable]:
     """
     能力装饰器
     用于快速注册能力函数
@@ -167,7 +168,7 @@ def capability(
             tags=tags or [],
         )
         # 将能力附加到函数上，便于后续注册
-        func._capability = cap
+        setattr(func, "_capability", cap)
         return func
 
     return decorator
