@@ -3,6 +3,7 @@ Engine 模块测试
 """
 
 import pytest
+
 from intentos.engine.engine import ExecutionEngine
 from intentos.registry import IntentRegistry
 
@@ -30,6 +31,7 @@ class TestExecutionEngine:
     async def test_execute_basic(self, engine):
         """测试基本执行"""
         from intentos.core import Intent
+
         intent = Intent(name="test", intent_type="atomic", goal="Test goal")
         result = await engine.execute(intent)
         assert result is not None
@@ -37,7 +39,8 @@ class TestExecutionEngine:
     @pytest.mark.asyncio
     async def test_execute_with_context(self, engine):
         """测试带上下文执行"""
-        from intentos.core import Intent, Context
+        from intentos.core import Context, Intent
+
         context = Context(user_id="test_user")
         intent = Intent(name="test", intent_type="atomic", goal="Test goal", context=context)
         result = await engine.execute(intent)
@@ -57,30 +60,31 @@ class TestExecutionEngineIntegration:
         """测试完整执行工作流"""
         registry = IntentRegistry()
         engine = ExecutionEngine(registry=registry)
-        
+
         from intentos.core import Intent
+
         intent = Intent(name="workflow_test", intent_type="atomic", goal="Workflow goal")
         result = await engine.execute(intent)
-        
+
         assert result is not None
-        assert hasattr(result, 'success')
+        assert hasattr(result, "success")
 
     @pytest.mark.asyncio
     async def test_multiple_executions(self):
         """测试多次执行"""
         registry = IntentRegistry()
         engine = ExecutionEngine(registry=registry)
-        
+
         from intentos.core import Intent
+
         intents = [
-            Intent(name=f"test_{i}", intent_type="atomic", goal=f"Goal {i}")
-            for i in range(3)
+            Intent(name=f"test_{i}", intent_type="atomic", goal=f"Goal {i}") for i in range(3)
         ]
-        
+
         results = []
         for intent in intents:
             result = await engine.execute(intent)
             results.append(result)
-        
+
         assert len(results) == 3
         assert all(r is not None for r in results)

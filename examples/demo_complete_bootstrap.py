@@ -27,6 +27,7 @@ class MockLLMExecutor:
     async def execute(self, messages: list[dict]) -> any:
         class Response:
             content = '{"operation": "bootstrap", "success": true}'
+
         return Response()
 
 
@@ -397,7 +398,7 @@ async def demo_7_full_bootstrap():
     validation = await validator.validate_bootstrap_capability()
     print(f"  Self-Bootstrap 能力：{'✅' if validation['capable'] else '❌'}")
     print("  支持的能力:")
-    for cap, capable in validation['capabilities'].items():
+    for cap, capable in validation["capabilities"].items():
         print(f"    {cap}: {'✅' if capable else '❌'}")
 
     # 获取自举历史

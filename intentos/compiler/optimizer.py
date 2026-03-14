@@ -219,7 +219,7 @@ class PromptOptimizer:
     def _convert_to_yaml(self, compiled_prompt: CompiledPrompt) -> CompiledPrompt:
         """转换为 YAML 格式"""
         try:
-            import yaml
+            import yaml  # type: ignore
 
             intent_dict = compiled_prompt.intent.to_dict()
             yaml_str = yaml.dump(intent_dict, default_flow_style=False, allow_unicode=True)

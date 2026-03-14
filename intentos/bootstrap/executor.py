@@ -206,13 +206,15 @@ class SelfBootstrapExecutor:
 
         if parts[0] == "CONFIG":
             if hasattr(self.vm, "memory"):
-                result = await self.vm.memory.get("CONFIG", parts[1] if len(parts) > 1 else target)
-                return result  # type: ignore
+                result: Any = await self.vm.memory.get(
+                    "CONFIG", parts[1] if len(parts) > 1 else target
+                )  # type: ignore
+                return result
         elif parts[0] == "INSTRUCTION_SET":
             # 返回当前指令集
             # 如果是分布式 VM，检查 local_vm 的处理器
             vm_to_check = self.vm.local_vm if hasattr(self.vm, "local_vm") else self.vm
-            return list(vm_to_check.processor.__class__.__dict__.keys())  # type: ignore
+            return list(vm_to_check.processor.__class__.__dict__.keys())
         elif parts[0] == "POLICY":
             if len(parts) > 1:
                 return getattr(self.policy, parts[1], None)
@@ -225,7 +227,7 @@ class SelfBootstrapExecutor:
 
         if parts[0] == "CONFIG":
             if hasattr(self.vm, "memory") and len(parts) > 1:
-                await self.vm.memory.set("CONFIG", parts[1], new_value)
+                await self.vm.memory.set("CONFIG", parts[1], new_value)  # type: ignore
         elif parts[0] == "INSTRUCTION_SET":
             # 扩展指令集：动态添加处理器方法
             instruction_name = parts[1] if len(parts) > 1 else "NEW_OP"
@@ -264,9 +266,12 @@ class SelfBootstrapExecutor:
             if hasattr(self.vm, "memory") and hasattr(self.vm.memory, "get_nodes"):
                 nodes = self.vm.memory.get_nodes()
                 for node in nodes:
-                    if node.node_id != getattr(self.vm, "local_node", {}).node_id:
+                    if (
+                        hasattr(node, "node_id")
+                        and node.node_id != getattr(self.vm, "local_node", {}).node_id
+                    ):  # type: ignore
                         # 实际调用远程设置
-                        await self.vm.memory._remote_set(node, "CONFIG", key, new_value)
+                        await self.vm.memory._remote_set(node, "CONFIG", key, new_value)  # type: ignore
 
     def get_bootstrap_history(
         self,
@@ -491,7 +496,7 @@ class BootstrapValidator:
         record: BootstrapRecord,
     ) -> dict[str, Any]:
         """验证修改"""
-        result = {
+        result: dict[str, Any] = {
             "valid": True,
             "errors": [],
             "warnings": [],
@@ -532,7 +537,7 @@ class BootstrapValidator:
 
     async def validate_bootstrap_capability(self) -> dict[str, Any]:
         """验证 Self-Bootstrap 能力"""
-        result = {
+        result: dict[str, Any] = {
             "capable": True,
             "capabilities": {
                 "modify_parse_prompt": False,

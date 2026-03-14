@@ -30,6 +30,7 @@ class MockLLMExecutor:
     async def execute(self, messages: list[dict]) -> any:
         class Response:
             content = '{"operation": "mock", "success": true}'
+
         return Response()
 
 
@@ -56,7 +57,7 @@ async def demo_1_cluster_setup():
     print(f"  总节点数：{status['total_nodes']}")
     print(f"  活跃节点：{status['active_nodes']}")
     print("  节点列表:")
-    for node in status['nodes']:
+    for node in status["nodes"]:
         print(f"    - {node['host']}:{node['port']} ({node['status']})")
 
 
@@ -79,30 +80,38 @@ async def demo_2_distributed_program():
     )
 
     # 在不同节点上执行
-    program.add_instruction(create_instruction(
-        DistributedOpcode.SPAWN,
-        target="PROGRAM",
-        target_name="analyze_east",
-        node="node1.cluster.local",
-        parameters={"region": "华东"},
-    ))
+    program.add_instruction(
+        create_instruction(
+            DistributedOpcode.SPAWN,
+            target="PROGRAM",
+            target_name="analyze_east",
+            node="node1.cluster.local",
+            parameters={"region": "华东"},
+        )
+    )
 
-    program.add_instruction(create_instruction(
-        DistributedOpcode.SPAWN,
-        target="PROGRAM",
-        target_name="analyze_south",
-        node="node2.cluster.local",
-        parameters={"region": "华南"},
-    ))
+    program.add_instruction(
+        create_instruction(
+            DistributedOpcode.SPAWN,
+            target="PROGRAM",
+            target_name="analyze_south",
+            node="node2.cluster.local",
+            parameters={"region": "华南"},
+        )
+    )
 
-    program.add_instruction(create_instruction(
-        DistributedOpcode.BARRIER,
-    ))
+    program.add_instruction(
+        create_instruction(
+            DistributedOpcode.BARRIER,
+        )
+    )
 
-    program.add_instruction(create_instruction(
-        DistributedOpcode.SYNC,
-        target="RESULTS",
-    ))
+    program.add_instruction(
+        create_instruction(
+            DistributedOpcode.SYNC,
+            target="RESULTS",
+        )
+    )
 
     # 执行程序
     exec_id = await cluster.execute_program(program)
@@ -140,28 +149,34 @@ async def demo_3_self_replication():
     )
 
     # 在本地节点创建自身
-    program.add_instruction(create_instruction(
-        SemanticOpcode.CREATE,
-        target="PROGRAM",
-        target_name="self_copy_1",
-        instructions=program.instructions,  # 复制自身指令
-    ))
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.CREATE,
+            target="PROGRAM",
+            target_name="self_copy_1",
+            instructions=program.instructions,  # 复制自身指令
+        )
+    )
 
     # 复制到远程节点
-    program.add_instruction(create_instruction(
-        DistributedOpcode.REPLICATE,
-        target="PROGRAM",
-        target_name="self_copy_1",
-        node="node2.cluster.local",
-    ))
+    program.add_instruction(
+        create_instruction(
+            DistributedOpcode.REPLICATE,
+            target="PROGRAM",
+            target_name="self_copy_1",
+            node="node2.cluster.local",
+        )
+    )
 
     # 在远程节点执行副本
-    program.add_instruction(create_instruction(
-        DistributedOpcode.SPAWN,
-        target="PROGRAM",
-        target_name="self_copy_1",
-        node="node2.cluster.local",
-    ))
+    program.add_instruction(
+        create_instruction(
+            DistributedOpcode.SPAWN,
+            target="PROGRAM",
+            target_name="self_copy_1",
+            node="node2.cluster.local",
+        )
+    )
 
     print("\n自复制程序:")
     print(f"  程序名称：{program.name}")
@@ -194,34 +209,38 @@ async def demo_4_dynamic_scaling():
     )
 
     # 检测负载
-    scaling_program.add_instruction(create_instruction(
-        SemanticOpcode.QUERY,
-        target="CLUSTER_STATUS",
-    ))
+    scaling_program.add_instruction(
+        create_instruction(
+            SemanticOpcode.QUERY,
+            target="CLUSTER_STATUS",
+        )
+    )
 
     # 如果负载高，添加节点
-    scaling_program.add_instruction(create_instruction(
-        SemanticOpcode.IF,
-        condition="cluster_load > 0.8",
-        body=[
-            SemanticInstruction(
-                opcode=DistributedOpcode.SPAWN,
-                target="NODE",
-                parameters={
-                    "host": "auto-node-1.cluster.local",
-                    "port": 8004,
-                },
-            ),
-            SemanticInstruction(
-                opcode=DistributedOpcode.SPAWN,
-                target="NODE",
-                parameters={
-                    "host": "auto-node-2.cluster.local",
-                    "port": 8005,
-                },
-            ),
-        ],
-    ))
+    scaling_program.add_instruction(
+        create_instruction(
+            SemanticOpcode.IF,
+            condition="cluster_load > 0.8",
+            body=[
+                SemanticInstruction(
+                    opcode=DistributedOpcode.SPAWN,
+                    target="NODE",
+                    parameters={
+                        "host": "auto-node-1.cluster.local",
+                        "port": 8004,
+                    },
+                ),
+                SemanticInstruction(
+                    opcode=DistributedOpcode.SPAWN,
+                    target="NODE",
+                    parameters={
+                        "host": "auto-node-2.cluster.local",
+                        "port": 8005,
+                    },
+                ),
+            ],
+        )
+    )
 
     # 模拟执行 (添加节点)
     await cluster.add_node("auto-node-1.cluster.local", 8004)
@@ -252,30 +271,36 @@ async def demo_5_distributed_self_modification():
     )
 
     # 修改分布式配置 (所有节点)
-    program.add_instruction(create_instruction(
-        DistributedOpcode.BROADCAST,
-        target="CONFIG",
-        target_name="PROCESSOR_PROMPT",
-        value="你是更强大的分布式语义 VM 处理器...",
-    ))
+    program.add_instruction(
+        create_instruction(
+            DistributedOpcode.BROADCAST,
+            target="CONFIG",
+            target_name="PROCESSOR_PROMPT",
+            value="你是更强大的分布式语义 VM 处理器...",
+        )
+    )
 
     # 修改复制策略
-    program.add_instruction(create_instruction(
-        SemanticOpcode.MODIFY,
-        target="POLICY",
-        target_name="replication_policy",
-        replication_factor=3,  # 3 副本
-        consistency_level="quorum",
-    ))
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.MODIFY,
+            target="POLICY",
+            target_name="replication_policy",
+            replication_factor=3,  # 3 副本
+            consistency_level="quorum",
+        )
+    )
 
     # 修改分片策略
-    program.add_instruction(create_instruction(
-        SemanticOpcode.MODIFY,
-        target="POLICY",
-        target_name="sharding_policy",
-        shard_key="region",
-        num_shards=10,
-    ))
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.MODIFY,
+            target="POLICY",
+            target_name="sharding_policy",
+            shard_key="region",
+            num_shards=10,
+        )
+    )
 
     print("\n分布式自修改程序:")
     print("  广播修改：PROCESSOR_PROMPT")
@@ -306,44 +331,52 @@ async def demo_6_consensus():
     )
 
     # 提议修改
-    consensus_program.add_instruction(create_instruction(
-        SemanticOpcode.SET,
-        name="proposal",
-        value={"action": "modify_parse_prompt", "value": "new_prompt"},
-    ))
+    consensus_program.add_instruction(
+        create_instruction(
+            SemanticOpcode.SET,
+            name="proposal",
+            value={"action": "modify_parse_prompt", "value": "new_prompt"},
+        )
+    )
 
     # 投票
-    consensus_program.add_instruction(create_instruction(
-        DistributedOpcode.BROADCAST,
-        target="VOTE",
-        target_name="proposal_vote",
-    ))
+    consensus_program.add_instruction(
+        create_instruction(
+            DistributedOpcode.BROADCAST,
+            target="VOTE",
+            target_name="proposal_vote",
+        )
+    )
 
     # 等待多数节点同意
-    consensus_program.add_instruction(create_instruction(
-        SemanticOpcode.WHILE,
-        condition="votes < total_nodes / 2",
-        body=[
-            SemanticInstruction(
-                opcode=SemanticOpcode.QUERY,
-                target="VOTES",
-            ),
-        ],
-    ))
+    consensus_program.add_instruction(
+        create_instruction(
+            SemanticOpcode.WHILE,
+            condition="votes < total_nodes / 2",
+            body=[
+                SemanticInstruction(
+                    opcode=SemanticOpcode.QUERY,
+                    target="VOTES",
+                ),
+            ],
+        )
+    )
 
     # 执行修改
-    consensus_program.add_instruction(create_instruction(
-        SemanticOpcode.IF,
-        condition="votes >= total_nodes / 2",
-        body=[
-            SemanticInstruction(
-                opcode=SemanticOpcode.MODIFY,
-                target="CONFIG",
-                target_name="PARSE_PROMPT",
-                value="new_prompt",
-            ),
-        ],
-    ))
+    consensus_program.add_instruction(
+        create_instruction(
+            SemanticOpcode.IF,
+            condition="votes >= total_nodes / 2",
+            body=[
+                SemanticInstruction(
+                    opcode=SemanticOpcode.MODIFY,
+                    target="CONFIG",
+                    target_name="PARSE_PROMPT",
+                    value="new_prompt",
+                ),
+            ],
+        )
+    )
 
     print("\n分布式共识程序:")
     print("  节点数：3")

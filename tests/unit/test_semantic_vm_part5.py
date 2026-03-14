@@ -5,15 +5,16 @@ Semantic VM 模块测试 - 第 5 部分
 """
 
 import pytest
+
+from intentos.llm.executor import LLMExecutor
+from intentos.semantic_vm import SemanticMemory
 from intentos.semantic_vm.vm import (
+    LLMProcessor,
     SemanticInstruction,
+    SemanticOpcode,
     SemanticProgram,
     SemanticVM,
-    LLMProcessor,
-    SemanticOpcode,
 )
-from intentos.semantic_vm import SemanticMemory
-from intentos.llm.executor import LLMExecutor
 
 
 class TestSemanticInstructionPart5:
@@ -29,7 +30,7 @@ class TestSemanticInstructionPart5:
             "body": [],
             "label": "loop_start",
             "jump_target": "loop_end",
-            "line_number": 5
+            "line_number": 5,
         }
         instr = SemanticInstruction.from_dict(data)
         assert instr.opcode == SemanticOpcode.SET
@@ -49,7 +50,7 @@ class TestSemanticInstructionPart5:
             condition="y < 20",
             label="start",
             jump_target="end",
-            line_number=10
+            line_number=10,
         )
         data = instr.to_dict()
         assert data["opcode"] == "set"
@@ -67,18 +68,15 @@ class TestSemanticProgramPart5:
     def test_program_add_multiple_instructions(self):
         program = SemanticProgram(name="multi")
         for i in range(5):
-            program.add_instruction(SemanticInstruction(
-                opcode=SemanticOpcode.SET,
-                parameters={"name": f"var_{i}", "value": i}
-            ))
+            program.add_instruction(
+                SemanticInstruction(
+                    opcode=SemanticOpcode.SET, parameters={"name": f"var_{i}", "value": i}
+                )
+            )
         assert len(program.instructions) == 5
 
     def test_program_from_dict_with_empty_instructions(self):
-        data = {
-            "name": "empty_prog",
-            "description": "Empty program",
-            "instructions": []
-        }
+        data = {"name": "empty_prog", "description": "Empty program", "instructions": []}
         program = SemanticProgram.from_dict(data)
         assert program.name == "empty_prog"
         assert len(program.instructions) == 0
@@ -89,8 +87,8 @@ class TestSemanticProgramPart5:
             "instructions": [
                 {"opcode": "set", "parameters": {"name": "a", "value": 1}},
                 {"opcode": "set", "parameters": {"name": "b", "value": 2}},
-                {"opcode": "set", "parameters": {"name": "c", "value": 3}}
-            ]
+                {"opcode": "set", "parameters": {"name": "c", "value": 3}},
+            ],
         }
         program = SemanticProgram.from_dict(data)
         assert program.name == "multi_prog"
@@ -151,10 +149,9 @@ class TestSemanticVMPart5:
     @pytest.mark.asyncio
     async def test_vm_execute_program_with_instructions(self, vm):
         program = SemanticProgram(name="with_instr")
-        program.add_instruction(SemanticInstruction(
-            opcode=SemanticOpcode.SET,
-            parameters={"name": "test", "value": 1}
-        ))
+        program.add_instruction(
+            SemanticInstruction(opcode=SemanticOpcode.SET, parameters={"name": "test", "value": 1})
+        )
         await vm.load_program(program)
         result = await vm.execute_program("with_instr")
         assert result is not None
@@ -162,17 +159,17 @@ class TestSemanticVMPart5:
     def test_vm_memory_operations(self, vm):
         vm.memory.set("TEMPLATE", "t1", "v1")
         vm.memory.set("TEMPLATE", "t2", "v2")
-        
+
         v1 = vm.memory.get("TEMPLATE", "t1")
         v2 = vm.memory.get("TEMPLATE", "t2")
-        
+
         assert v1 == "v1"
         assert v2 == "v2"
 
     def test_vm_processor_operations(self, vm):
         assert vm.processor is not None
-        assert hasattr(vm.processor, 'execute')
-        assert hasattr(vm.processor, 'execute_llm')
+        assert hasattr(vm.processor, "execute")
+        assert hasattr(vm.processor, "execute_llm")
 
 
 class TestSemanticVMIntegrationPart5:
@@ -186,18 +183,15 @@ class TestSemanticVMIntegrationPart5:
     @pytest.mark.asyncio
     async def test_instruction_nested_body(self, vm):
         inner_instr = SemanticInstruction(
-            opcode=SemanticOpcode.SET,
-            parameters={"name": "inner", "value": 1}
+            opcode=SemanticOpcode.SET, parameters={"name": "inner", "value": 1}
         )
         outer_instr = SemanticInstruction(
-            opcode=SemanticOpcode.WHILE,
-            condition="x < 10",
-            body=[inner_instr]
+            opcode=SemanticOpcode.WHILE, condition="x < 10", body=[inner_instr]
         )
-        
+
         data = outer_instr.to_dict()
         restored = SemanticInstruction.from_dict(data)
-        
+
         assert restored.opcode == SemanticOpcode.WHILE
         assert len(restored.body) == 1
         assert restored.body[0].opcode == SemanticOpcode.SET
@@ -206,11 +200,11 @@ class TestSemanticVMIntegrationPart5:
     async def test_program_deep_copy(self, vm):
         original = SemanticProgram(name="original", version="1.0.0")
         original.add_instruction(SemanticInstruction(opcode=SemanticOpcode.SET))
-        
+
         data = original.to_dict()
         copy1 = SemanticProgram.from_dict(data)
         copy2 = SemanticProgram.from_dict(copy1.to_dict())
-        
+
         assert copy1.name == original.name
         assert copy2.name == original.name
         assert len(copy1.instructions) == 1
@@ -218,8 +212,8 @@ class TestSemanticVMIntegrationPart5:
 
     def test_processor_parse_complex_json(self, vm):
         processor = vm.processor
-        
-        complex_json = '''
+
+        complex_json = """
         {
             "success": true,
             "data": {
@@ -230,7 +224,7 @@ class TestSemanticVMIntegrationPart5:
                 "total": 2
             }
         }
-        '''
+        """
         result = processor._parse_response(complex_json)
         assert result["success"] is True
         assert len(result["data"]["users"]) == 2

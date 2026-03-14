@@ -5,27 +5,24 @@ Bootstrap 模块测试
 """
 
 import pytest
-from intentos.bootstrap.sandbox import (
-    SandboxEnvironment,
-    SandboxConfig,
-    SandboxLevel,
-    BootstrapValidator,
-    ValidationResult,
-    RollbackManager,
-)
+
 from intentos.bootstrap.interpreter import (
-    MetaCircularInterpreter,
+    ConsistencyChecker,
     HierarchicalIntent,
     IntentLevel,
-    ParseRule,
+    MetaCircularInterpreter,
     MetaRule,
-    ConsistencyChecker,
+    ParseRule,
 )
-
+from intentos.bootstrap.sandbox import (
+    BootstrapValidator,
+    RollbackManager,
+)
 
 # =============================================================================
 # Bootstrap Validator 测试
 # =============================================================================
+
 
 class TestBootstrapValidator:
     """Bootstrap 验证器测试"""
@@ -35,9 +32,7 @@ class TestBootstrapValidator:
         validator = BootstrapValidator()
 
         result = validator.validate(
-            action="modify_config",
-            target="settings",
-            new_value={"key": "value"}
+            action="modify_config", target="settings", new_value={"key": "value"}
         )
 
         assert result.passed is True
@@ -47,11 +42,7 @@ class TestBootstrapValidator:
         """测试验证空操作"""
         validator = BootstrapValidator()
 
-        result = validator.validate(
-            action="",
-            target="settings",
-            new_value={}
-        )
+        result = validator.validate(action="", target="settings", new_value={})
 
         assert result.passed is False
         assert any("不能为空" in err for err in result.errors)
@@ -60,11 +51,7 @@ class TestBootstrapValidator:
         """测试验证空目标"""
         validator = BootstrapValidator()
 
-        result = validator.validate(
-            action="modify",
-            target="",
-            new_value={}
-        )
+        result = validator.validate(action="modify", target="", new_value={})
 
         assert result.passed is False
         assert any("不能为空" in err for err in result.errors)
@@ -73,11 +60,7 @@ class TestBootstrapValidator:
         """测试验证禁止模式"""
         validator = BootstrapValidator()
 
-        result = validator.validate(
-            action="delete_all",
-            target="templates",
-            new_value=None
-        )
+        result = validator.validate(action="delete_all", target="templates", new_value=None)
 
         assert result.passed is False
         assert any("禁止" in err for err in result.errors)
@@ -87,9 +70,7 @@ class TestBootstrapValidator:
         validator = BootstrapValidator()
 
         result = validator.validate(
-            action="modify_processor",
-            target="EXECUTE_PROMPT",
-            new_value="new prompt"
+            action="modify_processor", target="EXECUTE_PROMPT", new_value="new prompt"
         )
 
         assert result.passed is True
@@ -100,9 +81,7 @@ class TestBootstrapValidator:
         validator = BootstrapValidator()
 
         requires = validator.requires_approval(
-            action="modify_processor",
-            target="prompt",
-            new_value="test"
+            action="modify_processor", target="prompt", new_value="test"
         )
 
         assert requires is True
@@ -112,9 +91,7 @@ class TestBootstrapValidator:
         validator = BootstrapValidator()
 
         requires = validator.requires_approval(
-            action="modify_config",
-            target="settings",
-            new_value={"key": "value"}
+            action="modify_config", target="settings", new_value={"key": "value"}
         )
 
         assert requires is False
@@ -123,6 +100,7 @@ class TestBootstrapValidator:
 # =============================================================================
 # RollbackManager 测试
 # =============================================================================
+
 
 class TestRollbackManagerDetailed:
     """回滚管理器详细测试"""
@@ -189,6 +167,7 @@ class TestRollbackManagerDetailed:
 # MetaCircularInterpreter 测试
 # =============================================================================
 
+
 class TestMetaCircularInterpreter:
     """元循环解释器测试"""
 
@@ -204,10 +183,7 @@ class TestMetaCircularInterpreter:
         interpreter = MetaCircularInterpreter()
 
         intent = HierarchicalIntent(
-            level=IntentLevel.TASK,
-            action="query",
-            target="data",
-            parameters={"key": "value"}
+            level=IntentLevel.TASK, action="query", target="data", parameters={"key": "value"}
         )
 
         # 任务意图应该返回 None 或空结果（因为没有实际执行）
@@ -226,8 +202,8 @@ class TestMetaCircularInterpreter:
                 "pattern": "查询 (.*)",
                 "pattern_type": "regex",
                 "intent_type": "query",
-                "intent_params": {"target": "$1"}
-            }
+                "intent_params": {"target": "$1"},
+            },
         )
 
         result = interpreter.interpret(intent, context={})
@@ -241,16 +217,10 @@ class TestMetaCircularInterpreter:
         interpreter = MetaCircularInterpreter()
 
         # 先添加规则
-        interpreter.task_rules.append(ParseRule(
-            pattern="test",
-            intent_type="test"
-        ))
+        interpreter.task_rules.append(ParseRule(pattern="test", intent_type="test"))
 
         intent = HierarchicalIntent(
-            level=IntentLevel.META,
-            action="list_rules",
-            target="task_rules",
-            parameters={}
+            level=IntentLevel.META, action="list_rules", target="task_rules", parameters={}
         )
 
         result = interpreter.interpret(intent, context={})
@@ -270,7 +240,7 @@ class TestMetaCircularInterpreter:
             level=IntentLevel.META,
             action="delete_rule",
             target="task_rules",
-            parameters={"rule_id": rule.id}
+            parameters={"rule_id": rule.id},
         )
 
         result = interpreter.interpret(intent, context={})
@@ -289,8 +259,8 @@ class TestMetaCircularInterpreter:
             parameters={
                 "meta_pattern": "test",
                 "meta_action": "test_action",
-                "handler": "test_handler"
-            }
+                "handler": "test_handler",
+            },
         )
 
         result = interpreter.interpret(intent, context={})
@@ -303,10 +273,7 @@ class TestMetaCircularInterpreter:
         interpreter = MetaCircularInterpreter()
 
         intent = HierarchicalIntent(
-            level=IntentLevel.META,
-            action="unknown_action",
-            target="test",
-            parameters={}
+            level=IntentLevel.META, action="unknown_action", target="test", parameters={}
         )
 
         with pytest.raises(ValueError, match="未知的元意图动作"):
@@ -319,10 +286,7 @@ class TestMetaCircularInterpreter:
         assert interpreter.current_level == IntentLevel.TASK
 
         intent = HierarchicalIntent(
-            level=IntentLevel.META,
-            action="list_rules",
-            target="task_rules",
-            parameters={}
+            level=IntentLevel.META, action="list_rules", target="task_rules", parameters={}
         )
 
         interpreter.interpret(intent, context={})
@@ -335,6 +299,7 @@ class TestMetaCircularInterpreter:
 # ParseRule 测试
 # =============================================================================
 
+
 class TestParseRule:
     """解析规则测试"""
 
@@ -344,7 +309,7 @@ class TestParseRule:
             pattern="查询 (.*)",
             pattern_type="regex",
             intent_type="query",
-            intent_params={"target": "$1"}
+            intent_params={"target": "$1"},
         )
 
         assert rule.pattern == "查询 (.*)"
@@ -356,7 +321,7 @@ class TestParseRule:
             pattern="查询 (.*) 数据",
             pattern_type="regex",
             intent_type="query",
-            intent_params={"target": "$1"}
+            intent_params={"target": "$1"},
         )
 
         params = rule.match("查询销售数据")
@@ -367,10 +332,7 @@ class TestParseRule:
     def test_match_regex_no_match(self):
         """测试正则不匹配"""
         rule = ParseRule(
-            pattern="查询 (.*)",
-            pattern_type="regex",
-            intent_type="query",
-            intent_params={}
+            pattern="查询 (.*)", pattern_type="regex", intent_type="query", intent_params={}
         )
 
         params = rule.match("修改数据")
@@ -383,7 +345,7 @@ class TestParseRule:
             pattern="分析 (.*) 的 (.*)",
             pattern_type="regex",
             intent_type="analyze",
-            intent_params={"target": "$1", "field": "$2"}
+            intent_params={"target": "$1", "field": "$2"},
         )
 
         # 使用更简单的测试字符串
@@ -394,11 +356,7 @@ class TestParseRule:
 
     def test_to_dict(self):
         """测试转换为字典"""
-        rule = ParseRule(
-            pattern="test",
-            intent_type="test",
-            priority=10
-        )
+        rule = ParseRule(pattern="test", intent_type="test", priority=10)
 
         data = rule.to_dict()
 
@@ -414,7 +372,7 @@ class TestParseRule:
             "pattern_type": "regex",
             "intent_type": "test",
             "intent_params": {"key": "value"},
-            "priority": 5
+            "priority": 5,
         }
 
         rule = ParseRule.from_dict(data)
@@ -428,16 +386,13 @@ class TestParseRule:
 # MetaRule 测试
 # =============================================================================
 
+
 class TestMetaRule:
     """元规则测试"""
 
     def test_create_meta_rule(self):
         """测试创建元规则"""
-        rule = MetaRule(
-            meta_pattern="modify.*",
-            meta_action="modify",
-            handler="modify_handler"
-        )
+        rule = MetaRule(meta_pattern="modify.*", meta_action="modify", handler="modify_handler")
 
         assert rule.meta_pattern == "modify.*"
         assert rule.handler == "modify_handler"
@@ -445,10 +400,7 @@ class TestMetaRule:
     def test_to_dict(self):
         """测试转换为字典"""
         rule = MetaRule(
-            meta_pattern="test",
-            meta_action="test_action",
-            handler="test_handler",
-            priority=10
+            meta_pattern="test", meta_action="test_action", handler="test_handler", priority=10
         )
 
         data = rule.to_dict()
@@ -464,7 +416,7 @@ class TestMetaRule:
             "meta_pattern": "test",
             "meta_action": "test",
             "handler": "handler",
-            "priority": 5
+            "priority": 5,
         }
 
         rule = MetaRule.from_dict(data)
@@ -476,6 +428,7 @@ class TestMetaRule:
 # =============================================================================
 # ConsistencyChecker 测试
 # =============================================================================
+
 
 class TestConsistencyChecker:
     """一致性检查器测试"""
@@ -492,10 +445,7 @@ class TestConsistencyChecker:
         interpreter = MetaCircularInterpreter()
         checker = ConsistencyChecker(interpreter)
 
-        modification = {
-            "action": "modify_parse_rule",
-            "new_value": {"pattern": "test"}
-        }
+        modification = {"action": "modify_parse_rule", "new_value": {"pattern": "test"}}
 
         passed, conflicts = checker.check_consistency(modification)
 
@@ -507,10 +457,7 @@ class TestConsistencyChecker:
         interpreter = MetaCircularInterpreter()
         checker = ConsistencyChecker(interpreter)
 
-        modification = {
-            "action": "modify_rule",
-            "new_value": "所有规则都是错的"
-        }
+        modification = {"action": "modify_rule", "new_value": "所有规则都是错的"}
 
         passed, conflicts = checker.check_consistency(modification)
 
@@ -522,10 +469,7 @@ class TestConsistencyChecker:
         interpreter = MetaCircularInterpreter()
         checker = ConsistencyChecker(interpreter)
 
-        modification = {
-            "action": "modify_rule",
-            "new_value": "本规则无效"
-        }
+        modification = {"action": "modify_rule", "new_value": "本规则无效"}
 
         passed, conflicts = checker.check_consistency(modification)
 
@@ -536,6 +480,7 @@ class TestConsistencyChecker:
 # =============================================================================
 # Integration Tests
 # =============================================================================
+
 
 class TestBootstrapIntegration:
     """Bootstrap 集成测试"""
@@ -554,8 +499,8 @@ class TestBootstrapIntegration:
                 "pattern": "分析 (.*)",
                 "pattern_type": "regex",
                 "intent_type": "analyze",
-                "intent_params": {"target": "$1"}
-            }
+                "intent_params": {"target": "$1"},
+            },
         )
 
         result = interpreter.interpret(intent, context={})
@@ -573,11 +518,7 @@ class TestBootstrapIntegration:
             level=IntentLevel.META_META,
             action="modify_meta_rule",
             target="meta_rules",
-            parameters={
-                "meta_pattern": "add.*",
-                "meta_action": "add",
-                "handler": "add_handler"
-            }
+            parameters={"meta_pattern": "add.*", "meta_action": "add", "handler": "add_handler"},
         )
 
         result = interpreter.interpret(meta_intent, context={})
@@ -588,10 +529,7 @@ class TestBootstrapIntegration:
             level=IntentLevel.META,
             action="modify_parse_rule",
             target="task_rules",
-            parameters={
-                "pattern": "test",
-                "intent_type": "test"
-            }
+            parameters={"pattern": "test", "intent_type": "test"},
         )
 
         result = interpreter.interpret(task_intent, context={})

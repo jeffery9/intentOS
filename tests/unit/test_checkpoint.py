@@ -1,21 +1,23 @@
 # -*- coding: utf-8 -*-
-import pytest
-import os
 import shutil
-import json
-import gzip
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch
 from pathlib import Path
-import hashlib
+from unittest.mock import patch
+
+import pytest
 
 from intentos.distributed.checkpoint import (
-    CheckpointType, CheckpointMetadata, ProcessCheckpoint, CheckpointConfig, CheckpointManager
+    CheckpointConfig,
+    CheckpointManager,
+    CheckpointMetadata,
+    CheckpointType,
+    ProcessCheckpoint,
 )
 
 # =============================================================================
 # Enum Tests
 # =============================================================================
+
 
 class TestCheckpointType:
     """CheckpointType 测试"""
@@ -25,9 +27,11 @@ class TestCheckpointType:
         assert CheckpointType.INCREMENTAL.value == "incremental"
         assert CheckpointType.SNAPSHOT.value == "snapshot"
 
+
 # =============================================================================
 # CheckpointMetadata Tests
 # =============================================================================
+
 
 class TestCheckpointMetadata:
     """CheckpointMetadata 测试"""
@@ -49,7 +53,7 @@ class TestCheckpointMetadata:
             node_id="node_x",
             size_bytes=100,
             compressed=True,
-            checksum="abc"
+            checksum="abc",
         )
         assert metadata.id == "test_id"
         assert metadata.type == CheckpointType.SNAPSHOT
@@ -79,16 +83,18 @@ class TestCheckpointMetadata:
             "node_id": "n_dict",
             "size_bytes": 200,
             "compressed": False,
-            "checksum": "def"
+            "checksum": "def",
         }
         metadata = CheckpointMetadata.from_dict(data)
         assert metadata.id == "dict_id"
         assert metadata.type == CheckpointType.INCREMENTAL
         assert metadata.process_id == "p_dict"
 
+
 # =============================================================================
 # ProcessCheckpoint Tests
 # =============================================================================
+
 
 class TestProcessCheckpoint:
     """ProcessCheckpoint 测试"""
@@ -100,10 +106,12 @@ class TestProcessCheckpoint:
     def test_creation(self, sample_metadata):
         checkpoint = ProcessCheckpoint(
             metadata=sample_metadata,
-            pid="p1", pc=10, status="running",
+            pid="p1",
+            pc=10,
+            status="running",
             program_data={"code": "abc"},
             variables={"x": 1},
-            context={"user": "test"}
+            context={"user": "test"},
         )
         assert checkpoint.pid == "p1"
         assert checkpoint.metadata == sample_metadata
@@ -111,10 +119,12 @@ class TestProcessCheckpoint:
     def test_to_dict(self, sample_metadata):
         checkpoint = ProcessCheckpoint(
             metadata=sample_metadata,
-            pid="p1", pc=10, status="running",
+            pid="p1",
+            pc=10,
+            status="running",
             program_data={"code": "abc"},
             variables={"x": 1},
-            context={"user": "test"}
+            context={"user": "test"},
         )
         d = checkpoint.to_dict()
         assert d["pid"] == "p1"
@@ -130,7 +140,7 @@ class TestProcessCheckpoint:
             "program_data": {"code": "def"},
             "variables": {"y": 2},
             "context": {"env": "prod"},
-            "gas_state": {"limit": 100}
+            "gas_state": {"limit": 100},
         }
         checkpoint = ProcessCheckpoint.from_dict(data)
         assert checkpoint.pid == "p_dict"
@@ -140,10 +150,12 @@ class TestProcessCheckpoint:
     def test_compute_checksum(self, sample_metadata):
         checkpoint = ProcessCheckpoint(
             metadata=sample_metadata,
-            pid="p1", pc=10, status="running",
+            pid="p1",
+            pc=10,
+            status="running",
             program_data={"code": "abc"},
             variables={"x": 1},
-            context={"user": "test"}
+            context={"user": "test"},
         )
         checksum = checkpoint.compute_checksum()
         assert isinstance(checksum, str)
@@ -152,10 +164,12 @@ class TestProcessCheckpoint:
     def test_verify_integrity_success(self, sample_metadata):
         checkpoint = ProcessCheckpoint(
             metadata=sample_metadata,
-            pid="p1", pc=10, status="running",
+            pid="p1",
+            pc=10,
+            status="running",
             program_data={"code": "abc"},
             variables={"x": 1},
-            context={"user": "test"}
+            context={"user": "test"},
         )
         checkpoint.metadata.checksum = checkpoint.compute_checksum()
         assert checkpoint.verify_integrity() is True
@@ -163,17 +177,21 @@ class TestProcessCheckpoint:
     def test_verify_integrity_failure(self, sample_metadata):
         checkpoint = ProcessCheckpoint(
             metadata=sample_metadata,
-            pid="p1", pc=10, status="running",
+            pid="p1",
+            pc=10,
+            status="running",
             program_data={"code": "abc"},
             variables={"x": 1},
-            context={"user": "test"}
+            context={"user": "test"},
         )
         checkpoint.metadata.checksum = "invalid_checksum"
         assert checkpoint.verify_integrity() is False
 
+
 # =============================================================================
 # CheckpointConfig Tests
 # =============================================================================
+
 
 class TestCheckpointConfig:
     """CheckpointConfig 测试"""
@@ -194,9 +212,11 @@ class TestCheckpointConfig:
         assert config.checkpoint_interval_seconds == 300
         assert config.max_checkpoints_per_process == 3
 
+
 # =============================================================================
 # CheckpointManager Tests
 # =============================================================================
+
 
 class TestCheckpointManager:
     """CheckpointManager 测试"""
@@ -232,11 +252,13 @@ class TestCheckpointManager:
     def test_create_checkpoint(self, manager):
         pid = "process_a"
         checkpoint = manager.create_checkpoint(
-            pid=pid, pc=1, status="running",
+            pid=pid,
+            pc=1,
+            status="running",
             program_data={"instr": "add"},
             variables={"a": 1},
             context={"user": "guest"},
-            program_name="prog_a"
+            program_name="prog_a",
         )
         assert checkpoint.pid == pid
         assert checkpoint.metadata.program_name == "prog_a"
@@ -252,11 +274,13 @@ class TestCheckpointManager:
     def test_create_checkpoint_compressed(self, compressed_manager):
         pid = "process_c"
         checkpoint = compressed_manager.create_checkpoint(
-            pid=pid, pc=1, status="running",
+            pid=pid,
+            pc=1,
+            status="running",
             program_data={"instr": "add"},
             variables={"a": 1},
             context={"user": "guest"},
-            program_name="prog_c"
+            program_name="prog_c",
         )
         assert checkpoint.metadata.compressed is True
         process_dir = self._get_process_dir(pid)
@@ -265,11 +289,13 @@ class TestCheckpointManager:
     def test_restore_checkpoint_success(self, manager):
         pid = "process_b"
         created_checkpoint = manager.create_checkpoint(
-            pid=pid, pc=2, status="paused",
+            pid=pid,
+            pc=2,
+            status="paused",
             program_data={"instr": "sub"},
             variables={"b": 2},
             context={"user": "admin"},
-            program_name="prog_b"
+            program_name="prog_b",
         )
         restored_checkpoint = manager.restore_checkpoint(created_checkpoint.metadata.id)
         assert restored_checkpoint is not None
@@ -284,13 +310,15 @@ class TestCheckpointManager:
     def test_restore_checkpoint_integrity_failure(self, manager):
         pid = "process_d"
         created_checkpoint = manager.create_checkpoint(
-            pid=pid, pc=3, status="running",
+            pid=pid,
+            pc=3,
+            status="running",
             program_data={"instr": "mul"},
             variables={"c": 3},
             context={"user": "tester"},
-            program_name="prog_d"
+            program_name="prog_d",
         )
-        
+
         # Manually corrupt the file
         process_dir = self._get_process_dir(pid)
         filepath = next(process_dir.glob(f"{created_checkpoint.metadata.id}.json"))
@@ -304,13 +332,19 @@ class TestCheckpointManager:
         pid1 = "list_proc1"
         pid2 = "list_proc2"
         # Ensure distinct timestamps for sorting in list_checkpoints
-        with patch('intentos.distributed.checkpoint.datetime') as mock_datetime:
+        with patch("intentos.distributed.checkpoint.datetime") as mock_datetime:
             mock_datetime.now.return_value = datetime(2023, 1, 1, 10, 0, 0)
-            cp_1_1 = manager.create_checkpoint(pid=pid1, pc=1, status="r", program_data={}, variables={}, context={})
+            cp_1_1 = manager.create_checkpoint(
+                pid=pid1, pc=1, status="r", program_data={}, variables={}, context={}
+            )
             mock_datetime.now.return_value = datetime(2023, 1, 1, 10, 0, 1)
-            cp_1_2 = manager.create_checkpoint(pid=pid1, pc=2, status="r", program_data={}, variables={}, context={})
+            cp_1_2 = manager.create_checkpoint(
+                pid=pid1, pc=2, status="r", program_data={}, variables={}, context={}
+            )
             mock_datetime.now.return_value = datetime(2023, 1, 1, 10, 0, 2)
-            cp_2_1 = manager.create_checkpoint(pid=pid2, pc=1, status="r", program_data={}, variables={}, context={})
+            cp_2_1 = manager.create_checkpoint(
+                pid=pid2, pc=1, status="r", program_data={}, variables={}, context={}
+            )
 
         checkpoints = manager.list_checkpoints()
         assert len(checkpoints) == 3
@@ -323,13 +357,19 @@ class TestCheckpointManager:
     def test_list_checkpoints_by_process_id(self, manager):
         pid1 = "filter_proc1"
         pid2 = "filter_proc2"
-        with patch('intentos.distributed.checkpoint.datetime') as mock_datetime:
+        with patch("intentos.distributed.checkpoint.datetime") as mock_datetime:
             mock_datetime.now.return_value = datetime(2023, 1, 1, 10, 0, 0)
-            cp_1_1 = manager.create_checkpoint(pid=pid1, pc=1, status="r", program_data={}, variables={}, context={})
+            cp_1_1 = manager.create_checkpoint(
+                pid=pid1, pc=1, status="r", program_data={}, variables={}, context={}
+            )
             mock_datetime.now.return_value = datetime(2023, 1, 1, 10, 0, 1)
-            cp_1_2 = manager.create_checkpoint(pid=pid1, pc=2, status="r", program_data={}, variables={}, context={})
+            cp_1_2 = manager.create_checkpoint(
+                pid=pid1, pc=2, status="r", program_data={}, variables={}, context={}
+            )
             mock_datetime.now.return_value = datetime(2023, 1, 1, 10, 0, 2)
-            cp_2_1 = manager.create_checkpoint(pid=pid2, pc=1, status="r", program_data={}, variables={}, context={})
+            cp_2_1 = manager.create_checkpoint(
+                pid=pid2, pc=1, status="r", program_data={}, variables={}, context={}
+            )
 
         checkpoints = manager.list_checkpoints(process_id=pid1)
         assert len(checkpoints) == 2
@@ -337,24 +377,30 @@ class TestCheckpointManager:
         assert checkpoints[0].id == cp_1_2.metadata.id
         assert checkpoints[1].id == cp_1_1.metadata.id
 
-    @patch('intentos.distributed.checkpoint.datetime')
+    @patch("intentos.distributed.checkpoint.datetime")
     def test_retention_policy_cleanup(self, mock_datetime, manager):
-        manager.config.retention_hours = 1 # 1 hour retention
+        manager.config.retention_hours = 1  # 1 hour retention
         pid = "retention_process"
 
         # Create an old checkpoint (should be cleaned up)
-        old_time = datetime(2023, 1, 1, 8, 0, 0) # 2 hours old
+        old_time = datetime(2023, 1, 1, 8, 0, 0)  # 2 hours old
         mock_datetime.now.return_value = old_time
-        old_cp = manager.create_checkpoint(pid=pid, pc=1, status="r", program_data={}, variables={}, context={})
+        old_cp = manager.create_checkpoint(
+            pid=pid, pc=1, status="r", program_data={}, variables={}, context={}
+        )
 
         # Create recent checkpoints (should remain)
-        mid_time = datetime(2023, 1, 1, 9, 30, 0) # 30 mins old
+        mid_time = datetime(2023, 1, 1, 9, 30, 0)  # 30 mins old
         mock_datetime.now.return_value = mid_time
-        mid_cp = manager.create_checkpoint(pid=pid, pc=2, status="r", program_data={}, variables={}, context={})
+        mid_cp = manager.create_checkpoint(
+            pid=pid, pc=2, status="r", program_data={}, variables={}, context={}
+        )
 
-        latest_time = datetime(2023, 1, 1, 10, 0, 0) # Current time for cleanup check
+        latest_time = datetime(2023, 1, 1, 10, 0, 0)  # Current time for cleanup check
         mock_datetime.now.return_value = latest_time
-        latest_cp = manager.create_checkpoint(pid=pid, pc=3, status="r", program_data={}, variables={}, context={})
+        latest_cp = manager.create_checkpoint(
+            pid=pid, pc=3, status="r", program_data={}, variables={}, context={}
+        )
 
         # After cleanup, old_cp should be gone, mid_cp and latest_cp should remain
         assert len(manager._checkpoints[pid]) == 2
@@ -365,7 +411,7 @@ class TestCheckpointManager:
         assert (manager._storage_path / pid / f"{mid_cp.metadata.id}.json").exists()
         assert (manager._storage_path / pid / f"{latest_cp.metadata.id}.json").exists()
 
-    @patch('intentos.distributed.checkpoint.datetime')
+    @patch("intentos.distributed.checkpoint.datetime")
     def test_max_checkpoints_per_process(self, mock_datetime, manager):
         pid = "max_cp_process"
         manager.config.max_checkpoints_per_process = 2
@@ -373,18 +419,25 @@ class TestCheckpointManager:
 
         # Create 3 checkpoints
         mock_datetime.now.return_value = base_time
-        cp1 = manager.create_checkpoint(pid=pid, pc=1, status="r", program_data={}, variables={}, context={})
+        cp1 = manager.create_checkpoint(
+            pid=pid, pc=1, status="r", program_data={}, variables={}, context={}
+        )
         mock_datetime.now.return_value = base_time + timedelta(seconds=1)
-        cp2 = manager.create_checkpoint(pid=pid, pc=2, status="r", program_data={}, variables={}, context={})
+        cp2 = manager.create_checkpoint(
+            pid=pid, pc=2, status="r", program_data={}, variables={}, context={}
+        )
         mock_datetime.now.return_value = base_time + timedelta(seconds=2)
-        cp3 = manager.create_checkpoint(pid=pid, pc=3, status="r", program_data={}, variables={}, context={})
+        cp3 = manager.create_checkpoint(
+            pid=pid, pc=3, status="r", program_data={}, variables={}, context={}
+        )
 
         # The manager should now only contain the 2 most recent checkpoints
         assert len(manager._checkpoints[pid]) == 2
-        assert cp1.metadata.id not in [cp.id for cp in manager._checkpoints[pid]] # cp1 should be removed
+        assert cp1.metadata.id not in [
+            cp.id for cp in manager._checkpoints[pid]
+        ]  # cp1 should be removed
         assert cp2.metadata.id in [cp.id for cp in manager._checkpoints[pid]]
         assert cp3.metadata.id in [cp.id for cp in manager._checkpoints[pid]]
         assert not (manager._storage_path / pid / f"{cp1.metadata.id}.json").exists()
         assert (manager._storage_path / pid / f"{cp2.metadata.id}.json").exists()
         assert (manager._storage_path / pid / f"{cp3.metadata.id}.json").exists()
-

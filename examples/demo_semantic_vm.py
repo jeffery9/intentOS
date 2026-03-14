@@ -25,6 +25,7 @@ class MockLLMExecutor:
     async def execute(self, messages: list[dict]) -> any:
         class Response:
             content = '{"operation": "mock", "success": true, "result": {}}'
+
         return Response()
 
 
@@ -42,23 +43,29 @@ async def demo_1_basic_program():
     )
 
     # 添加指令
-    program.add_instruction(create_instruction(
-        SemanticOpcode.CREATE,
-        target="TEMPLATE",
-        target_name="sales_analysis",
-        steps=["query_sales", "analyze_trends", "generate_report"],
-    ))
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.CREATE,
+            target="TEMPLATE",
+            target_name="sales_analysis",
+            steps=["query_sales", "analyze_trends", "generate_report"],
+        )
+    )
 
-    program.add_instruction(create_instruction(
-        SemanticOpcode.SET,
-        name="template_count",
-        value=1,
-    ))
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.SET,
+            name="template_count",
+            value=1,
+        )
+    )
 
-    program.add_instruction(create_instruction(
-        SemanticOpcode.QUERY,
-        target="TEMPLATE",
-    ))
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.QUERY,
+            target="TEMPLATE",
+        )
+    )
 
     # 创建 VM 并执行程序
     llm_executor = MockLLMExecutor()
@@ -88,11 +95,13 @@ async def demo_2_loop_program():
     )
 
     # 初始化计数器
-    program.add_instruction(create_instruction(
-        SemanticOpcode.SET,
-        name="counter",
-        value=0,
-    ))
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.SET,
+            name="counter",
+            value=0,
+        )
+    )
 
     # WHILE 循环
     loop_body = [
@@ -108,11 +117,13 @@ async def demo_2_loop_program():
         ),
     ]
 
-    program.add_instruction(SemanticInstruction(
-        opcode=SemanticOpcode.WHILE,
-        condition="${counter} < 5",
-        body=loop_body,
-    ))
+    program.add_instruction(
+        SemanticInstruction(
+            opcode=SemanticOpcode.WHILE,
+            condition="${counter} < 5",
+            body=loop_body,
+        )
+    )
 
     # 创建 VM 并执行
     llm_executor = MockLLMExecutor()
@@ -140,38 +151,46 @@ async def demo_3_self_modifying_program():
     )
 
     # 步骤 1: 创建初始模板
-    program.add_instruction(create_instruction(
-        SemanticOpcode.CREATE,
-        target="TEMPLATE",
-        target_name="initial_template",
-        version="1.0",
-        steps=["step1"],
-    ))
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.CREATE,
+            target="TEMPLATE",
+            target_name="initial_template",
+            version="1.0",
+            steps=["step1"],
+        )
+    )
 
     # 步骤 2: 修改模板 (自修改)
-    program.add_instruction(create_instruction(
-        SemanticOpcode.MODIFY,
-        target="TEMPLATE",
-        target_name="initial_template",
-        version="2.0",
-        steps=["step1", "step2", "step3"],
-    ))
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.MODIFY,
+            target="TEMPLATE",
+            target_name="initial_template",
+            version="2.0",
+            steps=["step1", "step2", "step3"],
+        )
+    )
 
     # 步骤 3: 修改处理器 Prompt (Self-Bootstrap 关键)
-    program.add_instruction(create_instruction(
-        SemanticOpcode.MODIFY,
-        target="PROCESSOR",
-        parameters={
-            "new_prompt": "你是更强大的语义 VM 处理器，支持更多操作...",
-        },
-    ))
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.MODIFY,
+            target="PROCESSOR",
+            parameters={
+                "new_prompt": "你是更强大的语义 VM 处理器，支持更多操作...",
+            },
+        )
+    )
 
     # 步骤 4: 定义新指令 (扩展指令集)
-    program.add_instruction(create_instruction(
-        SemanticOpcode.DEFINE_INSTRUCTION,
-        instruction_name="FORECAST",
-        description="预测分析指令",
-    ))
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.DEFINE_INSTRUCTION,
+            instruction_name="FORECAST",
+            description="预测分析指令",
+        )
+    )
 
     # 创建 VM 并执行
     llm_executor = MockLLMExecutor()
@@ -204,22 +223,26 @@ async def demo_4_meta_bootstrap():
     )
 
     # 步骤 1: 创建 Self-Bootstrap 策略
-    program.add_instruction(create_instruction(
-        SemanticOpcode.CREATE,
-        target="POLICY",
-        target_name="self_bootstrap_policy",
-        allow_self_modification=True,
-        require_approval_for=["delete_all_templates"],
-    ))
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.CREATE,
+            target="POLICY",
+            target_name="self_bootstrap_policy",
+            allow_self_modification=True,
+            require_approval_for=["delete_all_templates"],
+        )
+    )
 
     # 步骤 2: 修改 Self-Bootstrap 策略 (自修改)
-    program.add_instruction(create_instruction(
-        SemanticOpcode.MODIFY,
-        target="POLICY",
-        target_name="self_bootstrap_policy",
-        require_approval_for=["delete_all_templates", "modify_audit_rules"],
-        max_modifications_per_hour=20,
-    ))
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.MODIFY,
+            target="POLICY",
+            target_name="self_bootstrap_policy",
+            require_approval_for=["delete_all_templates", "modify_audit_rules"],
+            max_modifications_per_hour=20,
+        )
+    )
 
     # 步骤 3: 创建监控程序
     monitor_program = create_program(
@@ -227,28 +250,30 @@ async def demo_4_meta_bootstrap():
         description="监控自修改",
     )
 
-    monitor_program.add_instruction(create_instruction(
-        SemanticOpcode.WHILE,
-        condition="true",
-        body=[
-            SemanticInstruction(
-                opcode=SemanticOpcode.QUERY,
-                target="AUDIT_LOG",
-            ),
-            SemanticInstruction(
-                opcode=SemanticOpcode.IF,
-                condition="audit_count > 10",
-                body=[
-                    SemanticInstruction(
-                        opcode=SemanticOpcode.MODIFY,
-                        target="POLICY",
-                        target_name="self_bootstrap_policy",
-                        max_modifications_per_hour=10,
-                    ),
-                ],
-            ),
-        ],
-    ))
+    monitor_program.add_instruction(
+        create_instruction(
+            SemanticOpcode.WHILE,
+            condition="true",
+            body=[
+                SemanticInstruction(
+                    opcode=SemanticOpcode.QUERY,
+                    target="AUDIT_LOG",
+                ),
+                SemanticInstruction(
+                    opcode=SemanticOpcode.IF,
+                    condition="audit_count > 10",
+                    body=[
+                        SemanticInstruction(
+                            opcode=SemanticOpcode.MODIFY,
+                            target="POLICY",
+                            target_name="self_bootstrap_policy",
+                            max_modifications_per_hour=10,
+                        ),
+                    ],
+                ),
+            ],
+        )
+    )
 
     # 创建 VM 并执行
     llm_executor = MockLLMExecutor()
@@ -279,26 +304,34 @@ async def demo_5_turing_complete():
     )
 
     # 初始化
-    program.add_instruction(create_instruction(
-        SemanticOpcode.SET,
-        name="a",
-        value=0,
-    ))
-    program.add_instruction(create_instruction(
-        SemanticOpcode.SET,
-        name="b",
-        value=1,
-    ))
-    program.add_instruction(create_instruction(
-        SemanticOpcode.SET,
-        name="n",
-        value=10,
-    ))
-    program.add_instruction(create_instruction(
-        SemanticOpcode.SET,
-        name="result",
-        value=[],
-    ))
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.SET,
+            name="a",
+            value=0,
+        )
+    )
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.SET,
+            name="b",
+            value=1,
+        )
+    )
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.SET,
+            name="n",
+            value=10,
+        )
+    )
+    program.add_instruction(
+        create_instruction(
+            SemanticOpcode.SET,
+            name="result",
+            value=[],
+        )
+    )
 
     # 循环计算
     loop_body = [
@@ -316,11 +349,13 @@ async def demo_5_turing_complete():
         ),
     ]
 
-    program.add_instruction(SemanticInstruction(
-        opcode=SemanticOpcode.LOOP,
-        parameters={"times": 10},
-        body=loop_body,
-    ))
+    program.add_instruction(
+        SemanticInstruction(
+            opcode=SemanticOpcode.LOOP,
+            parameters={"times": 10},
+            body=loop_body,
+        )
+    )
 
     # 创建 VM 并执行
     llm_executor = MockLLMExecutor()

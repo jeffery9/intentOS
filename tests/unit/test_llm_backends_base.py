@@ -2,15 +2,14 @@
 LLM Backends Base 模块测试
 """
 
-import pytest
 from intentos.llm.backends.base import (
-    LLMRole,
-    Message,
-    ToolDefinition,
-    ToolCall,
-    LLMUsage,
-    LLMResponse,
     LLMError,
+    LLMResponse,
+    LLMRole,
+    LLMUsage,
+    Message,
+    ToolCall,
+    ToolDefinition,
 )
 
 
@@ -60,11 +59,15 @@ class TestToolDefinition:
     """ToolDefinition 测试"""
 
     def test_tool_creation(self):
-        tool = ToolDefinition(name="search", description="Search the web", parameters={"type": "object"})
+        tool = ToolDefinition(
+            name="search", description="Search the web", parameters={"type": "object"}
+        )
         assert tool.name == "search"
 
     def test_tool_to_dict(self):
-        tool = ToolDefinition(name="calculator", description="Calculate", parameters={"type": "object"})
+        tool = ToolDefinition(
+            name="calculator", description="Calculate", parameters={"type": "object"}
+        )
         data = tool.to_dict()
         assert data["type"] == "function"
         assert data["function"]["name"] == "calculator"

@@ -282,16 +282,20 @@ class CheckpointManager:
         if self.config.retention_hours > 0:
             now = datetime.now()
             retention_threshold = now - timedelta(hours=self.config.retention_hours)
-            retained_by_retention = [cp for cp in checkpoints_for_process if cp.timestamp >= retention_threshold]
+            retained_by_retention = [
+                cp for cp in checkpoints_for_process if cp.timestamp >= retention_threshold
+            ]
         else:
             retained_by_retention = list(checkpoints_for_process)
 
         # 2. 根据 max_checkpoints_per_process 清理
         checkpoints_to_keep = []
-        if self.config.max_checkpoints_per_process > 0 and \
-           len(retained_by_retention) > self.config.max_checkpoints_per_process:
+        if (
+            self.config.max_checkpoints_per_process > 0
+            and len(retained_by_retention) > self.config.max_checkpoints_per_process
+        ):
             # 保留最新的 max_checkpoints_per_process 个
-            checkpoints_to_keep = retained_by_retention[-self.config.max_checkpoints_per_process:]
+            checkpoints_to_keep = retained_by_retention[-self.config.max_checkpoints_per_process :]
         else:
             checkpoints_to_keep = retained_by_retention
 
@@ -302,14 +306,18 @@ class CheckpointManager:
             cp_meta_to_remove = next((cp for cp in checkpoints_for_process if cp.id == cp_id), None)
             if cp_meta_to_remove:
                 filename = (
-                    f"{cp_meta_to_remove.id}.json.gz" if cp_meta_to_remove.compressed else f"{cp_meta_to_remove.id}.json"
+                    f"{cp_meta_to_remove.id}.json.gz"
+                    if cp_meta_to_remove.compressed
+                    else f"{cp_meta_to_remove.id}.json"
                 )
                 filepath = self._storage_path / process_id / filename
                 if filepath.exists():
-                    filepath.unlink() # 删除文件
+                    filepath.unlink()  # 删除文件
 
         # 最后，更新内存中的列表
-        self._checkpoints[process_id] = [cp for cp in checkpoints_for_process if cp.id not in ids_to_remove]
+        self._checkpoints[process_id] = [
+            cp for cp in checkpoints_for_process if cp.id not in ids_to_remove
+        ]
 
     def _load_checkpoint(self, checkpoint_id: str) -> Optional[ProcessCheckpoint]:
         """加载检查点"""

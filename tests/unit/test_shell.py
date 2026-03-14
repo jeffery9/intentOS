@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
+
 from intentos.interface.shell import IntentShell
-import json
+
 
 @pytest.fixture
 def mock_os():
@@ -10,13 +12,15 @@ def mock_os():
         os_instance = mock.return_value
         os_instance.initialize = MagicMock()
         os_instance.execute = AsyncMock(return_value="Success")
-        os_instance.get_kernel_status = AsyncMock(return_value={
-            "cluster": {"nodes": []},
-            "memory": {"programs_count": 0, "variables_count": 0},
-            "registry": {"templates": [], "capabilities": []},
-            "processes": [],
-            "bootstrap": []
-        })
+        os_instance.get_kernel_status = AsyncMock(
+            return_value={
+                "cluster": {"nodes": []},
+                "memory": {"programs_count": 0, "variables_count": 0},
+                "registry": {"templates": [], "capabilities": []},
+                "processes": [],
+                "bootstrap": [],
+            }
+        )
         os_instance.vm = MagicMock()
         os_instance.vm.kill = AsyncMock(return_value=True)
         os_instance.vm.memory = MagicMock()
@@ -27,6 +31,7 @@ def mock_os():
         os_instance.vm.remove_node = AsyncMock()
         yield os_instance
 
+
 @pytest.fixture
 def shell(mock_os):
     # Mock rich Console to avoid terminal output and issues during tests
@@ -34,6 +39,7 @@ def shell(mock_os):
         # We need to mock _print_banner as it's called in __init__
         with patch.object(IntentShell, "_print_banner"):
             return IntentShell()
+
 
 class TestIntentShell:
     """IntentOS Shell 测试"""
@@ -48,15 +54,15 @@ class TestIntentShell:
         """测试自然语言意图分发 (非 / 开头)"""
         with patch.object(shell, "_execute_intent", new_callable=AsyncMock) as mock_exec:
             # We mock asyncio.run for the purpose of this test to avoid loop issues
-            with patch("asyncio.run", side_effect=lambda x: x if hasattr(x, '__await__') else None):
+            with patch("asyncio.run", side_effect=lambda x: x if hasattr(x, "__await__") else None):
                 shell.onecmd("Analyze sales")
                 # Since we mocked onecmd to call _execute_intent directly in our mock_exec
-                # we just need to ensure it was called. 
+                # we just need to ensure it was called.
                 # Actually IntentShell.onecmd calls asyncio.run(self._execute_intent(line))
                 # So mock_exec will be called.
                 pass
             # Re-testing without the complex asyncio.run mock if possible
-    
+
     @pytest.mark.asyncio
     async def test_execute_intent(self, shell, mock_os):
         """测试执行意图内部逻辑"""
@@ -75,7 +81,7 @@ class TestIntentShell:
                     "node_id": "node123",
                     "state": "RUNNING",
                     "pc": 0,
-                    "start_time": "now"
+                    "start_time": "now",
                 }
             ]
         }
@@ -97,9 +103,7 @@ class TestIntentShell:
         """测试 /top 指令"""
         mock_os.get_kernel_status.return_value = {
             "cluster": {
-                "nodes": [
-                    {"node_id": "n1", "host": "h1", "port": 1, "status": "OK", "load": 0.5}
-                ]
+                "nodes": [{"node_id": "n1", "host": "h1", "port": 1, "status": "OK", "load": 0.5}]
             }
         }
         shell.do_top("")
@@ -109,7 +113,7 @@ class TestIntentShell:
         """测试 /df 指令"""
         mock_os.get_kernel_status.return_value = {
             "registry": {"templates": [], "capabilities": []},
-            "memory": {"programs_count": 5, "variables_count": 10}
+            "memory": {"programs_count": 5, "variables_count": 10},
         }
         shell.do_df("")
         mock_os.get_kernel_status.assert_called()
@@ -157,10 +161,7 @@ class TestIntentShell:
     def test_do_ls_templates(self, shell, mock_os):
         """测试 /ls 指令"""
         mock_os.get_kernel_status.return_value = {
-            "registry": {
-                "templates": [{"name": "t1", "description": "d1"}],
-                "capabilities": []
-            }
+            "registry": {"templates": [{"name": "t1", "description": "d1"}], "capabilities": []}
         }
         shell.do_ls("templates")
         mock_os.get_kernel_status.assert_called()
@@ -168,10 +169,7 @@ class TestIntentShell:
     def test_do_ls_capabilities(self, shell, mock_os):
         """测试 /ls capabilities 指令"""
         mock_os.get_kernel_status.return_value = {
-            "registry": {
-                "templates": [],
-                "capabilities": [{"name": "c1", "description": "d1"}]
-            }
+            "registry": {"templates": [], "capabilities": [{"name": "c1", "description": "d1"}]}
         }
         shell.do_ls("capabilities")
         mock_os.get_kernel_status.assert_called()
@@ -179,9 +177,7 @@ class TestIntentShell:
     def test_do_cat_found(self, shell, mock_os):
         """测试 /cat 指令 (找到)"""
         mock_os.get_kernel_status.return_value = {
-            "registry": {
-                "templates": [{"name": "t1", "details": "..."}]
-            }
+            "registry": {"templates": [{"name": "t1", "details": "..."}]}
         }
         shell.do_cat("t1")
         mock_os.get_kernel_status.assert_called()

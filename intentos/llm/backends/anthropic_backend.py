@@ -161,7 +161,7 @@ class AnthropicBackend(LLMBackend):
         except Exception as e:
             raise self._convert_error(e)
 
-    async def generate_stream(
+    async def generate_stream(  # type: ignore
         self,
         messages: list[Message],
         tools: Optional[list[ToolDefinition]] = None,
@@ -209,9 +209,9 @@ class AnthropicBackend(LLMBackend):
         except Exception:
             return False
 
-    def _convert_messages(self, messages: list[Message]) -> list[dict]:
+    def _convert_messages(self, messages: list[Message]) -> list[dict]:  # type: ignore
         """转换消息为 Anthropic 格式"""
-        result = []
+        result: list[dict] = []
         for msg in messages:
             if msg.role == LLMRole.USER:
                 result.append(
@@ -251,7 +251,7 @@ class AnthropicBackend(LLMBackend):
                 {
                     "name": tool.name,
                     "description": tool.description,
-                    "input_schema": tool.parameters,
+                    "input_schema": tool.parameters,  # type: ignore
                 }
             )
         return result

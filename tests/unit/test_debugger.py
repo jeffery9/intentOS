@@ -5,21 +5,21 @@ Debugger 模块测试
 """
 
 import pytest
+
 from intentos.semantic_vm.debugger import (
-    DebugEventType,
-    DebuggerState,
     Breakpoint,
     DebugEvent,
-    StackFrame,
+    DebugEventType,
+    DebuggerState,
     DebugSession,
     SemanticDebugger,
+    StackFrame,
 )
-from datetime import datetime
-
 
 # =============================================================================
 # Enum Tests
 # =============================================================================
+
 
 class TestDebugEventType:
     """DebugEventType 测试"""
@@ -45,6 +45,7 @@ class TestDebuggerState:
 # Breakpoint Tests
 # =============================================================================
 
+
 class TestBreakpoint:
     """Breakpoint 测试"""
 
@@ -57,12 +58,7 @@ class TestBreakpoint:
         assert len(bp.id) == 8
 
     def test_breakpoint_custom(self):
-        bp = Breakpoint(
-            instruction_index=10,
-            condition="x > 0",
-            temporary=True,
-            enabled=False
-        )
+        bp = Breakpoint(instruction_index=10, condition="x > 0", temporary=True, enabled=False)
         assert bp.instruction_index == 10
         assert bp.condition == "x > 0"
         assert bp.temporary is True
@@ -79,6 +75,7 @@ class TestBreakpoint:
 # =============================================================================
 # DebugEvent Tests
 # =============================================================================
+
 
 class TestDebugEvent:
     """DebugEvent 测试"""
@@ -104,6 +101,7 @@ class TestDebugEvent:
 # StackFrame Tests
 # =============================================================================
 
+
 class TestStackFrame:
     """StackFrame 测试"""
 
@@ -118,7 +116,7 @@ class TestStackFrame:
             instruction_index=0,
             instruction_repr="START",
             variables={"x": 1},
-            context={"user": "test"}
+            context={"user": "test"},
         )
         assert frame.variables["x"] == 1
 
@@ -132,6 +130,7 @@ class TestStackFrame:
 # =============================================================================
 # DebugSession Tests
 # =============================================================================
+
 
 class TestDebugSession:
     """DebugSession 测试"""
@@ -152,6 +151,7 @@ class TestDebugSession:
 # =============================================================================
 # SemanticDebugger Tests
 # =============================================================================
+
 
 class TestSemanticDebugger:
     """SemanticDebugger 测试"""
@@ -276,6 +276,7 @@ class TestSemanticDebugger:
 # Integration Tests
 # =============================================================================
 
+
 class TestDebuggerIntegration:
     """调试器集成测试"""
 
@@ -296,7 +297,7 @@ class TestDebuggerIntegration:
     def test_multiple_sessions(self, debugger):
         session1 = debugger.create_session()
         session2 = debugger.create_session()
-        
+
         assert session1.id in debugger._sessions
         assert session2.id in debugger._sessions
 

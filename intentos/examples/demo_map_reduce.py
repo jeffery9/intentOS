@@ -216,12 +216,12 @@ def demo_memory_locality_scheduler():
     print(f"  预估网络传输成本：{plan['estimated_network_cost']:,} tokens")
 
     print("\nMap 任务详情:")
-    for i, task in enumerate(plan['map_tasks'], 1):
+    for i, task in enumerate(plan["map_tasks"], 1):
         print(f"\n  任务 {i}:")
         print(f"    节点：{task['node_id']}")
         print(f"    类型：{task['type']}")
         print(f"    优化：{task.get('optimization', 'none')}")
-        if 'estimated_time' in task:
+        if "estimated_time" in task:
             print(f"    预计时间：{task['estimated_time']:.2f}ms")
 
 
@@ -244,10 +244,7 @@ def demo_network_savings():
     ]
 
     # 模拟记忆数据 (每个节点 10000 tokens)
-    memories = {
-        f"node-{i}": [f"memory-{i}-{j}" for j in range(100)]
-        for i in range(1, 6)
-    }
+    memories = {f"node-{i}": [f"memory-{i}-{j}" for j in range(100)] for i in range(1, 6)}
 
     # 传统方式 (中央处理)
     total_memory = sum(len(m) * 100 for m in memories.values())
@@ -265,7 +262,7 @@ def demo_network_savings():
     print(f"  网络传输量：{plan['estimated_network_cost']:,} tokens (仅传输结果)")
 
     # 计算节省
-    savings = total_memory - plan['estimated_network_cost']
+    savings = total_memory - plan["estimated_network_cost"]
     savings_percent = (savings / total_memory) * 100
 
     print("\n节省:")

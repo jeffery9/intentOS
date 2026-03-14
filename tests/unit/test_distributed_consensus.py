@@ -2,11 +2,10 @@
 Distributed Consensus 模块测试
 """
 
-import pytest
 from intentos.distributed.consensus import (
     ConsistencyLevel,
-    VersionVector,
     VersionedValue,
+    VersionVector,
 )
 
 
@@ -54,13 +53,13 @@ class TestVersionVector:
         vv1 = VersionVector()
         vv1.increment("node1")
         vv1.increment("node1")
-        
+
         vv2 = VersionVector()
         vv2.increment("node1")
         vv2.increment("node2")
-        
+
         vv1.merge(vv2)
-        
+
         assert vv1.versions["node1"] == 2
         assert vv1.versions["node2"] == 1
 
@@ -69,10 +68,10 @@ class TestVersionVector:
         vv1 = VersionVector()
         vv1.increment("node1")
         vv1.increment("node1")
-        
+
         vv2 = VersionVector()
         vv2.increment("node1")
-        
+
         assert vv1.dominates(vv2) is True
         assert vv2.dominates(vv1) is False
 
@@ -80,10 +79,10 @@ class TestVersionVector:
         """测试向量并发"""
         vv1 = VersionVector()
         vv1.increment("node1")
-        
+
         vv2 = VersionVector()
         vv2.increment("node2")
-        
+
         assert vv1.concurrent_with(vv2) is True
         assert vv2.concurrent_with(vv1) is True
 
@@ -127,7 +126,7 @@ class TestVersionedValue:
         vv = VersionVector()
         value1 = VersionedValue(value="test", version=vv)
         checksum1 = value1.compute_checksum()
-        
+
         # 校验和应该不为空
         assert checksum1 is not None
         assert len(checksum1) > 0
@@ -152,13 +151,13 @@ class TestConsensusIntegration:
         vv1 = VersionVector()
         vv1.increment("node1")
         vv1.increment("node2")
-        
+
         # 转换为字典
         data = vv1.to_dict()
-        
+
         # 从字典创建
         vv2 = VersionVector.from_dict(data)
-        
+
         # 验证
         assert vv2.versions["node1"] == 1
         assert vv2.versions["node2"] == 1
@@ -167,10 +166,10 @@ class TestConsensusIntegration:
         """测试带版本的值工作流"""
         vv = VersionVector()
         vv.increment("node1")
-        
+
         value = VersionedValue(value="data", version=vv)
         checksum = value.compute_checksum()
-        
+
         assert value.value == "data"
         assert checksum is not None
 
@@ -178,10 +177,10 @@ class TestConsensusIntegration:
         """测试版本冲突检测"""
         vv1 = VersionVector()
         vv1.increment("node1")
-        
+
         vv2 = VersionVector()
         vv2.increment("node2")
-        
+
         # 并发版本表示冲突
         assert vv1.concurrent_with(vv2) is True
 
@@ -190,14 +189,14 @@ class TestConsensusIntegration:
         vv1 = VersionVector()
         vv1.increment("node1")
         vv1.increment("node3")
-        
+
         vv2 = VersionVector()
         vv2.increment("node2")
         vv2.increment("node3")
         vv2.increment("node3")
-        
+
         vv1.merge(vv2)
-        
+
         # 合并后应该取最大值
         assert vv1.versions["node1"] == 1
         assert vv1.versions["node2"] == 1

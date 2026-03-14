@@ -150,30 +150,30 @@ class SafeConditionEvaluator:
             comparators = [
                 SafeConditionEvaluator._eval_node(c, variables) for c in node.comparators
             ]
-            ops = [type(op) for op in node.ops]
 
             result = True
             current = left
-            for op_type in ops:
+            for i, op in enumerate(node.ops):
+                op_type = type(op)  # type: ignore
                 if op_type not in SAFE_OPERATORS:
                     raise ValueError(f"不支持的比较操作符：{op_type.__name__}")
-                op = SAFE_OPERATORS[op_type]
-                comparator = comparators[ops.index(op_type)]
-                result = result and op(current, comparator)  # type: ignore
+                op_func = SAFE_OPERATORS[op_type]
+                comparator = comparators[i]
+                result = result and op_func(current, comparator)  # type: ignore
                 current = comparator
             return result
 
         # 布尔操作符
         elif isinstance(node, ast.BoolOp):
             values = [SafeConditionEvaluator._eval_node(v, variables) for v in node.values]
-            op_type = type(node.op)
+            op_type = type(node.op)  # type: ignore
             if op_type not in SAFE_OPERATORS:
                 raise ValueError(f"不支持的布尔操作符：{op_type.__name__}")
-            op = SAFE_OPERATORS[op_type]
+            op_func = SAFE_OPERATORS[op_type]
 
             result = values[0]
             for value in values[1:]:
-                result = op(result, value)  # type: ignore
+                result = op_func(result, value)  # type: ignore
             return result
 
         # 一元操作符 (not)

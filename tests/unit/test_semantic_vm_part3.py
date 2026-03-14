@@ -5,15 +5,16 @@ Semantic VM 模块测试 - 第 3 部分
 """
 
 import pytest
+
+from intentos.llm.executor import LLMExecutor
+from intentos.semantic_vm import SemanticMemory
 from intentos.semantic_vm.vm import (
+    LLMProcessor,
     SemanticInstruction,
+    SemanticOpcode,
     SemanticProgram,
     SemanticVM,
-    LLMProcessor,
-    SemanticOpcode,
 )
-from intentos.semantic_vm import SemanticMemory
-from intentos.llm.executor import LLMExecutor
 
 
 class TestSemanticInstructionPart3:
@@ -28,14 +29,16 @@ class TestSemanticInstructionPart3:
         data = {
             "opcode": "while",
             "condition": "x < 10",
-            "body": [{"opcode": "set", "parameters": {"name": "x", "value": 1}}]
+            "body": [{"opcode": "set", "parameters": {"name": "x", "value": 1}}],
         }
         instr = SemanticInstruction.from_dict(data)
         assert instr.opcode == SemanticOpcode.WHILE
         assert len(instr.body) == 1
 
     def test_instruction_to_natural_language_delete(self):
-        instr = SemanticInstruction(opcode=SemanticOpcode.DELETE, target="TEMPLATE", target_name="old")
+        instr = SemanticInstruction(
+            opcode=SemanticOpcode.DELETE, target="TEMPLATE", target_name="old"
+        )
         nl = instr.to_natural_language()
         assert "DELETE" in nl
 
@@ -83,11 +86,11 @@ class TestLLMProcessorPart3:
         assert "raw_content" in result
 
     def test_parse_response_partial_json(self, processor):
-        content = '''Some text before
+        content = """Some text before
 ```json
 {"success": true}
 ```
-Some text after'''
+Some text after"""
         result = processor._parse_response(content)
         assert result["success"] is True
 
@@ -151,7 +154,9 @@ class TestSemanticVMIntegrationPart3:
     @pytest.mark.asyncio
     async def test_program_lifecycle(self, vm):
         program = SemanticProgram(name="lifecycle", description="Lifecycle test")
-        program.add_instruction(SemanticInstruction(opcode=SemanticOpcode.SET, parameters={"name": "test", "value": 1}))
+        program.add_instruction(
+            SemanticInstruction(opcode=SemanticOpcode.SET, parameters={"name": "test", "value": 1})
+        )
         data = program.to_dict()
         restored = SemanticProgram.from_dict(data)
         await vm.load_program(restored)
@@ -166,5 +171,5 @@ class TestSemanticVMIntegrationPart3:
         assert md_result["success"] is True
         code_result = processor._parse_response('```\n{"success": true}\n```')
         assert code_result["success"] is True
-        invalid_result = processor._parse_response('Invalid JSON')
+        invalid_result = processor._parse_response("Invalid JSON")
         assert invalid_result["success"] is False

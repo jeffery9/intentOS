@@ -4,17 +4,18 @@ Bootstrap Executor 第 4 部分测试
 覆盖剩余未测试的方法
 """
 
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
+
 from intentos.bootstrap.executor import (
-    BootstrapRecord,
-    BootstrapPolicy,
-    SelfBootstrapExecutor,
     BootstrapPrograms,
+    BootstrapRecord,
     BootstrapValidator,
+    SelfBootstrapExecutor,
 )
-from intentos.semantic_vm import SemanticVM
 from intentos.llm.executor import LLMExecutor
+from intentos.semantic_vm import SemanticVM
 
 
 class TestSelfBootstrapExecutorPart4:
@@ -65,23 +66,23 @@ class TestBootstrapProgramsPart3:
 
     def test_create_parse_prompt_modifier_returns_program(self):
         program = BootstrapPrograms.create_parse_prompt_modifier("New prompt")
-        assert hasattr(program, 'name')
-        assert hasattr(program, 'instructions')
+        assert hasattr(program, "name")
+        assert hasattr(program, "instructions")
 
     def test_create_execute_prompt_modifier_returns_program(self):
         program = BootstrapPrograms.create_execute_prompt_modifier("Execute")
-        assert hasattr(program, 'name')
-        assert hasattr(program, 'instructions')
+        assert hasattr(program, "name")
+        assert hasattr(program, "instructions")
 
     def test_create_instruction_extender_returns_program(self):
         program = BootstrapPrograms.create_instruction_extender(["INST1", "INST2"])
-        assert hasattr(program, 'name')
+        assert hasattr(program, "name")
         assert len(program.instructions) > 0
 
     def test_create_policy_modifier_returns_program(self):
         program = BootstrapPrograms.create_policy_modifier(key1="value1", key2="value2")
-        assert hasattr(program, 'name')
-        assert hasattr(program, 'instructions')
+        assert hasattr(program, "name")
+        assert hasattr(program, "instructions")
 
 
 class TestBootstrapValidatorPart3:
@@ -96,11 +97,7 @@ class TestBootstrapValidatorPart3:
 
     @pytest.mark.asyncio
     async def test_validate_modification_empty_new_value(self, validator):
-        record = BootstrapRecord(
-            action="modify_config",
-            target="CONFIG.TEST",
-            new_value={}
-        )
+        record = BootstrapRecord(action="modify_config", target="CONFIG.TEST", new_value={})
         result = await validator.validate_modification(record)
         assert isinstance(result, dict)
         assert "valid" in result or "errors" in result
@@ -108,10 +105,7 @@ class TestBootstrapValidatorPart3:
     @pytest.mark.asyncio
     async def test_validate_modification_with_old_value(self, validator):
         record = BootstrapRecord(
-            action="modify_config",
-            target="CONFIG.TEST",
-            old_value="old",
-            new_value="new"
+            action="modify_config", target="CONFIG.TEST", old_value="old", new_value="new"
         )
         result = await validator.validate_modification(record)
         assert isinstance(result, dict)
@@ -131,7 +125,7 @@ class TestBootstrapExecutorFullIntegrationPart2:
         executor.modification_count = 15
         executor.policy.max_modifications_per_hour = 10
         executor.last_reset_time = datetime.now() - timedelta(hours=2)
-        
+
         assert executor._check_rate_limit() is True
         assert executor.modification_count == 0
 
@@ -139,28 +133,23 @@ class TestBootstrapExecutorFullIntegrationPart2:
     async def test_approval_workflow(self, executor):
         requires = executor._requires_approval("delete_all_templates")
         assert requires is True
-        
+
         requires = executor._requires_approval("modify_config")
         assert requires is False
 
     @pytest.mark.asyncio
     async def test_full_bootstrap_with_validator(self, executor):
         validator = BootstrapValidator(executor)
-        
+
         record = BootstrapRecord(
-            action="modify_config",
-            target="CONFIG.INTEGRATION",
-            new_value={"test": True}
+            action="modify_config", target="CONFIG.INTEGRATION", new_value={"test": True}
         )
-        
+
         validation = await validator.validate_modification(record)
         assert isinstance(validation, dict)
-        
+
         execution = await executor.execute_bootstrap(
-            action=record.action,
-            target=record.target,
-            new_value=record.new_value,
-            context={}
+            action=record.action, target=record.target, new_value=record.new_value, context={}
         )
         assert execution.status in ["completed", "pending", "approved", "rejected", "failed"]
 
@@ -171,8 +160,8 @@ class TestBootstrapExecutorFullIntegrationPart2:
             BootstrapPrograms.create_instruction_extender(["I1"]),
             BootstrapPrograms.create_policy_modifier(k="v"),
         ]
-        
+
         for program in programs:
             assert program is not None
-            assert hasattr(program, 'name')
-            assert hasattr(program, 'instructions')
+            assert hasattr(program, "name")
+            assert hasattr(program, "instructions")

@@ -5,15 +5,16 @@ Distributed VM 第 3 部分测试
 """
 
 import pytest
+
 from intentos.distributed.vm import (
-    VMNode,
-    DistributedSemanticMemory,
     DistributedCoordinator,
+    DistributedSemanticMemory,
     ProcessState,
     SemanticProcess,
+    VMNode,
 )
-from intentos.semantic_vm import SemanticVM
 from intentos.llm.executor import LLMExecutor
+from intentos.semantic_vm import SemanticVM
 
 
 class TestDistributedCoordinatorPart2:
@@ -29,7 +30,9 @@ class TestDistributedCoordinatorPart2:
     @pytest.mark.asyncio
     async def test_update_pcb_existing_process(self, coordinator):
         pid = "test_pid"
-        pcb = SemanticProcess(pid=pid, program_name="test", node_id="node1", state=ProcessState.RUNNING)
+        pcb = SemanticProcess(
+            pid=pid, program_name="test", node_id="node1", state=ProcessState.RUNNING
+        )
         coordinator.processes[pid] = pcb
         await coordinator.update_pcb(pid, pc=5, state="completed")
         assert coordinator.processes[pid].pc == 5
@@ -56,7 +59,7 @@ class TestDistributedSemanticMemoryPart2:
         memory = DistributedSemanticMemory()
         memory.add_node(VMNode(host="n1", port=8001))
         memory.add_node(VMNode(host="n2", port=8002))
-        assert hasattr(memory, 'ring')
+        assert hasattr(memory, "ring")
         assert len(memory.ring) > 0
 
     def test_memory_rebuild_ring_after_removal(self):
@@ -65,7 +68,7 @@ class TestDistributedSemanticMemoryPart2:
         memory.add_node(node)
         memory.add_node(VMNode(host="n2", port=8002))
         memory.remove_node(node.node_id)
-        assert hasattr(memory, 'ring')
+        assert hasattr(memory, "ring")
 
     def test_memory_log_audit(self):
         memory = DistributedSemanticMemory()
@@ -101,7 +104,9 @@ class TestVMNodePart2:
     """VMNode 第 2 部分测试"""
 
     def test_node_full_dict_conversion(self):
-        node = VMNode(host="node1", port=8001, status="active", load=0.5, capabilities=["CREATE", "MODIFY"])
+        node = VMNode(
+            host="node1", port=8001, status="active", load=0.5, capabilities=["CREATE", "MODIFY"]
+        )
         data = node.to_dict()
         assert data["host"] == "node1"
         assert data["port"] == 8001
@@ -185,7 +190,9 @@ class TestDistributedVMIntegrationPart3:
         assert pcb.state == ProcessState.FAILED
 
     def test_process_to_dict_complete(self):
-        pcb = SemanticProcess(pid="p1", program_name="prog", node_id="n1", state=ProcessState.RUNNING, pc=10)
+        pcb = SemanticProcess(
+            pid="p1", program_name="prog", node_id="n1", state=ProcessState.RUNNING, pc=10
+        )
         data = pcb.to_dict()
         assert data["pid"] == "p1"
         assert data["program_name"] == "prog"

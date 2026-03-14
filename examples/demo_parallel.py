@@ -41,12 +41,16 @@ async def demo_sequential_execution():
 
     dag = create_dag(name="sequential_demo")
     dag.add_task(create_task("step1", "查询数据 A", "query", params={"source": "A"}))
-    dag.add_task(create_task("step2", "查询数据 B", "query", params={"source": "B"}, depends_on=["step1"]))
+    dag.add_task(
+        create_task("step2", "查询数据 B", "query", params={"source": "B"}, depends_on=["step1"])
+    )
     dag.add_task(create_task("step3", "分析数据", "analyze", depends_on=["step2"]))
     dag.add_task(create_task("step4", "生成报告", "report", depends_on=["step3"]))
 
     executor = ParallelDAGExecutor(max_concurrency=1)
-    results = await executor.execute(dag, lambda t: _execute_task_mock(t, 0.1), mode=ExecutionMode.SEQUENTIAL)
+    results = await executor.execute(
+        dag, lambda t: _execute_task_mock(t, 0.1), mode=ExecutionMode.SEQUENTIAL
+    )
 
     print("\n执行完成:")
     summary = executor.get_results_summary()
@@ -67,10 +71,19 @@ async def demo_parallel_execution():
     dag.add_task(create_task("query_b", "查询数据 B", "query", depends_on=["init"]))
     dag.add_task(create_task("query_c", "查询数据 C", "query", depends_on=["init"]))
     dag.add_task(create_task("query_d", "查询数据 D", "query", depends_on=["init"]))
-    dag.add_task(create_task("aggregate", "聚合分析", "analyze", depends_on=["query_a", "query_b", "query_c", "query_d"]))
+    dag.add_task(
+        create_task(
+            "aggregate",
+            "聚合分析",
+            "analyze",
+            depends_on=["query_a", "query_b", "query_c", "query_d"],
+        )
+    )
 
     executor = ParallelDAGExecutor(max_concurrency=10)
-    results = await executor.execute(dag, lambda t: _execute_task_mock(t, 0.1), mode=ExecutionMode.PARALLEL)
+    results = await executor.execute(
+        dag, lambda t: _execute_task_mock(t, 0.1), mode=ExecutionMode.PARALLEL
+    )
 
     print("\n执行完成:")
     summary = executor.get_results_summary()
@@ -145,9 +158,12 @@ async def demo_progress_tracking():
     while not exec_task.done():
         progress = executor.get_progress()
         if progress:
-            print(f"\r  进度：{progress.progress_percent:.1f}% "
-                  f"(完成:{progress.completed_tasks}/{progress.total_tasks}, "
-                  f"剩余:{progress.estimated_remaining_seconds:.1f}s)", end="")
+            print(
+                f"\r  进度：{progress.progress_percent:.1f}% "
+                f"(完成:{progress.completed_tasks}/{progress.total_tasks}, "
+                f"剩余:{progress.estimated_remaining_seconds:.1f}s)",
+                end="",
+            )
         await asyncio.sleep(0.1)
 
     print("\n")
@@ -171,7 +187,11 @@ async def demo_complex_dag():
     dag.add_task(create_task("process_2", "处理数据 2", "process", depends_on=["collect_2"]))
     dag.add_task(create_task("process_3", "处理数据 3", "process", depends_on=["collect_3"]))
 
-    dag.add_task(create_task("merge", "合并数据", "merge", depends_on=["process_1", "process_2", "process_3"]))
+    dag.add_task(
+        create_task(
+            "merge", "合并数据", "merge", depends_on=["process_1", "process_2", "process_3"]
+        )
+    )
 
     dag.add_task(create_task("analyze_1", "趋势分析", "analyze", depends_on=["merge"]))
     dag.add_task(create_task("analyze_2", "异常检测", "analyze", depends_on=["merge"]))

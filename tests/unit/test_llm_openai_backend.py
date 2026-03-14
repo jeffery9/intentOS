@@ -2,7 +2,6 @@
 LLM Backends OpenAI 模块测试
 """
 
-import pytest
 from intentos.llm.backends.openai_backend import OpenAIBackend
 
 
@@ -22,7 +21,9 @@ class TestOpenAIBackend:
 
     def test_backend_with_base_url(self):
         """测试带基础 URL"""
-        backend = OpenAIBackend(model="gpt-4", api_key="test-key", base_url="https://custom.api.com")
+        backend = OpenAIBackend(
+            model="gpt-4", api_key="test-key", base_url="https://custom.api.com"
+        )
         assert backend.base_url == "https://custom.api.com"
 
     def test_backend_validate_connection(self):
@@ -47,7 +48,7 @@ class TestOpenAIBackendAdvanced:
             api_key="test-key",
             base_url="https://custom.com",
             timeout=60.0,
-            max_retries=5
+            max_retries=5,
         )
         assert backend.model == "gpt-4-turbo"
         assert backend.timeout == 60.0
@@ -62,4 +63,4 @@ class TestOpenAIBackendAdvanced:
         """测试额外头"""
         backend = OpenAIBackend(model="gpt-4", api_key="test-key")
         # extra_headers 可能不存在于所有版本
-        assert hasattr(backend, 'extra_headers') or True
+        assert hasattr(backend, "extra_headers") or True

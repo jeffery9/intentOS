@@ -5,16 +5,16 @@ Bootstrap Executor 第 3 部分测试
 """
 
 import pytest
-from datetime import datetime, timedelta
+
 from intentos.bootstrap.executor import (
-    BootstrapRecord,
     BootstrapPolicy,
-    SelfBootstrapExecutor,
     BootstrapPrograms,
+    BootstrapRecord,
     BootstrapValidator,
+    SelfBootstrapExecutor,
 )
-from intentos.semantic_vm import SemanticVM
 from intentos.llm.executor import LLMExecutor
+from intentos.semantic_vm import SemanticVM
 
 
 class TestSelfBootstrapExecutorPart3:
@@ -64,8 +64,7 @@ class TestSelfBootstrapExecutorPart3:
     @pytest.mark.asyncio
     async def test_modify_policy_multiple_fields(self, executor):
         await executor.modify_policy(
-            max_modifications_per_hour=50,
-            require_confidence_threshold=0.95
+            max_modifications_per_hour=50, require_confidence_threshold=0.95
         )
         assert executor.policy.max_modifications_per_hour == 50
         assert executor.policy.require_confidence_threshold == 0.95
@@ -108,7 +107,7 @@ class TestBootstrapValidatorPart2:
             target="CONFIG.TEST",
             old_value="old",
             new_value="new",
-            status="pending"
+            status="pending",
         )
         result = await validator.validate_modification(record)
         assert "valid" in result
@@ -143,10 +142,7 @@ class TestBootstrapExecutorFullIntegration:
         assert current is True or current is None
         await executor._apply_modification("POLICY.max_modifications_per_hour", 200)
         record = await executor.execute_bootstrap(
-            action="modify_config",
-            target="CONFIG.TEST",
-            new_value={"data": "test"},
-            context={}
+            action="modify_config", target="CONFIG.TEST", new_value={"data": "test"}, context={}
         )
         assert record.status in ["completed", "pending", "approved", "rejected", "failed"]
         history = executor.get_bootstrap_history()
@@ -161,18 +157,17 @@ class TestBootstrapExecutorFullIntegration:
         ]
         for program in programs:
             assert program is not None
-            assert hasattr(program, 'name')
+            assert hasattr(program, "name")
 
     @pytest.mark.asyncio
     async def test_validator_executor_integration(self, executor):
         validator = BootstrapValidator(executor)
-        record = BootstrapRecord(action="modify_config", target="CONFIG.VALIDATION", new_value={"test": True})
+        record = BootstrapRecord(
+            action="modify_config", target="CONFIG.VALIDATION", new_value={"test": True}
+        )
         validation = await validator.validate_modification(record)
         assert isinstance(validation, dict)
         execution = await executor.execute_bootstrap(
-            action=record.action,
-            target=record.target,
-            new_value=record.new_value,
-            context={}
+            action=record.action, target=record.target, new_value=record.new_value, context={}
         )
         assert execution.status in ["completed", "pending", "approved", "rejected", "failed"]

@@ -111,7 +111,7 @@ class OllamaBackend(LLMBackend):
         except Exception as e:
             raise self._convert_error(e)
 
-    async def generate_stream(
+    async def generate_stream(  # type: ignore
         self,
         messages: list[Message],
         tools: Optional[list[ToolDefinition]] = None,

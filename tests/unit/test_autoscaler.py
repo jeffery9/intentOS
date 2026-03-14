@@ -1,9 +1,17 @@
 # -*- coding: utf-8 -*-
-import pytest
 from datetime import datetime, timedelta
+
+import pytest
+
 from intentos.distributed.autoscaler import (
-    ScalingPolicy, Metrics, AutoScaler, ScaleDirection, SpotInstanceManager, ResourceReclaimer
+    AutoScaler,
+    Metrics,
+    ResourceReclaimer,
+    ScaleDirection,
+    ScalingPolicy,
+    SpotInstanceManager,
 )
+
 
 class TestScalingPolicy:
     """ScalingPolicy 测试"""
@@ -23,6 +31,7 @@ class TestScalingPolicy:
         assert policy.min_replicas == 3
         assert policy.scale_down_stabilization_seconds == 600
 
+
 class TestMetrics:
     """Metrics 测试"""
 
@@ -33,6 +42,7 @@ class TestMetrics:
         assert d["memory_utilization"] == 60.0
         assert d["requests_per_second"] == 100
         assert "timestamp" in d
+
 
 class TestAutoScaler:
     """AutoScaler 测试"""
@@ -46,7 +56,7 @@ class TestAutoScaler:
 
     def test_scale_up_cpu(self):
         scaler = AutoScaler(current_replicas=10)
-        metrics = Metrics(cpu_utilization=140.0) # 2x target
+        metrics = Metrics(cpu_utilization=140.0)  # 2x target
         direction, target = scaler.decide_scaling(metrics)
         assert direction == ScaleDirection.SCALE_UP
         # target_replicas = int(10 * 140 / 70) = 20
@@ -55,7 +65,7 @@ class TestAutoScaler:
     def test_scale_down_cpu(self):
         scaler = AutoScaler(current_replicas=10)
         # target_cpu is 70. 0.5 * 70 = 35. 17.5 is below 35.
-        metrics = Metrics(cpu_utilization=17.5) 
+        metrics = Metrics(cpu_utilization=17.5)
         direction, target = scaler.decide_scaling(metrics)
         assert direction == ScaleDirection.SCALE_DOWN
         # scale_factor = 17.5 / 35 = 0.5
@@ -64,7 +74,7 @@ class TestAutoScaler:
 
     def test_scale_up_rps(self):
         scaler = AutoScaler(current_replicas=10)
-        metrics = Metrics(cpu_utilization=70.0, requests_per_second=2000) # 2x target
+        metrics = Metrics(cpu_utilization=70.0, requests_per_second=2000)  # 2x target
         direction, target = scaler.decide_scaling(metrics)
         assert direction == ScaleDirection.SCALE_UP
         assert target == 20
@@ -75,24 +85,24 @@ class TestAutoScaler:
         metrics = Metrics(cpu_utilization=140.0, requests_per_second=2000)
         direction, target = scaler.decide_scaling(metrics)
         assert direction == ScaleDirection.SCALE_UP
-        # CPU makes it 20, RPS doubles that to 40? 
+        # CPU makes it 20, RPS doubles that to 40?
         # Looking at code:
         # scale_factor = 140/70 = 2, target = 20
         # rps_factor = 2000/1000 = 2, target = 20 * 2 = 40
-        assert target == 20 # Wait, let me re-read the code.
+        assert target == 20  # Wait, let me re-read the code.
         # Oh, if direction is already SCALE_UP, it multiplies.
         # But there is also max_increase: current * scale_up_rate_percent (100%) = 10.
         # So max target is 10 + 10 = 20.
-        assert target == 20 
+        assert target == 20
 
     def test_stabilization_window(self):
         policy = ScalingPolicy(scale_up_stabilization_seconds=60)
         scaler = AutoScaler(policy=policy, current_replicas=10)
-        
+
         metrics = Metrics(cpu_utilization=140.0)
         direction, target = scaler.decide_scaling(metrics)
         assert direction == ScaleDirection.SCALE_UP
-        
+
         # Immediate second call should be blocked by stabilization
         direction2, target2 = scaler.decide_scaling(metrics)
         assert direction2 == ScaleDirection.NO_CHANGE
@@ -107,6 +117,7 @@ class TestAutoScaler:
         status = scaler.get_status()
         assert status["current_replicas"] == 10
         assert status["scale_up_cooldown"] is None
+
 
 class TestSpotInstanceManager:
     """SpotInstanceManager 测试"""
@@ -123,6 +134,7 @@ class TestSpotInstanceManager:
         assert res["action"] == "replace_with_on_demand"
         assert res["instance_id"] == "inst1"
 
+
 class TestResourceReclaimer:
     """ResourceReclaimer 测试"""
 
@@ -131,7 +143,7 @@ class TestResourceReclaimer:
         reclaimer = ResourceReclaimer()
         now = datetime.now()
         resources = [
-            {"id": "r1", "last_used": now - timedelta(seconds=1000)}, # Idle > 900
+            {"id": "r1", "last_used": now - timedelta(seconds=1000)},  # Idle > 900
             {"id": "r2", "last_used": now - timedelta(seconds=100)},  # Not idle
         ]
         count = await reclaimer.reclaim_idle_resources(resources)

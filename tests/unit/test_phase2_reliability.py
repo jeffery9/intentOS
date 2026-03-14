@@ -4,35 +4,36 @@ Phase 2 可靠性增强测试
 测试 Self-Bootstrap 沙箱、事务支持、LLM 重试机制
 """
 
-import pytest
 import asyncio
+
+import pytest
+
 from intentos.bootstrap.sandbox import (
-    SandboxEnvironment,
-    SandboxConfig,
-    SandboxLevel,
     BootstrapValidator,
     RollbackManager,
+    SandboxConfig,
+    SandboxEnvironment,
+    SandboxLevel,
     SelfBootstrapExecutor,
 )
+from intentos.llm.retry import (
+    LLMRetryWrapper,
+    RetryConfig,
+    RetryResult,
+)
 from intentos.semantic_vm.transaction import (
+    IsolationLevel,
     Transaction,
+    TransactionalMemory,
     TransactionManager,
     TransactionStatus,
-    IsolationLevel,
     WriteOperation,
-    TransactionalMemory,
 )
-from intentos.llm.retry import (
-    RetryConfig,
-    RetryExecutor,
-    RetryResult,
-    LLMRetryWrapper,
-)
-
 
 # =============================================================================
 # Self-Bootstrap 沙箱测试
 # =============================================================================
+
 
 class TestSandboxEnvironment:
     """沙箱环境测试"""
@@ -87,9 +88,7 @@ class TestBootstrapValidator:
         validator = BootstrapValidator()
 
         result = validator.validate(
-            action="modify_config",
-            target="settings",
-            new_value={"key": "value"}
+            action="modify_config", target="settings", new_value={"key": "value"}
         )
 
         assert result.passed is True
@@ -99,11 +98,7 @@ class TestBootstrapValidator:
         """测试验证禁止模式"""
         validator = BootstrapValidator()
 
-        result = validator.validate(
-            action="delete_all",
-            target="templates",
-            new_value=None
-        )
+        result = validator.validate(action="delete_all", target="templates", new_value=None)
 
         assert result.passed is False
         assert any("禁止" in err for err in result.errors)
@@ -113,9 +108,7 @@ class TestBootstrapValidator:
         validator = BootstrapValidator()
 
         result = validator.validate(
-            action="modify_processor",
-            target="EXECUTE_PROMPT",
-            new_value="new prompt"
+            action="modify_processor", target="EXECUTE_PROMPT", new_value="new prompt"
         )
 
         assert result.passed is True  # 高风险但允许
@@ -126,9 +119,7 @@ class TestBootstrapValidator:
         validator = BootstrapValidator()
 
         requires = validator.requires_approval(
-            action="modify_processor",
-            target="prompt",
-            new_value="test"
+            action="modify_processor", target="prompt", new_value="test"
         )
 
         assert requires is True
@@ -199,10 +190,7 @@ class TestSelfBootstrapExecutor:
         state = {"configs": {}}
 
         result = await executor.execute_bootstrap(
-            action="modify_config",
-            target="settings",
-            new_value={"key": "value"},
-            state=state
+            action="modify_config", target="settings", new_value={"key": "value"}, state=state
         )
 
         assert result.status == "completed"
@@ -216,10 +204,7 @@ class TestSelfBootstrapExecutor:
         state = {}
 
         result = await executor.execute_bootstrap(
-            action="delete_all",
-            target="templates",
-            new_value=None,
-            state=state
+            action="delete_all", target="templates", new_value=None, state=state
         )
 
         assert result.status == "rejected"
@@ -232,10 +217,7 @@ class TestSelfBootstrapExecutor:
         state = {"prompts": {}}
 
         result = await executor.execute_bootstrap(
-            action="modify_processor",
-            target="EXECUTE_PROMPT",
-            new_value="new prompt",
-            state=state
+            action="modify_processor", target="EXECUTE_PROMPT", new_value="new prompt", state=state
         )
 
         assert result.status == "pending_approval"
@@ -249,10 +231,7 @@ class TestSelfBootstrapExecutor:
 
         # 执行无效操作
         result = await executor.execute_bootstrap(
-            action="invalid_action",
-            target="test",
-            new_value=None,
-            state=state
+            action="invalid_action", target="test", new_value=None, state=state
         )
 
         # 无效操作会被执行器接受但可能失败或完成
@@ -264,15 +243,13 @@ class TestSelfBootstrapExecutor:
 # 事务支持测试
 # =============================================================================
 
+
 class TestTransaction:
     """事务测试"""
 
     def test_transaction_creation(self):
         """测试事务创建"""
-        tx = Transaction(
-            isolation_level=IsolationLevel.SERIALIZABLE,
-            program_id="test-program"
-        )
+        tx = Transaction(isolation_level=IsolationLevel.SERIALIZABLE, program_id="test-program")
 
         assert tx.status == TransactionStatus.ACTIVE
         assert tx.isolation_level == IsolationLevel.SERIALIZABLE
@@ -283,11 +260,7 @@ class TestTransaction:
         tx = Transaction()
 
         op = WriteOperation(
-            operation="set",
-            store="VARIABLE",
-            key="x",
-            old_value=None,
-            new_value=100
+            operation="set", store="VARIABLE", key="x", old_value=None, new_value=100
         )
 
         tx.add_write(op)
@@ -325,8 +298,7 @@ class TestTransactionManager:
         manager = TransactionManager()
 
         tx = manager.begin_transaction(
-            isolation_level=IsolationLevel.REPEATABLE_READ,
-            program_id="test"
+            isolation_level=IsolationLevel.REPEATABLE_READ, program_id="test"
         )
 
         assert tx.status == TransactionStatus.ACTIVE
@@ -356,13 +328,11 @@ class TestTransactionManager:
         memory = MockMemory()
 
         tx = manager.begin_transaction()
-        tx.add_write(WriteOperation(
-            operation="set",
-            store="VARIABLE",
-            key="x",
-            old_value=None,
-            new_value=100
-        ))
+        tx.add_write(
+            WriteOperation(
+                operation="set", store="VARIABLE", key="x", old_value=None, new_value=100
+            )
+        )
 
         success = manager.commit_transaction(tx, memory)
 
@@ -393,13 +363,9 @@ class TestTransactionManager:
         memory = MockMemory()
 
         tx = manager.begin_transaction()
-        tx.add_write(WriteOperation(
-            operation="set",
-            store="VARIABLE",
-            key="x",
-            old_value=50,
-            new_value=100
-        ))
+        tx.add_write(
+            WriteOperation(operation="set", store="VARIABLE", key="x", old_value=50, new_value=100)
+        )
 
         success = manager.rollback_transaction(tx, memory)
 
@@ -413,6 +379,7 @@ class TestTransactionalMemory:
 
     def test_transactional_set_get(self):
         """测试事务性读写"""
+
         class MockMemory:
             def __init__(self):
                 self.data = {}
@@ -453,6 +420,7 @@ class TestTransactionalMemory:
 # =============================================================================
 # LLM 重试机制测试
 # =============================================================================
+
 
 class TestRetryConfig:
     """重试配置测试"""
@@ -510,7 +478,7 @@ class TestRetryResult:
             response={"content": "test"},
             total_attempts=3,
             backends_used=["openai", "anthropic"],
-            total_duration=5.5
+            total_duration=5.5,
         )
 
         data = result.to_dict()
@@ -526,6 +494,7 @@ class TestLLMRetryWrapper:
     @pytest.mark.asyncio
     async def test_execute_with_fallback(self):
         """测试带降级执行"""
+
         class MockExecutor:
             async def execute(self, messages, **kwargs):
                 raise Exception("API error")
@@ -534,8 +503,7 @@ class TestLLMRetryWrapper:
 
         fallback = {"content": "fallback response"}
         result = await wrapper.execute_with_fallback(
-            [{"role": "user", "content": "test"}],
-            fallback_response=fallback
+            [{"role": "user", "content": "test"}], fallback_response=fallback
         )
 
         assert result["content"] == "fallback response"
@@ -544,6 +512,7 @@ class TestLLMRetryWrapper:
 # =============================================================================
 # 集成测试
 # =============================================================================
+
 
 class TestPhase2Integration:
     """Phase 2 集成测试"""
@@ -577,13 +546,9 @@ class TestPhase2Integration:
 
         # 开始事务
         tx = tx_manager.begin_transaction()
-        tx.add_write(WriteOperation(
-            operation="set",
-            store="DATA",
-            key="value",
-            old_value=0,
-            new_value=100
-        ))
+        tx.add_write(
+            WriteOperation(operation="set", store="DATA", key="value", old_value=0, new_value=100)
+        )
 
         # 提交事务
         success = tx_manager.commit_transaction(tx, memory)

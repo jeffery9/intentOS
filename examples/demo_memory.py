@@ -111,6 +111,7 @@ async def demo_log_analysis():
 
     # 模拟日志数据
     import random
+
     log_levels = ["INFO", "WARN", "ERROR", "DEBUG"]
     services = ["api", "web", "db", "cache"]
 
@@ -156,6 +157,7 @@ async def demo_data_aggregation():
 
     # 模拟销售数据
     import random
+
     regions = ["华东", "华南", "华北", "西部"]
     products = ["产品 A", "产品 B", "产品 C"]
 
@@ -199,9 +201,11 @@ async def demo_data_aggregation():
 
     print("\n销售数据聚合结果:")
     for key, value in sorted(results.items()):
-        print(f"  {value['region']} - {value['product']}: "
-              f"金额={value['total_amount']:,}, 数量={value['total_quantity']}, "
-              f"均价={value['avg_price']:.2f}")
+        print(
+            f"  {value['region']} - {value['product']}: "
+            f"金额={value['total_amount']:,}, 数量={value['total_quantity']}, "
+            f"均价={value['avg_price']:.2f}"
+        )
 
 
 async def demo_streaming_processing():

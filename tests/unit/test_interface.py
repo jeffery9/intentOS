@@ -5,7 +5,8 @@ Interface 模块测试
 """
 
 import pytest
-from intentos.interface.interface import IntentInterface, ConversationTurn
+
+from intentos.interface.interface import ConversationTurn, IntentInterface
 
 
 class TestIntentInterface:
@@ -25,6 +26,7 @@ class TestIntentInterface:
     def test_interface_with_registry(self):
         """测试带注册表的接口"""
         from intentos.registry import IntentRegistry
+
         registry = IntentRegistry()
         interface = IntentInterface(registry=registry)
         assert interface.registry == registry
@@ -66,8 +68,9 @@ class TestIntentInterface:
     def test_generate_response_success(self, interface):
         """测试生成成功响应"""
         from intentos.core import Intent
+
         intent = Intent(name="test", intent_type="atomic")
-        result = type('Result', (), {'success': True, 'result': 'test result', 'error': None})()
+        result = type("Result", (), {"success": True, "result": "test result", "error": None})()
         response = interface._generate_response(intent, result)
         assert "✅" in response
         assert "test result" in response
@@ -75,8 +78,9 @@ class TestIntentInterface:
     def test_generate_response_failure(self, interface):
         """测试生成失败响应"""
         from intentos.core import Intent
+
         intent = Intent(name="test", intent_type="atomic")
-        result = type('Result', (), {'success': False, 'result': None, 'error': 'Test error'})()
+        result = type("Result", (), {"success": False, "result": None, "error": "Test error"})()
         response = interface._generate_response(intent, result)
         assert "❌" in response
         assert "Test error" in response
@@ -94,6 +98,7 @@ class TestConversationTurn:
     def test_turn_with_intent(self):
         """测试带意图的轮次"""
         from intentos.core import Intent
+
         intent = Intent(name="test", intent_type="atomic")
         turn = ConversationTurn(role="system", content="Response", intent=intent)
         assert turn.intent == intent
@@ -101,9 +106,7 @@ class TestConversationTurn:
     def test_turn_with_artifacts(self):
         """测试带工件的轮次"""
         turn = ConversationTurn(
-            role="system",
-            content="Response",
-            artifacts=[{"type": "file", "name": "test.txt"}]
+            role="system", content="Response", artifacts=[{"type": "file", "name": "test.txt"}]
         )
         assert len(turn.artifacts) == 1
 
@@ -116,10 +119,10 @@ class TestIntentInterfaceIntegration:
         """测试完整对话"""
         interface = IntentInterface()
         interface.set_user("integration_user")
-        
+
         response = await interface.chat("Test conversation")
         history = interface.get_history()
-        
+
         assert len(history) >= 2
         assert response is not None
 
@@ -127,10 +130,10 @@ class TestIntentInterfaceIntegration:
     async def test_conversation_with_context(self):
         """测试带上下文的对话"""
         interface = IntentInterface()
-        
+
         # 第一轮
         await interface.chat("First")
-        
+
         # 第二轮（应该有上下文）
         response = await interface.chat("Second")
         assert response is not None

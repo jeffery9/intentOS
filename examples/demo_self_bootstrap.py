@@ -15,6 +15,7 @@ from datetime import datetime
 # 演示 1: 元意图 - 修改解析规则
 # =============================================================================
 
+
 async def demo_meta_modify_parse_prompt():
     """演示：元意图修改解析 Prompt"""
 
@@ -90,6 +91,7 @@ async def demo_meta_modify_parse_prompt():
 # 演示 2: 元元意图 - 修改 Self-Bootstrap 策略
 # =============================================================================
 
+
 async def demo_meta_meta_modify_policy():
     """演示：元元意图修改 Self-Bootstrap 策略"""
 
@@ -152,7 +154,9 @@ async def demo_meta_meta_modify_policy():
 
     print(f"\n执行结果:\n{json.dumps(result.to_dict(), indent=2, ensure_ascii=False)}")
 
-    print(f"\n修改后的 Self-Bootstrap 策略:\n{json.dumps(system_config['SELF_BOOTSTRAP_POLICY'], indent=2)}")
+    print(
+        f"\n修改后的 Self-Bootstrap 策略:\n{json.dumps(system_config['SELF_BOOTSTRAP_POLICY'], indent=2)}"
+    )
 
     print("\n✅ 元元意图执行完成")
     print("Self-Bootstrap 策略已更新，新增了审计规则修改保护和置信度阈值")
@@ -163,6 +167,7 @@ async def demo_meta_meta_modify_policy():
 # =============================================================================
 # 演示 3: 自修改的自修改 (Meta-Meta-Self-Bootstrap)
 # =============================================================================
+
 
 async def demo_meta_meta_self_bootstrap():
     """演示：自修改的自修改"""
@@ -246,6 +251,7 @@ async def demo_meta_meta_self_bootstrap():
 # 演示 4: 完整的 Self-Bootstrap 流程
 # =============================================================================
 
+
 async def demo_full_self_bootstrap():
     """演示：完整的 Self-Bootstrap 流程"""
 
@@ -295,12 +301,14 @@ async def demo_full_self_bootstrap():
 
     # 模拟执行
     system_state["TEMPLATES"]["sales_forecast"] = create_template_meta.parameters
-    system_state["AUDIT_LOG"].append({
-        "action": "create_template",
-        "template": "sales_forecast",
-        "user": "user_001",
-        "timestamp": datetime.now().isoformat(),
-    })
+    system_state["AUDIT_LOG"].append(
+        {
+            "action": "create_template",
+            "template": "sales_forecast",
+            "user": "user_001",
+            "timestamp": datetime.now().isoformat(),
+        }
+    )
 
     print("✅ 模板已创建")
 
@@ -321,11 +329,13 @@ async def demo_full_self_bootstrap():
 
     # 模拟执行
     system_state["PARSE_PROMPT"] = modify_parse_meta.parameters["new_value"]
-    system_state["AUDIT_LOG"].append({
-        "action": "modify_parse_prompt",
-        "user": "admin",
-        "timestamp": datetime.now().isoformat(),
-    })
+    system_state["AUDIT_LOG"].append(
+        {
+            "action": "modify_parse_prompt",
+            "user": "admin",
+            "timestamp": datetime.now().isoformat(),
+        }
+    )
 
     print("✅ 解析规则已修改")
 
@@ -374,6 +384,7 @@ async def demo_full_self_bootstrap():
 # =============================================================================
 # 主函数
 # =============================================================================
+
 
 async def main():
     """运行所有演示"""

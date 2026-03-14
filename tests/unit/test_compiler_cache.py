@@ -2,14 +2,16 @@
 Compiler Cache 模块测试 - 修复版本
 """
 
-import pytest
 import asyncio
+from datetime import datetime, timedelta
+
+import pytest
+
 from intentos.compiler.cache import (
     CacheEntry,
     MemoryCache,
     generate_cache_key,
 )
-from datetime import datetime, timedelta
 
 
 class TestGenerateCacheKey:
@@ -62,7 +64,7 @@ class TestCacheEntry:
             "created_at": now.isoformat(),
             "last_accessed": now.isoformat(),
             "access_count": 5,
-            "ttl_seconds": 7200
+            "ttl_seconds": 7200,
         }
         entry = CacheEntry.from_dict(data)
         assert entry.key == "restored_key"

@@ -4,34 +4,36 @@ Phase 3 分布式增强测试
 测试一致性协议、检查点恢复、并发控制
 """
 
-import pytest
 import asyncio
-from intentos.distributed.consensus import (
-    VersionVector,
-    VersionedValue,
-    WriteRequest,
-    ReadRequest,
-    QuorumReplicator,
-    ConsistencyLevel,
-)
+
+import pytest
+
 from intentos.distributed.checkpoint import (
-    CheckpointMetadata,
-    ProcessCheckpoint,
     CheckpointConfig,
     CheckpointManager,
+    CheckpointMetadata,
     CheckpointType,
+    ProcessCheckpoint,
+)
+from intentos.distributed.consensus import (
+    ConsistencyLevel,
+    QuorumReplicator,
+    ReadRequest,
+    VersionedValue,
+    VersionVector,
+    WriteRequest,
 )
 from intentos.utils.concurrency import (
-    ReadWriteLock,
-    KeyLockManager,
     DeadlockDetector,
+    KeyLockManager,
     MVCCStore,
+    ReadWriteLock,
 )
-
 
 # =============================================================================
 # 一致性协议测试
 # =============================================================================
+
 
 class TestVersionVector:
     """版本向量测试"""
@@ -99,10 +101,7 @@ class TestVersionedValue:
         version = VersionVector()
         version.increment("node1")
 
-        vv = VersionedValue(
-            value={"data": "test"},
-            version=version
-        )
+        vv = VersionedValue(value={"data": "test"}, version=version)
 
         assert vv.value["data"] == "test"
         assert vv.version.versions["node1"] == 1
@@ -183,14 +182,8 @@ class TestReadRequest:
         """测试获取支配值"""
         req = ReadRequest()
 
-        vv1 = VersionedValue(
-            value="old",
-            version=VersionVector({"node1": 1})
-        )
-        vv2 = VersionedValue(
-            value="new",
-            version=VersionVector({"node1": 2})
-        )
+        vv1 = VersionedValue(value="old", version=VersionVector({"node1": 1}))
+        vv2 = VersionedValue(value="new", version=VersionVector({"node1": 2}))
 
         req.responses.append(vv1)
         req.responses.append(vv2)
@@ -200,17 +193,14 @@ class TestReadRequest:
     def test_get_latest_value_concurrent(self):
         """测试获取并发值（基于时间戳）"""
         import time
+
         req = ReadRequest()
 
         vv1 = VersionedValue(
-            value="old",
-            version=VersionVector({"node1": 1, "node2": 2}),
-            timestamp=time.time() - 1
+            value="old", version=VersionVector({"node1": 1, "node2": 2}), timestamp=time.time() - 1
         )
         vv2 = VersionedValue(
-            value="new",
-            version=VersionVector({"node1": 2, "node2": 1}),
-            timestamp=time.time()
+            value="new", version=VersionVector({"node1": 2, "node2": 1}), timestamp=time.time()
         )
 
         req.responses.append(vv1)
@@ -225,10 +215,7 @@ class TestQuorumReplicator:
     @pytest.mark.asyncio
     async def test_write_read_local(self):
         """测试本地读写"""
-        replicator = QuorumReplicator(
-            nodes=[],
-            consistency=ConsistencyLevel.EVENTUAL
-        )
+        replicator = QuorumReplicator(nodes=[], consistency=ConsistencyLevel.EVENTUAL)
 
         # 写
         success = await replicator.write("TEST", "key1", "value1")
@@ -253,15 +240,14 @@ class TestQuorumReplicator:
 # 检查点恢复测试
 # =============================================================================
 
+
 class TestCheckpointMetadata:
     """检查点元数据测试"""
 
     def test_to_dict(self):
         """测试序列化"""
         metadata = CheckpointMetadata(
-            type=CheckpointType.FULL,
-            process_id="proc-123",
-            program_name="test_program"
+            type=CheckpointType.FULL, process_id="proc-123", program_name="test_program"
         )
 
         data = metadata.to_dict()
@@ -277,7 +263,7 @@ class TestCheckpointMetadata:
             "type": "incremental",
             "timestamp": "2026-03-14T10:00:00",
             "process_id": "proc-456",
-            "program_name": "my_program"
+            "program_name": "my_program",
         }
 
         metadata = CheckpointMetadata.from_dict(data)
@@ -300,7 +286,7 @@ class TestProcessCheckpoint:
             status="running",
             program_data={"name": "test"},
             variables={"x": 10},
-            context={}
+            context={},
         )
 
         data = checkpoint.to_dict()
@@ -319,7 +305,7 @@ class TestProcessCheckpoint:
             status="running",
             program_data={},
             variables={},
-            context={}
+            context={},
         )
 
         # 计算并设置校验和
@@ -359,10 +345,7 @@ class TestCheckpointManager:
 
     def test_create_checkpoint(self, tmp_path):
         """测试创建检查点"""
-        config = CheckpointConfig(
-            storage_path=str(tmp_path / "checkpoints"),
-            compress=True
-        )
+        config = CheckpointConfig(storage_path=str(tmp_path / "checkpoints"), compress=True)
         manager = CheckpointManager(config)
 
         checkpoint = manager.create_checkpoint(
@@ -372,7 +355,7 @@ class TestCheckpointManager:
             program_data={"name": "test"},
             variables={"x": 10},
             context={},
-            program_name="test_program"
+            program_name="test_program",
         )
 
         assert checkpoint.pid == "proc-123"
@@ -381,10 +364,7 @@ class TestCheckpointManager:
 
     def test_restore_checkpoint(self, tmp_path):
         """测试恢复检查点"""
-        config = CheckpointConfig(
-            storage_path=str(tmp_path / "checkpoints"),
-            compress=False
-        )
+        config = CheckpointConfig(storage_path=str(tmp_path / "checkpoints"), compress=False)
         manager = CheckpointManager(config)
 
         # 创建检查点
@@ -394,7 +374,7 @@ class TestCheckpointManager:
             status="running",
             program_data={"name": "restore_test"},
             variables={"y": 20},
-            context={}
+            context={},
         )
 
         # 恢复检查点
@@ -406,9 +386,7 @@ class TestCheckpointManager:
 
     def test_list_checkpoints(self, tmp_path):
         """测试列出检查点"""
-        config = CheckpointConfig(
-            storage_path=str(tmp_path / "checkpoints")
-        )
+        config = CheckpointConfig(storage_path=str(tmp_path / "checkpoints"))
         manager = CheckpointManager(config)
 
         # 创建多个检查点
@@ -419,7 +397,7 @@ class TestCheckpointManager:
                 status="running",
                 program_data={},
                 variables={},
-                context={}
+                context={},
             )
 
         checkpoints = manager.list_checkpoints()
@@ -430,6 +408,7 @@ class TestCheckpointManager:
 # =============================================================================
 # 并发控制测试
 # =============================================================================
+
 
 class TestReadWriteLock:
     """读写锁测试"""
@@ -652,16 +631,14 @@ class TestMVCCStore:
 # 集成测试
 # =============================================================================
 
+
 class TestPhase3Integration:
     """Phase 3 集成测试"""
 
     @pytest.mark.asyncio
     async def test_quorum_with_versioning(self):
         """测试 Quorum + 版本控制集成"""
-        replicator = QuorumReplicator(
-            nodes=[],
-            consistency=ConsistencyLevel.QUORUM
-        )
+        replicator = QuorumReplicator(nodes=[], consistency=ConsistencyLevel.QUORUM)
 
         # 写
         success = await replicator.write("TEST", "counter", 0)
@@ -691,7 +668,7 @@ class TestPhase3Integration:
             status="running",
             program_data={},
             variables={"mvcc_value": store.get("x")},
-            context={}
+            context={},
         )
 
         assert checkpoint.variables["mvcc_value"] == 100

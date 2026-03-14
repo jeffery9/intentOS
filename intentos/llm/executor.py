@@ -438,7 +438,7 @@ class LLMExecutor:
             )
         else:
             # 单后端模式
-            return await self._single_backend.generate(
+            return await self._single_backend.generate(  # type: ignore
                 messages=messages,
                 tools=tools,
                 temperature=temperature,
@@ -457,7 +457,7 @@ class LLMExecutor:
     ) -> AsyncIterator[str]:
         """流式生成"""
         if self.router:
-            async for chunk in self.router.generate(
+            async for chunk in self.router.generate(  # type: ignore
                 messages=messages,
                 tools=tools,
                 temperature=temperature,
@@ -467,7 +467,7 @@ class LLMExecutor:
             ):
                 yield chunk
         else:
-            async for chunk in self._single_backend.generate_stream(
+            async for chunk in self._single_backend.generate_stream(  # type: ignore
                 messages=messages,
                 tools=tools,
                 temperature=temperature,
@@ -481,7 +481,7 @@ class LLMExecutor:
         if self.router:
             return self.router.get_stats()
         else:
-            return {"provider": self._single_backend.provider_name}
+            return {"provider": self._single_backend.provider_name}  # type: ignore
 
 
 # 便捷函数

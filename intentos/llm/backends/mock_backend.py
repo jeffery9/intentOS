@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import time
-from typing import AsyncIterator, Optional
+from typing import Any, AsyncIterator, Callable, Optional
 
 from .base import (
     LLMBackend,
@@ -27,7 +27,7 @@ class MockBackend(LLMBackend):
     def __init__(
         self,
         model: str = "mock-model",
-        response_callback: Optional[callable] = None,
+        response_callback: Optional[Callable[..., Any]] = None,
         **kwargs,
     ):
         super().__init__(model=model, **kwargs)
@@ -76,7 +76,7 @@ class MockBackend(LLMBackend):
             latency_ms=latency_ms,
         )
 
-    async def generate_stream(
+    async def generate_stream(  # type: ignore
         self,
         messages: list[Message],
         tools: Optional[list[ToolDefinition]] = None,

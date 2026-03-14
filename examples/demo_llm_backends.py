@@ -239,7 +239,9 @@ async def demo_router():
         stats = router.get_stats()
         print("\n后端统计:")
         for name, s in stats.items():
-            print(f"  {name}: {s['success_rate']:.1f}% 成功率，{s['avg_latency_ms']:.0f}ms 平均延迟")
+            print(
+                f"  {name}: {s['success_rate']:.1f}% 成功率，{s['avg_latency_ms']:.0f}ms 平均延迟"
+            )
 
     except Exception as e:
         print(f"❌ 错误：{e}")

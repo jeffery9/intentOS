@@ -2,10 +2,9 @@
 Parser 和 Registry 模块测试
 """
 
-import pytest
+from intentos.core import Capability, Context, IntentTemplate, IntentType
 from intentos.parser.parser import IntentParser
 from intentos.registry.registry import IntentRegistry, capability
-from intentos.core import Context, IntentTemplate, IntentType, Capability
 
 
 class TestIntentParser:
@@ -134,14 +133,26 @@ class TestIntentRegistry:
     def test_register_capability(self):
         """测试注册能力"""
         registry = IntentRegistry()
-        cap = Capability(name="test_cap", description="Test", input_schema={}, output_schema={}, func=lambda ctx: None)
+        cap = Capability(
+            name="test_cap",
+            description="Test",
+            input_schema={},
+            output_schema={},
+            func=lambda ctx: None,
+        )
         registry.register_capability(cap)
         assert "test_cap" in registry._capabilities
 
     def test_get_capability(self):
         """测试获取能力"""
         registry = IntentRegistry()
-        cap = Capability(name="get_cap", description="Get", input_schema={}, output_schema={}, func=lambda ctx: None)
+        cap = Capability(
+            name="get_cap",
+            description="Get",
+            input_schema={},
+            output_schema={},
+            func=lambda ctx: None,
+        )
         registry.register_capability(cap)
         retrieved = registry.get_capability("get_cap")
         assert retrieved is not None
@@ -149,15 +160,37 @@ class TestIntentRegistry:
     def test_list_capabilities(self):
         """测试列出能力"""
         registry = IntentRegistry()
-        registry.register_capability(Capability(name="c1", description="C1", input_schema={}, output_schema={}, func=lambda ctx: None))
-        registry.register_capability(Capability(name="c2", description="C2", input_schema={}, output_schema={}, func=lambda ctx: None))
+        registry.register_capability(
+            Capability(
+                name="c1",
+                description="C1",
+                input_schema={},
+                output_schema={},
+                func=lambda ctx: None,
+            )
+        )
+        registry.register_capability(
+            Capability(
+                name="c2",
+                description="C2",
+                input_schema={},
+                output_schema={},
+                func=lambda ctx: None,
+            )
+        )
         capabilities = registry.list_capabilities()
         assert len(capabilities) == 2
 
     def test_remove_capability(self):
         """测试删除能力"""
         registry = IntentRegistry()
-        cap = Capability(name="to_remove", description="Remove", input_schema={}, output_schema={}, func=lambda ctx: None)
+        cap = Capability(
+            name="to_remove",
+            description="Remove",
+            input_schema={},
+            output_schema={},
+            func=lambda ctx: None,
+        )
         registry.register_capability(cap)
         result = registry.remove_capability("to_remove")
         assert result is True
@@ -182,7 +215,15 @@ class TestIntentRegistry:
         """测试注册表自省"""
         registry = IntentRegistry()
         registry.register_template(IntentTemplate(name="t1", description="Template 1"))
-        registry.register_capability(Capability(name="c1", description="Cap 1", input_schema={}, output_schema={}, func=lambda ctx: None))
+        registry.register_capability(
+            Capability(
+                name="c1",
+                description="Cap 1",
+                input_schema={},
+                output_schema={},
+                func=lambda ctx: None,
+            )
+        )
         registry.register_policy("p1", {"key": "value"})
         introspection = registry.introspect()
         assert "templates" in introspection
@@ -193,7 +234,15 @@ class TestIntentRegistry:
         """测试搜索"""
         registry = IntentRegistry()
         registry.register_template(IntentTemplate(name="sales_query", description="Query sales"))
-        registry.register_capability(Capability(name="api_call", description="API capability", input_schema={}, output_schema={}, func=lambda ctx: None))
+        registry.register_capability(
+            Capability(
+                name="api_call",
+                description="API capability",
+                input_schema={},
+                output_schema={},
+                func=lambda ctx: None,
+            )
+        )
         results = registry.search("sales")
         assert "templates" in results
         assert "sales_query" in results["templates"]
@@ -211,17 +260,21 @@ class TestCapabilityDecorator:
 
     def test_capability_decorator_basic(self):
         """测试基本能力装饰器"""
+
         @capability("test_cap", description="Test capability")
         def test_func(context, data: str):
             return data
-        assert hasattr(test_func, '_capability')
+
+        assert hasattr(test_func, "_capability")
         assert test_func._capability.name == "test_cap"
 
     def test_capability_decorator_with_tags(self):
         """测试带标签的能力装饰器"""
+
         @capability("tagged_cap", tags=["api", "test"])
         def tagged_func(context):
             pass
+
         assert "api" in tagged_func._capability.tags
         assert "test" in tagged_func._capability.tags
 
@@ -245,7 +298,13 @@ class TestParserRegistryIntegration:
         registry = IntentRegistry()
         template = IntentTemplate(name="analyze_sales", description="Analyze sales data")
         registry.register_template(template)
-        capability = Capability(name="sales_api", description="Sales API", input_schema={}, output_schema={}, func=lambda ctx: None)
+        capability = Capability(
+            name="sales_api",
+            description="Sales API",
+            input_schema={},
+            output_schema={},
+            func=lambda ctx: None,
+        )
         registry.register_capability(capability)
         registry.register_policy("rate_limit", {"max_requests": 100})
         results = registry.search("sales")

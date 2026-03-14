@@ -5,22 +5,21 @@
 """
 
 import pytest
-from intentos.semantic_vm import (
-    SemanticVM,
-    SemanticProgram,
-    SemanticInstruction,
-    SemanticOpcode,
-    SemanticMemory,
-    LLMProcessor,
-)
-from intentos.llm.backends.mock_backend import MockBackend
-from intentos.semantic_vm.gas import GasCosts, ExecutionBudget
-from intentos.utils.timeout import TimeoutConfig
 
+from intentos.llm.backends.mock_backend import MockBackend
+from intentos.semantic_vm import (
+    LLMProcessor,
+    SemanticInstruction,
+    SemanticMemory,
+    SemanticOpcode,
+    SemanticProgram,
+    SemanticVM,
+)
 
 # =============================================================================
 # SemanticMemory 测试
 # =============================================================================
+
 
 class TestSemanticMemory:
     """语义内存测试"""
@@ -95,14 +94,14 @@ class TestSemanticMemory:
 # SemanticInstruction 测试
 # =============================================================================
 
+
 class TestSemanticInstruction:
     """语义指令测试"""
 
     def test_create_instruction(self):
         """测试创建指令"""
         instr = SemanticInstruction(
-            opcode=SemanticOpcode.SET,
-            parameters={"name": "x", "value": 10}
+            opcode=SemanticOpcode.SET, parameters={"name": "x", "value": 10}
         )
 
         assert instr.opcode == SemanticOpcode.SET
@@ -111,9 +110,7 @@ class TestSemanticInstruction:
     def test_to_dict(self):
         """测试转换为字典"""
         instr = SemanticInstruction(
-            opcode=SemanticOpcode.CREATE,
-            target="TEMPLATE",
-            target_name="test"
+            opcode=SemanticOpcode.CREATE, target="TEMPLATE", target_name="test"
         )
 
         data = instr.to_dict()
@@ -123,10 +120,7 @@ class TestSemanticInstruction:
 
     def test_from_dict(self):
         """测试从字典创建"""
-        data = {
-            "opcode": "set",
-            "parameters": {"name": "y", "value": 20}
-        }
+        data = {"opcode": "set", "parameters": {"name": "y", "value": 20}}
 
         instr = SemanticInstruction.from_dict(data)
 
@@ -136,9 +130,7 @@ class TestSemanticInstruction:
     def test_to_natural_language(self):
         """测试转换为自然语言"""
         instr = SemanticInstruction(
-            opcode=SemanticOpcode.CREATE,
-            target="TEMPLATE",
-            target_name="test_template"
+            opcode=SemanticOpcode.CREATE, target="TEMPLATE", target_name="test_template"
         )
 
         nl = instr.to_natural_language()
@@ -151,15 +143,13 @@ class TestSemanticInstruction:
 # SemanticProgram 测试
 # =============================================================================
 
+
 class TestSemanticProgram:
     """语义程序测试"""
 
     def test_create_program(self):
         """测试创建程序"""
-        program = SemanticProgram(
-            name="test_program",
-            description="Test program"
-        )
+        program = SemanticProgram(name="test_program", description="Test program")
 
         assert program.name == "test_program"
         assert len(program.instructions) == 0
@@ -175,10 +165,7 @@ class TestSemanticProgram:
 
     def test_to_dict(self):
         """测试转换为字典"""
-        program = SemanticProgram(
-            name="test",
-            version="2.0.0"
-        )
+        program = SemanticProgram(name="test", version="2.0.0")
 
         data = program.to_dict()
 
@@ -187,11 +174,7 @@ class TestSemanticProgram:
 
     def test_from_dict(self):
         """测试从字典创建"""
-        data = {
-            "name": "restored_program",
-            "description": "Restored",
-            "version": "1.5.0"
-        }
+        data = {"name": "restored_program", "description": "Restored", "version": "1.5.0"}
 
         program = SemanticProgram.from_dict(data)
 
@@ -202,6 +185,7 @@ class TestSemanticProgram:
 # =============================================================================
 # SemanticVM 测试
 # =============================================================================
+
 
 class TestSemanticVM:
     """语义虚拟机测试"""
@@ -224,10 +208,9 @@ class TestSemanticVM:
     async def test_execute_simple_program(self, vm):
         """测试执行简单程序"""
         program = SemanticProgram(name="simple")
-        program.add_instruction(SemanticInstruction(
-            opcode=SemanticOpcode.SET,
-            parameters={"name": "x", "value": 100}
-        ))
+        program.add_instruction(
+            SemanticInstruction(opcode=SemanticOpcode.SET, parameters={"name": "x", "value": 100})
+        )
 
         vm.memory.set("PROGRAM", program.name, program)
         result = await vm.execute_program(program.name)
@@ -240,9 +223,7 @@ class TestSemanticVM:
     async def test_load_program(self, vm):
         """测试加载程序"""
         program = SemanticProgram(name="test_load")
-        program.add_instruction(SemanticInstruction(
-            opcode=SemanticOpcode.SET
-        ))
+        program.add_instruction(SemanticInstruction(opcode=SemanticOpcode.SET))
 
         await vm.load_program(program)
 
@@ -254,6 +235,7 @@ class TestSemanticVM:
 # =============================================================================
 # LLMProcessor 测试
 # =============================================================================
+
 
 class TestLLMProcessor:
     """LLM 处理器测试"""
@@ -282,6 +264,7 @@ class TestLLMProcessor:
 # 集成测试
 # =============================================================================
 
+
 class TestSemanticVMIntegration:
     """语义 VM 集成测试"""
 
@@ -296,10 +279,9 @@ class TestSemanticVMIntegration:
         """测试程序创建和加载"""
         # 创建程序
         program = SemanticProgram(name="lifecycle_test")
-        program.add_instruction(SemanticInstruction(
-            opcode=SemanticOpcode.SET,
-            parameters={"name": "x", "value": 1}
-        ))
+        program.add_instruction(
+            SemanticInstruction(opcode=SemanticOpcode.SET, parameters={"name": "x", "value": 1})
+        )
 
         # 加载程序
         await vm.load_program(program)

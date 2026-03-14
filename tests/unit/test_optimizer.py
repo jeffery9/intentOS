@@ -1,13 +1,23 @@
 # -*- coding: utf-8 -*-
-import pytest
 from unittest.mock import MagicMock, patch
-from datetime import datetime, timedelta
+
+import pytest
+
 from intentos.compiler.optimizer import (
-    LLMProfile, LLMProvider, PromptOptimizer, StrategySelector, 
-    TokenOptimizer, ContextManager, MapReduceOptimizer, NodeCapability,
-    DataLocalityOptimizer, CompilationStrategy, MapReduceStrategy,
-    get_llm_profile, create_prompt_optimizer
+    CompilationStrategy,
+    ContextManager,
+    DataLocalityOptimizer,
+    LLMProfile,
+    LLMProvider,
+    MapReduceOptimizer,
+    MapReduceStrategy,
+    NodeCapability,
+    PromptOptimizer,
+    StrategySelector,
+    TokenOptimizer,
+    get_llm_profile,
 )
+
 
 # Mock CompiledPrompt since it's only used for typing or simple attribute access
 class MockCompiledPrompt:
@@ -17,27 +27,34 @@ class MockCompiledPrompt:
         self.intent = intent
         self.metadata = metadata or {}
 
+
 class TestLLMProfile:
     """LLMProfile 测试"""
 
     def test_is_suitable(self):
         profile = LLMProfile(
-            provider=LLMProvider.OPENAI, model="gpt-4", 
-            max_context_size=8192, max_output_tokens=4096,
-            supports_tools=True
+            provider=LLMProvider.OPENAI,
+            model="gpt-4",
+            max_context_size=8192,
+            max_output_tokens=4096,
+            supports_tools=True,
         )
         assert profile.is_suitable_for("simple") is True
         assert profile.is_suitable_for("medium") is True
-        assert profile.is_suitable_for("complex") is False # requires 16000
+        assert profile.is_suitable_for("complex") is False  # requires 16000
 
     def test_estimate_cost(self):
         profile = LLMProfile(
-            provider=LLMProvider.OPENAI, model="m", 
-            max_context_size=1000, max_output_tokens=100, 
-            input_cost_usd=0.01, output_cost_usd=0.02
+            provider=LLMProvider.OPENAI,
+            model="m",
+            max_context_size=1000,
+            max_output_tokens=100,
+            input_cost_usd=0.01,
+            output_cost_usd=0.02,
         )
         cost = profile.estimate_cost(1000, 2000)
         assert cost == pytest.approx(0.05)
+
 
 class TestPromptOptimizer:
     """PromptOptimizer 测试"""
@@ -45,9 +62,12 @@ class TestPromptOptimizer:
     @pytest.fixture
     def optimizer(self):
         profile = LLMProfile(
-            provider=LLMProvider.OPENAI, model="m", 
-            max_context_size=1000, max_output_tokens=100,
-            supports_json_mode=True, preferred_format="json"
+            provider=LLMProvider.OPENAI,
+            model="m",
+            max_context_size=1000,
+            max_output_tokens=100,
+            supports_json_mode=True,
+            preferred_format="json",
         )
         return PromptOptimizer(profile)
 
@@ -65,9 +85,11 @@ class TestPromptOptimizer:
 
     def test_optimize_format_text(self, compiled_prompt):
         profile = LLMProfile(
-            provider=LLMProvider.OPENAI, model="m", 
-            max_context_size=1000, max_output_tokens=100,
-            preferred_format="text"
+            provider=LLMProvider.OPENAI,
+            model="m",
+            max_context_size=1000,
+            max_output_tokens=100,
+            preferred_format="text",
         )
         optimizer = PromptOptimizer(profile)
         compiled_prompt.system_prompt = "```json {key:val} ```"
@@ -88,6 +110,7 @@ class TestPromptOptimizer:
             assert len(optimized.system_prompt) < 3000
             assert "..." in optimized.system_prompt
 
+
 class TestStrategySelector:
     """StrategySelector 测试"""
 
@@ -103,6 +126,7 @@ class TestStrategySelector:
         selector = StrategySelector(profile)
         assert selector.estimate_compilation_time(CompilationStrategy.FAST) == 0.01
         assert selector.estimate_compilation_time(CompilationStrategy.OPTIMIZED) == 1.0
+
 
 class TestTokenOptimizer:
     """TokenOptimizer 测试"""
@@ -131,6 +155,7 @@ class TestTokenOptimizer:
         assert len(batches[0]) == 2
         assert len(batches[2]) == 1
 
+
 class TestContextManager:
     """ContextManager 测试"""
 
@@ -138,16 +163,16 @@ class TestContextManager:
         cm = ContextManager(max_context_size=100)
         cm.add_entry("k1", "v1", importance=1.0)
         cm.add_entry("k2", "v2", importance=0.5)
-        
+
         ctx = cm.get_context()
         assert "k1: v1" in ctx
         assert "k2: v2" in ctx
 
     def test_context_expiration(self):
         cm = ContextManager(max_context_size=100)
-        cm.add_entry("k1", "v1", ttl_seconds=-10) # already expired
+        cm.add_entry("k1", "v1", ttl_seconds=-10)  # already expired
         cm.add_entry("k2", "v2", ttl_seconds=10)
-        
+
         ctx = cm.get_context()
         assert "k1" not in ctx
         assert "k2" in ctx
@@ -158,10 +183,11 @@ class TestContextManager:
         cm = ContextManager(max_context_size=10)
         cm.add_entry("k1", "A" * 30, importance=1.0)
         cm.add_entry("k2", "B" * 30, importance=0.1)
-        
+
         ctx = cm.get_context()
         assert "k1" in ctx
-        assert "k2" not in ctx # k1 already took most of the space
+        assert "k2" not in ctx  # k1 already took most of the space
+
 
 class TestMapReduceOptimizer:
     """MapReduceOptimizer 测试"""
@@ -184,14 +210,12 @@ class TestMapReduceOptimizer:
 
     def test_plan_map_reduce(self, nodes):
         optimizer = MapReduceOptimizer(nodes)
-        memories = {
-            "n1": ["m1", "m2"],
-            "n2": ["m3"]
-        }
+        memories = {"n1": ["m1", "m2"], "n2": ["m3"]}
         plan = optimizer.plan_map_reduce("test intent", memories)
-        assert len(plan["map_tasks"]) == 1 # only n1 has LLM
+        assert len(plan["map_tasks"]) == 1  # only n1 has LLM
         assert plan["map_tasks"][0]["node_id"] == "n1"
-        assert plan["estimated_network_cost"] > 0 # from n2
+        assert plan["estimated_network_cost"] > 0  # from n2
+
 
 class TestDataLocalityOptimizer:
     """DataLocalityOptimizer 测试"""

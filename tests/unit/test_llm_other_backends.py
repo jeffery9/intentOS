@@ -2,7 +2,6 @@
 LLM Backends Anthropic 和 Ollama 模块测试
 """
 
-import pytest
 from intentos.llm.backends.anthropic_backend import AnthropicBackend
 from intentos.llm.backends.ollama_backend import OllamaBackend
 
@@ -70,10 +69,10 @@ class TestBackendsIntegration:
     def test_backend_base_class_features(self):
         """测试后端基类特性"""
         from intentos.llm.backends.base import LLMBackend
-        
+
         # 验证基类存在
         assert LLMBackend is not None
-        
+
         # 验证所有后端都继承自基类
         assert issubclass(AnthropicBackend, LLMBackend)
         assert issubclass(OllamaBackend, LLMBackend)
