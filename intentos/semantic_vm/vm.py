@@ -669,13 +669,14 @@ class SemanticVM:
         """评估条件（安全版本）"""
         if not condition:
             return True
-        
+
         try:
             # 使用安全评估器替代 eval()
             return SafeConditionEvaluator.evaluate(condition, variables)
         except ValueError as e:
             # 记录安全日志
             import logging
+
             logger = logging.getLogger(__name__)
             logger.warning(f"不安全或无效的条件表达式：{condition}, 错误：{e}")
             return False  # 不安全条件视为 False

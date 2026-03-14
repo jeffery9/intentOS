@@ -9,20 +9,21 @@
 from __future__ import annotations
 
 import gzip
+import hashlib
 import json
 import logging
-import os
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
 
 class CheckpointType(Enum):
     """检查点类型"""
+
     FULL = "full"
     INCREMENTAL = "incremental"
     SNAPSHOT = "snapshot"
@@ -31,21 +32,21 @@ class CheckpointType(Enum):
 @dataclass
 class CheckpointMetadata:
     """检查点元数据"""
-    
-    id: str = field(default_factory=lambda: str(hashlib.md5(
-        str(datetime.now()).encode()
-    ).hexdigest()[:8]))
+
+    id: str = field(
+        default_factory=lambda: str(hashlib.md5(str(datetime.now()).encode()).hexdigest()[:8])
+    )
     type: CheckpointType = CheckpointType.FULL
     timestamp: datetime = field(default_factory=datetime.now)
-    
+
     process_id: str = ""
     program_name: str = ""
     node_id: str = ""
-    
+
     size_bytes: int = 0
     compressed: bool = False
     checksum: str = ""
-    
+
     def to_dict(self) -> dict:
         return {
             "id": self.id,
@@ -58,7 +59,7 @@ class CheckpointMetadata:
             "compressed": self.compressed,
             "checksum": self.checksum,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> CheckpointMetadata:
         return cls(
@@ -77,20 +78,20 @@ class CheckpointMetadata:
 @dataclass
 class ProcessCheckpoint:
     """进程检查点"""
-    
+
     metadata: CheckpointMetadata
-    
+
     pid: str
     pc: int
     status: str
-    
+
     program_data: dict
     variables: dict
     context: dict
-    
+
     gas_state: Optional[dict] = None
     execution_log: list[dict] = field(default_factory=list)
-    
+
     def to_dict(self) -> dict:
         return {
             "metadata": self.metadata.to_dict(),
@@ -103,7 +104,7 @@ class ProcessCheckpoint:
             "gas_state": self.gas_state,
             "execution_log": self.execution_log,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict) -> ProcessCheckpoint:
         return cls(
@@ -117,13 +118,14 @@ class ProcessCheckpoint:
             gas_state=data.get("gas_state"),
             execution_log=data.get("execution_log", []),
         )
-    
+
     def compute_checksum(self) -> str:
         """计算校验和"""
         import hashlib
+
         data_str = json.dumps(self.to_dict(), sort_keys=True)
         return hashlib.sha256(data_str.encode()).hexdigest()
-    
+
     def verify_integrity(self) -> bool:
         """验证完整性"""
         return self.metadata.checksum == self.compute_checksum()
@@ -132,19 +134,19 @@ class ProcessCheckpoint:
 @dataclass
 class CheckpointConfig:
     """检查点配置"""
-    
+
     checkpoint_interval_seconds: int = 60
     max_checkpoints_per_process: int = 10
     retention_hours: int = 24
-    
+
     storage_backend: str = "disk"
     storage_path: str = "./checkpoints"
     compress: bool = True
-    
+
     @classmethod
     def default(cls) -> CheckpointConfig:
         return cls()
-    
+
     @classmethod
     def frequent(cls) -> CheckpointConfig:
         """频繁检查点"""
@@ -152,7 +154,7 @@ class CheckpointConfig:
             checkpoint_interval_seconds=10,
             max_checkpoints_per_process=100,
         )
-    
+
     @classmethod
     def minimal(cls) -> CheckpointConfig:
         """最小检查点"""
@@ -164,7 +166,7 @@ class CheckpointConfig:
 
 class CheckpointManager:
     """检查点管理器"""
-    
+
     def __init__(
         self,
         config: Optional[CheckpointConfig] = None,
@@ -172,7 +174,7 @@ class CheckpointManager:
         self.config = config or CheckpointConfig.default()
         self._storage_path = Path(self.config.storage_path)
         self._checkpoints: dict[str, list[CheckpointMetadata]] = {}
-    
+
     def create_checkpoint(
         self,
         pid: str,
@@ -189,7 +191,7 @@ class CheckpointManager:
             process_id=pid,
             program_name=program_name,
         )
-        
+
         checkpoint = ProcessCheckpoint(
             metadata=metadata,
             pid=pid,
@@ -199,82 +201,90 @@ class CheckpointManager:
             variables=variables,
             context=context,
         )
-        
+
         checkpoint.metadata.checksum = checkpoint.compute_checksum()
-        
+
         self._save_checkpoint(checkpoint)
-        
+
         logger.debug(f"创建检查点：{checkpoint.metadata.id} (进程 {pid})")
-        
+
         return checkpoint
-    
+
     def restore_checkpoint(
         self,
         checkpoint_id: str,
     ) -> Optional[ProcessCheckpoint]:
         """从检查点恢复"""
         checkpoint = self._load_checkpoint(checkpoint_id)
-        
+
         if not checkpoint:
             logger.error(f"检查点不存在：{checkpoint_id}")
             return None
-        
+
         if not checkpoint.verify_integrity():
             logger.error(f"检查点完整性验证失败：{checkpoint_id}")
             return None
-        
+
         logger.info(f"从检查点恢复进程：{checkpoint.pid}")
-        
+
         return checkpoint
-    
+
     def _save_checkpoint(self, checkpoint: ProcessCheckpoint) -> None:
         """保存检查点"""
         data = json.dumps(checkpoint.to_dict(), indent=2, ensure_ascii=False)
-        
+
         if self.config.compress:
-            data_bytes = gzip.compress(data.encode('utf-8'))
+            data_bytes = gzip.compress(data.encode("utf-8"))
             checkpoint.metadata.compressed = True
         else:
-            data_bytes = data.encode('utf-8')
-        
+            data_bytes = data.encode("utf-8")
+
         checkpoint.metadata.size_bytes = len(data_bytes)
-        
-        filename = f"{checkpoint.metadata.id}.json.gz" if self.config.compress else f"{checkpoint.metadata.id}.json"
+
+        filename = (
+            f"{checkpoint.metadata.id}.json.gz"
+            if self.config.compress
+            else f"{checkpoint.metadata.id}.json"
+        )
         filepath = self._storage_path / checkpoint.metadata.process_id / filename
-        
+
         filepath.parent.mkdir(parents=True, exist_ok=True)
-        
-        with open(filepath, 'wb') as f:
+
+        with open(filepath, "wb") as f:
             f.write(data_bytes)
-        
+
         if checkpoint.metadata.process_id not in self._checkpoints:
             self._checkpoints[checkpoint.metadata.process_id] = []
         self._checkpoints[checkpoint.metadata.process_id].append(checkpoint.metadata)
-    
+
     def _load_checkpoint(self, checkpoint_id: str) -> Optional[ProcessCheckpoint]:
         """加载检查点"""
         for process_id, checkpoints in self._checkpoints.items():
             for cp_meta in checkpoints:
                 if cp_meta.id == checkpoint_id:
-                    filename = f"{checkpoint_id}.json.gz" if cp_meta.compressed else f"{checkpoint_id}.json"
+                    filename = (
+                        f"{checkpoint_id}.json.gz"
+                        if cp_meta.compressed
+                        else f"{checkpoint_id}.json"
+                    )
                     filepath = self._storage_path / process_id / filename
-                    
+
                     if not filepath.exists():
                         return None
-                    
-                    with open(filepath, 'rb') as f:
+
+                    with open(filepath, "rb") as f:
                         data_bytes = f.read()
-                    
+
                     if cp_meta.compressed:
-                        data = gzip.decompress(data_bytes).decode('utf-8')
+                        data = gzip.decompress(data_bytes).decode("utf-8")
                     else:
-                        data = data_bytes.decode('utf-8')
-                    
+                        data = data_bytes.decode("utf-8")
+
                     data_dict = json.loads(data)
                     return ProcessCheckpoint.from_dict(data_dict)
-        
+
         return None
-    
+
     def list_checkpoints(
         self,
         process_id: Optional[str] = None,
@@ -287,7 +297,7 @@ class CheckpointManager:
             for cps in self._checkpoints.values():
                 all_checkpoints.extend(cps)
             checkpoints = all_checkpoints
-        
+
         return [
             {
                 "id": cp.id,
@@ -296,6 +306,3 @@ class CheckpointManager:
             }
             for cp in sorted(checkpoints, key=lambda c: c.timestamp, reverse=True)
         ]
-
-
-import hashlib
