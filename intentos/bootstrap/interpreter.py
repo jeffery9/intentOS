@@ -101,7 +101,7 @@ class ParseRule:
             pattern=data["pattern"],
             pattern_type=data.get("pattern_type", "regex"),
             intent_type=data["intent_type"],
-            intent_params=data["intent_params"],
+            intent_params=data.get("intent_params", {}),
             priority=data.get("priority", 0),
             created_by=data.get("created_by", "system"),
         )
