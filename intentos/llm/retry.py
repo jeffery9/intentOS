@@ -95,6 +95,7 @@ class RetryAttempt:
     error: Optional[str] = None
     error_type: Optional[RetryableErrorType] = None
     success: bool = False
+    response: Optional[Any] = None
 
     @property
     def duration(self) -> float:
@@ -119,7 +120,7 @@ class RetryAttempt:
 class RetryResult:
     """重试结果"""
 
-    success: bool
+    success: bool = False
     response: Optional[Any] = None
     error: Optional[str] = None
 

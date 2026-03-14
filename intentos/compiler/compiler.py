@@ -18,7 +18,7 @@ class CompiledPrompt:
     system_prompt: str
     user_prompt: str
     intent: Intent
-    metadata: dict[str, Any] = None
+    metadata: dict[str, Any] = None  # type: ignore
 
     def __post_init__(self):
         if self.metadata is None:

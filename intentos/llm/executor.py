@@ -13,7 +13,7 @@ from __future__ import annotations
 import random
 import time
 from dataclasses import dataclass
-from typing import AsyncIterator, Optional
+from typing import Any, AsyncIterator, Optional
 
 from .backends.base import (
     AuthenticationError,
@@ -140,6 +140,8 @@ class LLMRouter:
     def _create_backend(self, config: BackendConfig) -> None:
         """创建后端实例"""
         # 根据配置创建对应的后端
+        backend: LLMBackend
+
         if "openai" in config.name.lower() or config.base_url:
             from .backends.openai_backend import OpenAIBackend
 
@@ -153,7 +155,7 @@ class LLMRouter:
         elif "anthropic" in config.name.lower():
             from .backends.anthropic_backend import AnthropicBackend
 
-            backend = AnthropicBackend(
+            backend = AnthropicBackend(  # type: ignore
                 model=config.model,
                 api_key=config.api_key,
                 timeout=config.timeout,
@@ -162,7 +164,7 @@ class LLMRouter:
         elif "ollama" in config.name.lower():
             from .backends.ollama_backend import OllamaBackend
 
-            backend = OllamaBackend(
+            backend = OllamaBackend(  # type: ignore
                 model=config.model,
                 host=config.base_url or "http://localhost:11434",
                 timeout=config.timeout,
@@ -170,7 +172,7 @@ class LLMRouter:
             )
         else:
             # 默认使用 Mock
-            backend = MockBackend(model=config.model)
+            backend = MockBackend(model=config.model)  # type: ignore
 
         self.backends[config.name] = backend
 
@@ -254,8 +256,8 @@ class LLMRouter:
         """
         生成响应 (带故障转移)
         """
-        last_error = None
-        tried_backends = []
+        last_error: Optional[LLMError] = None
+        tried_backends: list[str] = []
 
         for attempt in range(len(self.backends)):
             try:

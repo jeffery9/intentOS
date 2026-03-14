@@ -167,7 +167,12 @@ class MetricRegistry:
             self._gauges[name] = Gauge(name, description)
         return self._gauges[name]
 
-    def histogram(self, name: str, description: str = "", buckets: tuple = None) -> Histogram:
+    def histogram(
+        self,
+        name: str,
+        description: str = "",
+        buckets: Optional[tuple[Any, ...]] = None,
+    ) -> Histogram:
         """注册直方图"""
         if name not in self._histograms:
             self._histograms[name] = Histogram(

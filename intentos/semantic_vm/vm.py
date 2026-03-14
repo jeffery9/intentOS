@@ -121,6 +121,8 @@ class SemanticInstruction:
     def from_dict(cls, data: dict[str, Any]) -> SemanticInstruction:
         """从字典创建"""
         raw_opcode = data["opcode"]
+        opcode: Union[SemanticOpcode, str, Any]
+
         try:
             opcode = SemanticOpcode(raw_opcode)
         except (ValueError, KeyError):
@@ -134,7 +136,7 @@ class SemanticInstruction:
 
         return cls(
             id=data.get("id", str(uuid.uuid4())),
-            opcode=opcode,
+            opcode=opcode,  # type: ignore
             target=data.get("target"),
             target_name=data.get("target_name"),
             parameters=data.get("parameters", {}),
@@ -585,7 +587,8 @@ class SemanticVM:
 
         # 处理条件分支
         if instruction.opcode == SemanticOpcode.IF:
-            if not self._evaluate_condition(instruction.condition, program.variables):
+            condition = instruction.condition
+            if condition and not self._evaluate_condition(condition, program.variables):
                 # 跳过 IF 体
                 return {
                     "success": True,
@@ -618,7 +621,8 @@ class SemanticVM:
                 }
 
         elif instruction.opcode == SemanticOpcode.WHILE:
-            if self._evaluate_condition(instruction.condition, program.variables):
+            condition = instruction.condition
+            if condition and self._evaluate_condition(condition, program.variables):
                 return {"success": True, "jump": self.pc + 1}
             else:
                 return {
@@ -632,10 +636,13 @@ class SemanticVM:
 
         # 处理跳转
         elif instruction.opcode == SemanticOpcode.JUMP:
-            return {
-                "success": True,
-                "jump": self._find_label(program.instructions, instruction.jump_target),
-            }
+            jump_target = instruction.jump_target
+            if jump_target:
+                return {
+                    "success": True,
+                    "jump": self._find_label(program.instructions, jump_target),
+                }
+            return {"success": True, "jump": None}
 
         # 处理变量操作
         elif instruction.opcode == SemanticOpcode.SET:

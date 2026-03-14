@@ -463,11 +463,17 @@ class DistributedCoordinator:
 
     async def get_status(self, exec_id: str) -> Optional[dict]:
         """获取执行状态"""
-        pc = self.program_counters.get(exec_id)
-        if not pc:
+        # 使用 processes 而不是 program_counters
+        process = self.processes.get(exec_id)
+        if not process:
             return None
 
-        return pc.to_dict()
+        return {
+            "pid": process.pid,
+            "state": process.state.value,
+            "program_name": process.program_name,
+            "node_id": process.node_id,
+        }
 
 
 # =============================================================================
@@ -498,7 +504,7 @@ class DistributedSemanticVM:
         # 让 local_vm 使用分布式内存 (部分覆盖)
         # 注意：SemanticVM.memory 是 SemanticMemory 类型，
         # DistributedSemanticMemory 接口略有不同，但我们可以进行桥接
-        self.local_vm.memory = self.memory
+        self.local_vm.memory = self.memory  # type: ignore
 
         # 替换为分布式处理器
         self.local_vm.processor = DistributedProcessor(llm_executor, self)
@@ -551,7 +557,7 @@ class DistributedSemanticVM:
             "total_nodes": len(nodes),
             "active_nodes": len(active_nodes),
             "nodes": [n.to_dict() for n in nodes],
-            "pending_programs": len(self.coordinator.program_counters),
+            "pending_programs": len(self.coordinator.processes),
         }
 
     async def execute_program(

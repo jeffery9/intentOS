@@ -405,7 +405,7 @@ class ContextManager:
 
     def __init__(self, max_context_size: int = 8000):
         self.max_context_size = max_context_size  # tokens
-        self._context_entries = []
+        self._context_entries: list[dict[str, Any]] = []
 
     def add_entry(
         self,
@@ -590,7 +590,7 @@ class MapReduceOptimizer:
         Returns:
             执行计划
         """
-        plan = {
+        plan: dict[str, Any] = {
             "map_tasks": [],
             "reduce_tasks": [],
             "estimated_network_cost": 0,

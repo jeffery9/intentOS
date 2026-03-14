@@ -307,7 +307,7 @@ class CheckpointManager:
                 filepath = self._storage_path / process_id / filename
                 if filepath.exists():
                     filepath.unlink() # 删除文件
-        
+
         # 最后，更新内存中的列表
         self._checkpoints[process_id] = [cp for cp in checkpoints_for_process if cp.id not in ids_to_remove]
 

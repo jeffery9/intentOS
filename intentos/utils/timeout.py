@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T")
 
 
-class TimeoutError(Exception):
+class TimeoutError(Exception):  # noqa: A004
     """超时错误"""
 
     pass

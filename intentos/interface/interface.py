@@ -5,7 +5,7 @@ IntentOS 意图界面层
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from ..core import Context, Intent
@@ -21,7 +21,7 @@ class ConversationTurn:
     role: str  # "user" or "system"
     content: str
     intent: Optional[Intent] = None
-    artifacts: list[dict[str, Any]] = None
+    artifacts: list[dict[str, Any]] = field(default_factory=list)
 
 
 class IntentInterface:

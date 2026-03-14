@@ -187,6 +187,26 @@ class GlobalCoordinator:
         self.global_state.total_thoughts = len(self.active_thoughts) + len(self.completed_thoughts)
         self.global_state.active_thoughts = len(self.active_thoughts)
 
+    async def _check_active_thoughts(self) -> None:
+        """检查活跃思考"""
+        # 检查是否有思考超时
+        for fragment_id, fragment in list(self.active_thoughts.items()):
+            if fragment.started_at:
+                elapsed = (datetime.now() - fragment.started_at).total_seconds()
+                if elapsed > 600:  # 10 分钟超时
+                    logger.warning(f"思考片段 {fragment_id} 超时")
+
+    async def _balance_load(self) -> None:
+        """负载均衡"""
+        # 简单的负载均衡逻辑
+        if len(self.regions) < 2:
+            return
+
+        avg_load = sum(r.load for r in self.regions.values()) / len(self.regions)
+        for region in self.regions.values():
+            if region.load > avg_load * 1.5:
+                logger.info(f"区域 {region.id} 负载过高：{region.load}")
+
     async def _handle_failures(self) -> None:
         """故障检测和恢复"""
         for fragment_id, fragment in list(self.active_thoughts.items()):
