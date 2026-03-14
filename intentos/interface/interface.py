@@ -36,7 +36,8 @@ class IntentInterface:
         self.context = Context(user_id="anonymous")
         self.conversation_history: list[ConversationTurn] = []
 
-    def set_user(self, user_id: str, role: str = "user", permissions: Optional[list[str]] = None) -> None:
+    def set_user(self, user_id: str, role: str = "user",
+                 permissions: Optional[list[str]] = None) -> None:
         """设置当前用户"""
         self.context = Context(
             user_id=user_id,
@@ -198,7 +199,7 @@ class IntentOS:
 
     def _register_builtin_templates(self) -> None:
         """注册内置意图模板"""
-        from ..core import IntentStep, IntentTemplate
+        from ..core import IntentStep, IntentTemplate, IntentType
 
         # 数据分析模板
         analysis_template = IntentTemplate(

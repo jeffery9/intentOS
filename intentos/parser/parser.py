@@ -12,6 +12,8 @@ from ..core import Context, Intent, IntentType
 
 if TYPE_CHECKING:
     from ..registry.registry import IntentRegistry
+else:
+    from ..core import IntentTemplate
 
 
 class IntentParser:
