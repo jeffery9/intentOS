@@ -379,7 +379,7 @@ class DiskCache:
             conn = await self._get_connection()
             cursor = await conn.execute(
                 """
-                SELECT value FROM cache 
+                SELECT value FROM cache
                 WHERE key = ? AND (expires_at IS NULL OR expires_at > datetime('now'))
                 """,
                 (key,),
@@ -393,7 +393,7 @@ class DiskCache:
             # 更新访问统计
             await conn.execute(
                 """
-                UPDATE cache 
+                UPDATE cache
                 SET last_accessed = datetime('now'), access_count = access_count + 1
                 WHERE key = ?
                 """,
@@ -427,7 +427,7 @@ class DiskCache:
 
             await conn.execute(
                 """
-                INSERT OR REPLACE INTO cache 
+                INSERT OR REPLACE INTO cache
                 (key, value, ttl_seconds, expires_at)
                 VALUES (?, ?, ?, ?)
                 """,

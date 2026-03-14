@@ -21,10 +21,13 @@ import hashlib
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from typing import Any, Optional, Union
 
 import aiohttp
 from aiohttp import web
+
+from intentos.semantic_vm import LLMProcessor, SemanticInstruction, SemanticMemory
 
 # =============================================================================
 # 分布式节点
@@ -206,29 +209,11 @@ class DistributedSemanticMemory:
 
         # 如果没找到，返回第一个节点 (环绕)
         return next(iter(self.ring.values()))
-        """添加节点"""
-        self.nodes.append(node)
-        self._rebuild_ring()
-
-    def remove_node(self, node_id: str) -> None:
-        """移除节点"""
-        self.nodes = [n for n in self.nodes if n.node_id != node_id]
-        self._rebuild_ring()
-
-    def get_nodes(self) -> list[VMNode]:
-        """获取所有节点"""
-        return self.nodes.copy()
-
-    def get_active_nodes(self) -> list[VMNode]:
-        """获取活跃节点"""
-        return [n for n in self.nodes if n.status == "active"]
 
 
 # =============================================================================
 # 分布式程序计数器
 # =============================================================================
-
-from enum import Enum
 
 
 class ProcessState(Enum):
@@ -572,8 +557,6 @@ class DistributedSemanticVM:
 # 分布式语义指令
 # =============================================================================
 
-from enum import Enum
-
 
 class DistributedOpcode(Enum):
     """分布式语义操作码"""
@@ -595,9 +578,6 @@ class DistributedOpcode(Enum):
     SPAWN = "spawn"             # 在新节点上生成子程序
     SYNC = "sync"               # 同步多个节点的执行
     BARRIER = "barrier"         # 执行屏障 (等待所有节点)
-
-
-from intentos.semantic_vm import LLMProcessor, SemanticInstruction, SemanticMemory
 
 
 class DistributedProcessor(LLMProcessor):
