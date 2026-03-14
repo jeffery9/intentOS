@@ -15,13 +15,13 @@ IntentOS 是一个 **AI 原生操作系统** 原型，核心是**语义虚拟机
 ### 架构概览
 
 ```
-垂直三层 + 水平七级:
+3 Layer / 7 Level:
 
 Layer 1: Application Layer (应用层)
   ↓ 调用意图 (Shell / API / Apps)
-Layer 2: Intent Layer (意图层 - 七级处理流程)
-  [1 级] 意图解析 → [2 级] 任务规划 → [3 级] 上下文收集 → 
-  [4 级] 安全验证 → [5 级] 能力绑定 → [6 级] 执行 (Distributed VM / Scheduler) → [7 级] 改进
+Layer 2: Intent Layer (意图层 - 7 Level 处理流程)
+  [Level 1] 意图解析 → [Level 2] 任务规划 → [Level 3] 上下文收集 → 
+  [Level 4] 安全验证 → [Level 5] 能力绑定 → [Level 6] 执行 (Distributed VM / Scheduler) → [Level 7] 改进
   ↓ 执行 Prompt (Semantic Opcode)
 Layer 3: Model Layer (模型层 - LLM Processor)
 ```

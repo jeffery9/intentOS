@@ -21,8 +21,8 @@
 
 | 文档 | 说明 |
 |------|------|
-| [02-01 垂直三层架构](02-architecture/01-three-layers-model.md) | 应用层/意图层/模型层 |
-| [02-02 水平七级流程](02-architecture/02-seven-levels-process.md) | 意图层内部七级处理流程 |
+| [02-01 垂直3 Layer 架构](02-architecture/01-three-layers-model.md) | 应用层/意图层/模型层 |
+| [02-02 7 Level流程](02-architecture/02-seven-levels-process.md) | 意图层内部7 Level 处理流程 |
 | [02-03 意图即元语言](02-architecture/03-intent-as-metalanguage.md) | 意图的形式化定义 |
 | [02-04 Self-Bootstrap](02-architecture/04-self-bootstrap.md) | 系统自举机制 |
 | [02-05 分布式架构与进程管理](02-architecture/05-distributed-architecture.md) | 分布式执行、PCB 与进程调度 |

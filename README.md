@@ -114,7 +114,7 @@ print(executable["memories"])  # 用户偏好等上下文记忆
 
 ## 🏗️ 架构概览
 
-### 垂直三层 + 水平七级
+### 3 Layer / 7 Level
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -124,14 +124,14 @@ print(executable["memories"])  # 用户偏好等上下文记忆
 └───────────────┬─────────────────────────────────────────────┘
                 ↓ 调用意图
 ┌───────────────▼─────────────────────────────────────────────┐
-│  Layer 2: Intent Layer (意图层 - 七级处理流程)                │
-│  [1 级] 意图解析 → 解析功能意图 + 操作意图                   │
-│  [2 级] 任务规划 → 生成任务 DAG + Ops Model                  │
-│  [3 级] 上下文收集 → 多模态事件图                            │
-│  [4 级] 安全验证 → 权限校验 + Human-in-the-loop             │
-│  [5 级] 能力绑定 → 绑定能力调用                              │
-│  [6 级] 执行 → 分布式调度执行                                │
-│  [7 级] 改进 → 意图漂移检测 + 自动修复                       │
+│  Layer 2: Intent Layer (意图层 - 7 Level 处理流程)                  │
+│  [Level 1] 意图解析 → 解析功能意图 + 操作意图                   │
+│  [Level 2] 任务规划 → 生成任务 DAG + Ops Model                  │
+│  [Level 3] 上下文收集 → 多模态事件图                            │
+│  [Level 4] 安全验证 → 权限校验 + Human-in-the-loop             │
+│  [Level 5] 能力绑定 → 绑定能力调用                              │
+│  [Level 6] 执行 → 分布式调度执行                                │
+│  [Level 7] 改进 → 意图漂移检测 + 自动修复                       │
 └───────────────┬─────────────────────────────────────────────┘
                 ↓ 执行 Prompt
 ┌───────────────▼─────────────────────────────────────────────┐
@@ -151,8 +151,8 @@ print(executable["memories"])  # 用户偏好等上下文记忆
 ```
 
 **术语说明**:
-- **垂直三层**: 应用层、意图层、模型层 (调用关系)
-- **水平七级**: 意图层内部的七个处理阶段
+- **3 Layer**: 应用层、意图层、模型层 (调用关系)
+- **7 Level**: 意图层内部的七个处理阶段
 
 ---
 
@@ -182,7 +182,7 @@ executor = create_executor(provider="ollama", host="http://localhost:11434")
 
 ## 🧠 记忆系统
 
-### 记忆分层
+### 记忆分层 (Layer)
 
 | 类型 | 存储 | 生命周期 | 同步 |
 |------|------|---------|------|
@@ -222,10 +222,10 @@ IntentOS/
 │   │
 │   ├── core/                # 核心数据模型
 │   ├── semantic_vm/         # ⭐ 语义 VM (核心架构)
-│   ├── distributed/         # ⭐ 分布式层
-│   ├── bootstrap/           # ⭐ Self-Bootstrap 层
-│   ├── compiler/            # 编译器层 (LLM 驱动)
-│   ├── llm/                 # LLM 后端层
+│   ├── distributed/         # ⭐ 分布式层 (Layer)
+│   ├── bootstrap/           # ⭐ Self-Bootstrap 层 (Layer)
+│   ├── compiler/            # 编译器层 (Layer) (LLM 驱动)
+│   ├── llm/                 # LLM 后端层 (Layer)
 │   ├── registry/            # 意图仓库
 │   ├── engine/              # 执行引擎
 │   └── types.py             # 类型定义
@@ -288,8 +288,8 @@ python -m pytest examples/ -v
 - 快速开始
 
 ### 第二部分：架构 (9 篇)
-- 垂直三层架构
-- 水平七级流程
+- 3 Layer / 7 Level 架构
+- 水平 7 Level 流程
 - 意图即元语言
 - Self-Bootstrap
 - 分布式架构
@@ -336,7 +336,7 @@ python -m pytest examples/ -v
 | 论文 | 主题 | 字数 |
 |------|------|------|
 | **semantic-vm-paper.md** | 语义 VM 架构 | ~10,000 字 |
-| **intentos-architecture-paper.md** | IntentOS 三层七级架构 | ~10,000 字 |
+| **intentos-architecture-paper.md** | IntentOS 3 Layer / 7 Level 架构 | ~10,000 字 |
 | **pef-compiler-paper.md** | PEF 与编译器 | ~12,000 字 |
 | **总计** | - | **~32,000 字** |
 

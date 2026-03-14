@@ -1,14 +1,14 @@
-# 垂直三层 + 水平七级架构模型
+# 3 Layer / 7 Level 架构模型
 
-> AI Native 应用体系结构划分为三层，其中 IntentOS 又划分为七级。
+> AI Native 应用体系结构划分为3 Layer，其中 IntentOS 又划分为7 Level。
 
 ---
 
-## 1. 三层架构
+## 1. 3 Layer 架构
 
 AI Native 应用体系结构划分为三个层次：
 
-| 层级 | 名称 | 职责 | 类比传统计算 |
+| 层/级 | 名称 | 职责 | 类比传统计算 |
 |------|------|------|-------------|
 | **Layer 1** | **Application Layer** (应用层) | 领域意图包、业务能力、用户交互 | 应用程序 |
 | **Layer 2** | **IntentOS Layer** (意图操作系统层) | 意图编译、调度、执行、记忆 | 操作系统 |
@@ -26,15 +26,15 @@ AI Native 应用体系结构划分为三个层次：
 └────────────────────────────┬────────────────────────────────┘
                              │ 意图调用
 ┌────────────────────────────▼────────────────────────────────┐
-│                    Layer 2: IntentOS (七级)                  │
+│                    Layer 2: IntentOS (7 Level)                  │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │ [1 级] 意图层 → 解析功能意图 + 操作意图                  │  │
-│  │ [2 级] 规划层 → 生成任务 DAG + Ops Model                 │  │
-│  │ [3 级] 上下文层 → 多模态事件图                           │  │
-│  │ [4 级] 安全环 → 权限校验 + Human-in-the-loop            │  │
-│  │ [5 级] 工具层 → 绑定能力调用                             │  │
-│  │ [6 级] 执行层 → 分布式调度执行                           │  │
-│  │ [7 级] 改进层 → 意图漂移检测 + 自动修复                  │  │
+│  │ [Level 1] 意图层 → 解析功能意图 + 操作意图                  │  │
+│  │ [Level 2] 规划层 → 生成任务 DAG + Ops Model                 │  │
+│  │ [Level 3] 上下文层 → 多模态事件图                           │  │
+│  │ [Level 4] 安全环 → 权限校验 + Human-in-the-loop            │  │
+│  │ [Level 5] 工具层 → 绑定能力调用                             │  │
+│  │ [Level 6] 执行层 → 分布式调度执行                           │  │
+│  │ [Level 7] 改进层 → 意图漂移检测 + 自动修复                  │  │
 │  └───────────────────────────────────────────────────────┘  │
 └────────────────────────────┬────────────────────────────────┘
                              │ Prompt 执行
@@ -99,9 +99,9 @@ crm_app = create_app(
 
 ---
 
-## 3. Layer 2: IntentOS (七级)
+## 3. Layer 2: IntentOS (7 Level)
 
-### 3.1 L1: 意图层 (Intent Layer)
+### 3.1 Level 1: 意图层 (Intent Level)
 
 **职责**: 解析自然语言为结构化意图
 
@@ -130,7 +130,7 @@ crm_app = create_app(
 }
 ```
 
-### 3.2 L2: 规划层 (Planning Layer)
+### 3.2 Level 2: 规划层 (Planning Level)
 
 **职责**: 生成任务 DAG 和运维模型
 
@@ -149,7 +149,7 @@ crm_app = create_app(
 }
 ```
 
-### 3.3 L3: 上下文层 (Context Layer)
+### 3.3 Level 3: 上下文层 (Context Level)
 
 **职责**: 收集和管理多模态上下文
 
@@ -174,7 +174,7 @@ crm_app = create_app(
 }
 ```
 
-### 3.4 L4: 安全环 (Safety Ring)
+### 3.4 Level 4: 安全环 (Safety Level)
 
 **职责**: 权限校验和人工审批
 
@@ -191,7 +191,7 @@ if operation in ["delete_data", "export_all"]:
     approval = await request_approval(user_id, operation)
 ```
 
-### 3.5 L5: 工具层 (Tool Layer)
+### 3.5 Level 5: 工具层 (Tool Level)
 
 **职责**: 能力绑定和协议适配
 
@@ -213,7 +213,7 @@ if operation in ["delete_data", "export_all"]:
 }
 ```
 
-### 3.6 L6: 执行层 (Execution Layer)
+### 3.6 Level 6: 执行层 (Execution Level)
 
 **职责**: 分布式调度执行
 
@@ -228,7 +228,7 @@ results = await execute_dag(
 )
 ```
 
-### 3.7 L7: 改进层 (Improvement Layer)
+### 3.7 Level 7: 改进层 (Improvement Level)
 
 **职责**: 意图漂移检测和自动修复
 
@@ -281,7 +281,7 @@ LLM 层是**语义 CPU**，负责：
 └───────────────┬─────────────────────┘
                 ↓ Intent Call
 ┌───────────────▼─────────────────────┐
-│ IntentOS (七级)                     │
+│ IntentOS (7 Level)                     │
 │ L1: 解析 → {action: analyze, ...}   │
 │ L2: 规划 → DAG + Ops Model          │
 │ L3: 上下文 → enriched DAG           │
@@ -302,7 +302,7 @@ LLM 层是**语义 CPU**，负责：
 
 ## 6. 总结
 
-垂直三层 + 水平七级架构的优势：
+3 Layer / 7 Level 架构的优势：
 
 1. **职责清晰**: 每层有明确的职责边界
 2. **可组合性**: 应用可组合多个意图包

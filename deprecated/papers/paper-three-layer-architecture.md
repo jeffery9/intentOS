@@ -1,10 +1,10 @@
-# AI Native 应用体系结构：三层七层模型
+# AI Native 应用体系结构：3 Layer 七层 (Tier)模型
 
 ## 摘要
 
-本文提出 AI Native 应用的**三层七层架构模型**，清晰划分了应用 (App)、意图操作系统 (IntentOS)、大语言模型 (LLM) 的职责边界。其中 IntentOS 作为核心中间层，通过七层执行模型实现意图的编译、调度、执行与演化。该架构为 AI Native 应用开发提供了标准化的参考模型。
+本文提出 AI Native 应用的**3 Layer 七层 (Tier)架构模型**，清晰划分了应用 (App)、意图操作系统 (IntentOS)、大语言模型 (LLM) 的职责边界。其中 IntentOS 作为核心中间层，通过七层执行模型实现意图的编译、调度、执行与演化。该架构为 AI Native 应用开发提供了标准化的参考模型。
 
-**关键词**: AI Native，三层架构，IntentOS，意图计算，分层模型
+**关键词**: AI Native，3 Layer 架构，IntentOS，意图计算，分层 (Layered) 模型
 
 ---
 
@@ -488,7 +488,7 @@ response = await openai.chat.completions.create(
 
 ## 7. 总结
 
-### 7.1 三层七层架构的优势
+### 7.1 3 Layer 七层 (Tier)架构的优势
 
 1. **职责清晰**: 每层有明确的职责边界
 2. **可组合性**: 应用可组合多个意图包
