@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "intentos"
 version = "0.3.0"
@@ -42,3 +46,6 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
+
+[tool.setuptools]
+packages = ["intentos", "intentos.core", "intentos.semantic_vm", "intentos.distributed", "intentos.bootstrap", "intentos.compiler", "intentos.interface", "intentos.llm", "intentos.registry", "intentos.engine", "intentos.parser", "intentos.utils"]
