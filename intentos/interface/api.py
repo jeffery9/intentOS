@@ -59,17 +59,19 @@ class IntentOSGateway:
     async def handle_status(self, request):
         """获取内核详细状态"""
         status = await self.os.get_kernel_status()
-        return self._success_response({
-            "kernel_version": "8.1",
-            "uptime": "n/a",
-            "cluster": status["cluster"],
-            "memory_state": status["memory"]
-        })
+        return self._success_response(
+            {
+                "kernel_version": "8.1",
+                "uptime": "n/a",
+                "cluster": status["cluster"],
+                "memory_state": status["memory"],
+            }
+        )
 
     async def handle_get_memory(self, request):
         """读取语义内存"""
-        store = request.match_info['store'].upper()
-        key = request.match_info['key']
+        store = request.match_info["store"].upper()
+        key = request.match_info["key"]
         value = await self.os.vm.memory.get(store, key)
         return self._success_response({"store": store, "key": key, "value": value})
 
@@ -119,22 +121,20 @@ class IntentOSGateway:
     # --- Utils ---
 
     def _success_response(self, data):
-        return web.json_response({
-            "status": "success",
-            "timestamp": datetime.now().isoformat(),
-            "data": data
-        })
+        return web.json_response(
+            {"status": "success", "timestamp": datetime.now().isoformat(), "data": data}
+        )
 
     def _error_response(self, message, status=500):
-        return web.json_response({
-            "status": "error",
-            "timestamp": datetime.now().isoformat(),
-            "error": message
-        }, status=status)
+        return web.json_response(
+            {"status": "error", "timestamp": datetime.now().isoformat(), "error": message},
+            status=status,
+        )
 
     def run(self):
         print(f"IntentOS Gateway starting on http://{self.host}:{self.port}")
         web.run_app(self.app, host=self.host, port=self.port)
+
 
 if __name__ == "__main__":
     gateway = IntentOSGateway()

@@ -77,7 +77,7 @@ class IntentParser:
             params["query"] = quoted_strings[0][0] or quoted_strings[0][1]
 
         # 提取数字
-        numbers = re.findall(r'\d+', text)
+        numbers = re.findall(r"\d+", text)
         if numbers:
             if "limit" in template.params_schema:
                 params["limit"] = int(numbers[0])

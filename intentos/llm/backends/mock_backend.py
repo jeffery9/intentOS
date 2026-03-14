@@ -100,21 +100,26 @@ class MockBackend(LLMBackend):
         """验证连接"""
         return True
 
-    def _generate_mock_response(self, user_message: str, tools: Optional[list[ToolDefinition]]) -> str:
+    def _generate_mock_response(
+        self, user_message: str, tools: Optional[list[ToolDefinition]]
+    ) -> str:
         """生成模拟响应"""
         # 简单的关键词匹配
         message_lower = user_message.lower()
 
         if "销售" in user_message or "分析" in user_message:
-            return json.dumps({
-                "success": True,
-                "data": {
-                    "region": "华东",
-                    "revenue": 1250000,
-                    "growth": 0.15,
+            return json.dumps(
+                {
+                    "success": True,
+                    "data": {
+                        "region": "华东",
+                        "revenue": 1250000,
+                        "growth": 0.15,
+                    },
+                    "message": "分析完成",
                 },
-                "message": "分析完成",
-            }, ensure_ascii=False)
+                ensure_ascii=False,
+            )
 
         elif "报告" in user_message or "report" in user_message:
             return "# 分析报告\n\n## 摘要\n\n分析已完成，结果良好。\n\n## 详情\n\n- 指标 A: +15%\n- 指标 B: +8%"
@@ -126,7 +131,9 @@ class MockBackend(LLMBackend):
         else:
             return f"收到消息：{user_message[:50]}..."
 
-    def _parse_tool_calls(self, content: str, tools: Optional[list[ToolDefinition]]) -> list[ToolCall]:
+    def _parse_tool_calls(
+        self, content: str, tools: Optional[list[ToolDefinition]]
+    ) -> list[ToolCall]:
         """解析工具调用"""
         if not tools:
             return []
@@ -134,11 +141,13 @@ class MockBackend(LLMBackend):
         # 检查内容中是否提到工具名称
         for tool in tools:
             if tool.name in content:
-                return [ToolCall(
-                    id=f"mock_call_{self._call_count}",
-                    name=tool.name,
-                    arguments={},
-                )]
+                return [
+                    ToolCall(
+                        id=f"mock_call_{self._call_count}",
+                        name=tool.name,
+                        arguments={},
+                    )
+                ]
 
         return []
 

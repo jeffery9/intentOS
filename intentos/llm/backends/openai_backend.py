@@ -199,11 +199,14 @@ class OpenAIBackend(LLMBackend):
         result = []
         for tc in tool_calls:
             import json
-            result.append(ToolCall(
-                id=tc.id,
-                name=tc.function.name,
-                arguments=json.loads(tc.function.arguments),
-            ))
+
+            result.append(
+                ToolCall(
+                    id=tc.id,
+                    name=tc.function.name,
+                    arguments=json.loads(tc.function.arguments),
+                )
+            )
         return result
 
     def _convert_error(self, error: Exception) -> LLMError:

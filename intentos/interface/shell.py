@@ -1,4 +1,3 @@
-
 import asyncio
 import cmd
 import json
@@ -14,8 +13,8 @@ from intentos.interface.interface import IntentOS
 
 
 class IntentShell(cmd.Cmd):
-    intro = 'IntentOS Kernel Shell v8.1. Type /help for commands.\n'
-    prompt = 'intentos> '
+    intro = "IntentOS Kernel Shell v8.1. Type /help for commands.\n"
+    prompt = "intentos> "
 
     def __init__(self):
         super().__init__()
@@ -25,12 +24,16 @@ class IntentShell(cmd.Cmd):
         self._print_banner()
 
     def _print_banner(self):
-        self.console.print("\n" + "="*40, style="bold blue")
+        self.console.print("\n" + "=" * 40, style="bold blue")
         self.console.print("       IntentOS Shell (v8.1)      ", style="bold blue")
-        self.console.print("="*40 + "\n", style="bold blue")
+        self.console.print("=" * 40 + "\n", style="bold blue")
         self.console.print("AI-Native Operating System Kernel", style="italic green")
-        self.console.print("System commands: [bold cyan]/ps, /top, /df, /mem, /nodes, /history[/bold cyan]")
-        self.console.print("Natural Language: [bold white]Just type your intent (e.g. Analyze sales data)[/bold white]\n")
+        self.console.print(
+            "System commands: [bold cyan]/ps, /top, /df, /mem, /nodes, /history[/bold cyan]"
+        )
+        self.console.print(
+            "Natural Language: [bold white]Just type your intent (e.g. Analyze sales data)[/bold white]\n"
+        )
 
     def onecmd(self, line):
         """
@@ -41,7 +44,7 @@ class IntentShell(cmd.Cmd):
         if not line.strip():
             return False
 
-        if line.startswith('/'):
+        if line.startswith("/"):
             # 去掉 / 后分发给 do_ 方法
             return super().onecmd(line[1:])
         else:
@@ -50,7 +53,11 @@ class IntentShell(cmd.Cmd):
             return False
 
     async def _execute_intent(self, text):
-        with Live(Spinner("dots", text=f"Processing intent: {text}..."), refresh_per_second=10, console=self.console) as live:
+        with Live(
+            Spinner("dots", text=f"Processing intent: {text}..."),
+            refresh_per_second=10,
+            console=self.console,
+        ) as live:
             result = await self.os.execute(text)
             live.update(Panel(result, title="System Response", border_style="blue"))
 
@@ -78,7 +85,7 @@ class IntentShell(cmd.Cmd):
                 p["node_id"][:8],
                 p["state"],
                 str(p["pc"]),
-                p["start_time"]
+                p["start_time"],
             )
         self.console.print(table)
 
@@ -109,7 +116,7 @@ class IntentShell(cmd.Cmd):
                 node["node_id"][:8],
                 f"{node['host']}:{node['port']}",
                 node["status"],
-                f"{node['load']*100:.1f}%"
+                f"{node['load']*100:.1f}%",
             )
         self.console.print(table)
 
@@ -188,7 +195,7 @@ class IntentShell(cmd.Cmd):
                 record["action"],
                 record["target"],
                 record["status"],
-                record["timestamp"]
+                record["timestamp"],
             )
         self.console.print(table)
 
@@ -222,7 +229,9 @@ class IntentShell(cmd.Cmd):
         templates = status["registry"]["templates"]
         for t in templates:
             if t["name"] == arg:
-                self.console.print(Panel(json.dumps(t, indent=2, ensure_ascii=False), title=f"Template: {arg}"))
+                self.console.print(
+                    Panel(json.dumps(t, indent=2, ensure_ascii=False), title=f"Template: {arg}")
+                )
                 return
 
         self.console.print(f"Item {arg} not found.", style="red")
@@ -236,12 +245,14 @@ class IntentShell(cmd.Cmd):
         print("")
         return True
 
+
 def start_shell():
     try:
         IntentShell().cmdloop()
     except KeyboardInterrupt:
         print("\nInterrupted by user")
         sys.exit(0)
+
 
 if __name__ == "__main__":
     start_shell()

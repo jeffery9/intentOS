@@ -157,24 +157,28 @@ class OllamaBackend(LLMBackend):
         """转换消息为 Ollama 格式"""
         result = []
         for msg in messages:
-            result.append({
-                "role": msg.role.value,
-                "content": msg.content,
-            })
+            result.append(
+                {
+                    "role": msg.role.value,
+                    "content": msg.content,
+                }
+            )
         return result
 
     def _convert_tools(self, tools: list[ToolDefinition]) -> list[dict]:
         """转换工具为 Ollama 格式"""
         result = []
         for tool in tools:
-            result.append({
-                "type": "function",
-                "function": {
-                    "name": tool.name,
-                    "description": tool.description,
-                    "parameters": tool.parameters,
-                },
-            })
+            result.append(
+                {
+                    "type": "function",
+                    "function": {
+                        "name": tool.name,
+                        "description": tool.description,
+                        "parameters": tool.parameters,
+                    },
+                }
+            )
         return result
 
     def _parse_tool_calls(self, tool_calls: list) -> list[ToolCall]:
@@ -184,11 +188,13 @@ class OllamaBackend(LLMBackend):
 
         result = []
         for tc in tool_calls:
-            result.append(ToolCall(
-                id=tc.get("function", {}).get("name", ""),
-                name=tc.get("function", {}).get("name", ""),
-                arguments=tc.get("function", {}).get("arguments", {}),
-            ))
+            result.append(
+                ToolCall(
+                    id=tc.get("function", {}).get("name", ""),
+                    name=tc.get("function", {}).get("name", ""),
+                    arguments=tc.get("function", {}).get("arguments", {}),
+                )
+            )
         return result
 
     def _estimate_usage(self, messages: list[Message], content: str) -> LLMUsage:

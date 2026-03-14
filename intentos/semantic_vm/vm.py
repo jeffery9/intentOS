@@ -26,42 +26,45 @@ from typing import Any, Optional, Union
 # 语义指令类型
 # =============================================================================
 
+
 class SemanticOpcode(Enum):
     """语义操作码"""
+
     # 基础指令
-    CREATE = "create"       # 创建组件
-    MODIFY = "modify"       # 修改组件
-    DELETE = "delete"       # 删除组件
-    QUERY = "query"         # 查询状态
+    CREATE = "create"  # 创建组件
+    MODIFY = "modify"  # 修改组件
+    DELETE = "delete"  # 删除组件
+    QUERY = "query"  # 查询状态
 
     # 执行指令
-    EXECUTE = "execute"     # 执行意图
-    CALL = "call"           # 调用子程序
+    EXECUTE = "execute"  # 执行意图
+    CALL = "call"  # 调用子程序
 
     # 控制流指令 (图灵完备关键)
-    IF = "if"               # 条件分支
+    IF = "if"  # 条件分支
     ELSE = "else"
     ENDIF = "endif"
 
-    LOOP = "loop"           # 循环
-    WHILE = "while"         # 条件循环
+    LOOP = "loop"  # 循环
+    WHILE = "while"  # 条件循环
     ENDLOOP = "endloop"
 
-    JUMP = "jump"           # 跳转
-    LABEL = "label"         # 标签
+    JUMP = "jump"  # 跳转
+    LABEL = "label"  # 标签
 
     # 数据操作
-    SET = "set"             # 设置变量
-    GET = "get"             # 获取变量
+    SET = "set"  # 设置变量
+    GET = "get"  # 获取变量
 
     # 元指令 (Self-Bootstrap)
     DEFINE_INSTRUCTION = "define_instruction"  # 定义新指令
-    MODIFY_PROCESSOR = "modify_processor"      # 修改处理器 Prompt
+    MODIFY_PROCESSOR = "modify_processor"  # 修改处理器 Prompt
 
 
 # =============================================================================
 # 语义指令
 # =============================================================================
+
 
 @dataclass
 class SemanticInstruction:
@@ -101,7 +104,7 @@ class SemanticInstruction:
         """转换为字典"""
         return {
             "id": self.id,
-            "opcode": self.opcode.value if hasattr(self.opcode, 'value') else self.opcode,
+            "opcode": self.opcode.value if hasattr(self.opcode, "value") else self.opcode,
             "target": self.target,
             "target_name": self.target_name,
             "parameters": self.parameters,
@@ -121,6 +124,7 @@ class SemanticInstruction:
         except (ValueError, KeyError):
             # 可能是分布式操作码或自定义操作码
             from intentos.distributed import DistributedOpcode
+
             try:
                 opcode = DistributedOpcode(raw_opcode)
             except (ValueError, KeyError, ImportError):
@@ -141,7 +145,7 @@ class SemanticInstruction:
 
     def to_natural_language(self) -> str:
         """转换为自然语言"""
-        opcode_val = self.opcode.value if hasattr(self.opcode, 'value') else str(self.opcode)
+        opcode_val = self.opcode.value if hasattr(self.opcode, "value") else str(self.opcode)
         if self.opcode == SemanticOpcode.CREATE:
             return f"CREATE {self.target} {self.target_name} WITH {self.parameters}"
         elif self.opcode == SemanticOpcode.MODIFY:
@@ -161,6 +165,7 @@ class SemanticInstruction:
 # 语义程序
 # =============================================================================
 
+
 @dataclass
 class SemanticProgram:
     """
@@ -168,6 +173,7 @@ class SemanticProgram:
 
     由语义指令组成的可执行程序
     """
+
     name: str
     description: str = ""
     instructions: list[SemanticInstruction] = field(default_factory=list)
@@ -204,6 +210,7 @@ class SemanticProgram:
 # 语义内存
 # =============================================================================
 
+
 class SemanticMemory:
     """
     语义内存
@@ -213,14 +220,14 @@ class SemanticMemory:
 
     def __init__(self):
         # 语义存储
-        self.templates: dict[str, Any] = {}      # 意图模板
-        self.capabilities: dict[str, Any] = {}   # 能力
-        self.policies: dict[str, Any] = {}       # 策略
-        self.prompts: dict[str, Any] = {}        # Prompt
-        self.configs: dict[str, Any] = {}        # 配置
+        self.templates: dict[str, Any] = {}  # 意图模板
+        self.capabilities: dict[str, Any] = {}  # 能力
+        self.policies: dict[str, Any] = {}  # 策略
+        self.prompts: dict[str, Any] = {}  # Prompt
+        self.configs: dict[str, Any] = {}  # 配置
         self.programs: dict[str, SemanticProgram] = {}  # 程序
-        self.variables: dict[str, Any] = {}      # 变量
-        self.audit_log: list[dict] = []          # 审计日志
+        self.variables: dict[str, Any] = {}  # 变量
+        self.audit_log: list[dict] = []  # 审计日志
 
     def get(self, store: str, key: str) -> Optional[Any]:
         """获取数据"""
@@ -303,12 +310,14 @@ class SemanticMemory:
     def log_audit(self, action: str, details: dict) -> str:
         """记录审计日志"""
         audit_id = str(uuid.uuid4())
-        self.audit_log.append({
-            "id": audit_id,
-            "action": action,
-            "details": details,
-            "timestamp": datetime.now().isoformat(),
-        })
+        self.audit_log.append(
+            {
+                "id": audit_id,
+                "action": action,
+                "details": details,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
         return audit_id
 
     def get_state(self) -> dict[str, Any]:
@@ -328,6 +337,7 @@ class SemanticMemory:
 # =============================================================================
 # LLM 处理器
 # =============================================================================
+
 
 class LLMProcessor:
     """
@@ -470,7 +480,10 @@ class LLMProcessor:
         """执行原始 LLM 提示"""
         messages = [
             {"role": "system", "content": "你是语义 VM 处理器。"},
-            {"role": "user", "content": f"当前内存状态: {json.dumps(memory.get_state())}\n\n指令: {prompt}"},
+            {
+                "role": "user",
+                "content": f"当前内存状态: {json.dumps(memory.get_state())}\n\n指令: {prompt}",
+            },
         ]
         response = await self.llm_executor.execute(messages)
         return self._parse_response(response.content)
@@ -483,6 +496,7 @@ class LLMProcessor:
 # =============================================================================
 # 语义 VM 执行器
 # =============================================================================
+
 
 class SemanticVM:
     """
@@ -571,7 +585,10 @@ class SemanticVM:
         if instruction.opcode == SemanticOpcode.IF:
             if not self._evaluate_condition(instruction.condition, program.variables):
                 # 跳过 IF 体
-                return {"success": True, "jump": self._find_endif(program.instructions, self.pc) + 1}
+                return {
+                    "success": True,
+                    "jump": self._find_endif(program.instructions, self.pc) + 1,
+                }
             return {"success": True}
 
         elif instruction.opcode == SemanticOpcode.ELSE:
@@ -593,13 +610,19 @@ class SemanticVM:
             else:
                 # 循环结束，跳转到循环体后
                 instruction.parameters.pop("_current_loop", None)
-                return {"success": True, "jump": self._find_endloop(program.instructions, self.pc) + 1}
+                return {
+                    "success": True,
+                    "jump": self._find_endloop(program.instructions, self.pc) + 1,
+                }
 
         elif instruction.opcode == SemanticOpcode.WHILE:
             if self._evaluate_condition(instruction.condition, program.variables):
                 return {"success": True, "jump": self.pc + 1}
             else:
-                return {"success": True, "jump": self._find_endloop(program.instructions, self.pc) + 1}
+                return {
+                    "success": True,
+                    "jump": self._find_endloop(program.instructions, self.pc) + 1,
+                }
 
         elif instruction.opcode == SemanticOpcode.ENDLOOP:
             # 跳回循环开始
@@ -607,7 +630,10 @@ class SemanticVM:
 
         # 处理跳转
         elif instruction.opcode == SemanticOpcode.JUMP:
-            return {"success": True, "jump": self._find_label(program.instructions, instruction.jump_target)}
+            return {
+                "success": True,
+                "jump": self._find_label(program.instructions, instruction.jump_target),
+            }
 
         # 处理变量操作
         elif instruction.opcode == SemanticOpcode.SET:
@@ -698,6 +724,7 @@ class SemanticVM:
 # =============================================================================
 # 便捷函数
 # =============================================================================
+
 
 def create_semantic_vm(llm_executor: Any) -> SemanticVM:
     """创建语义 VM"""

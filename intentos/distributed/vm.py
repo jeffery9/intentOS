@@ -33,6 +33,7 @@ from intentos.semantic_vm import LLMProcessor, SemanticInstruction, SemanticMemo
 # 分布式节点
 # =============================================================================
 
+
 @dataclass
 class VMNode:
     """
@@ -40,6 +41,7 @@ class VMNode:
 
     分布式语义 VM 集群中的单个节点
     """
+
     node_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     host: str = "localhost"
     port: int = 8000
@@ -63,6 +65,7 @@ class VMNode:
 # =============================================================================
 # 分布式语义内存
 # =============================================================================
+
 
 class DistributedSemanticMemory:
     """
@@ -137,7 +140,9 @@ class DistributedSemanticMemory:
         url = f"http://{node.host}:{node.port}/memory/set"
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, json={"store": store, "key": key, "value": value}, timeout=5) as resp:
+                async with session.post(
+                    url, json={"store": store, "key": key, "value": value}, timeout=5
+                ) as resp:
                     pass
         except Exception:
             pass
@@ -218,12 +223,14 @@ class DistributedSemanticMemory:
 
 class ProcessState(Enum):
     """进程状态"""
+
     NEW = "new"
     RUNNING = "running"
     SUSPENDED = "suspended"
     COMPLETED = "completed"
     FAILED = "failed"
     ZOMBIE = "zombie"
+
 
 @dataclass
 class SemanticProcess:
@@ -232,6 +239,7 @@ class SemanticProcess:
 
     在分布式内核中代表一个正在执行的语义程序
     """
+
     pid: str = field(default_factory=lambda: str(uuid.uuid4()))
     program_name: str = ""
     node_id: str = ""
@@ -256,8 +264,9 @@ class SemanticProcess:
             "start_time": self.start_time.isoformat(),
             "update_time": self.update_time.isoformat(),
             "context": self.context,
-            "error": self.error
+            "error": self.error,
         }
+
 
 @dataclass
 class DistributedProgramCounter:
@@ -266,6 +275,7 @@ class DistributedProgramCounter:
 
     跟踪分布式环境中程序的执行进度
     """
+
     program_id: str
     node_id: str
     pc: int = 0
@@ -288,6 +298,7 @@ class DistributedProgramCounter:
 # 分布式执行协调器
 # =============================================================================
 
+
 class DistributedCoordinator:
     """
     分布式执行协调器 / 进程调度器
@@ -306,7 +317,7 @@ class DistributedCoordinator:
         self,
         program: Any,  # SemanticProgram
         context: Optional[dict] = None,
-        parent_pid: Optional[str] = None
+        parent_pid: Optional[str] = None,
     ) -> str:
         """
         生成/分发新进程 (Equivalent to fork + exec)
@@ -333,7 +344,7 @@ class DistributedCoordinator:
             node_id=node.node_id,
             parent_pid=parent_pid,
             context=context or {},
-            state=ProcessState.NEW
+            state=ProcessState.NEW,
         )
         self.processes[pid] = pcb
 
@@ -400,6 +411,7 @@ class DistributedCoordinator:
                     continue
             active_processes.append(pcb)
         return active_processes
+
     async def _select_best_node(self) -> Optional[VMNode]:
         """选择最佳节点"""
         active_nodes = self.memory.get_active_nodes()
@@ -421,11 +433,19 @@ class DistributedCoordinator:
         url = f"http://{node.host}:{node.port}/execute"
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, json={"program": program.to_dict(), "context": context or {}}, timeout=5) as resp:
+                async with session.post(
+                    url, json={"program": program.to_dict(), "context": context or {}}, timeout=5
+                ) as resp:
                     if resp.status == 200:
-                        self.results[exec_id] = {"success": True, "message": "Program started on remote node"}
+                        self.results[exec_id] = {
+                            "success": True,
+                            "message": "Program started on remote node",
+                        }
                     else:
-                        self.results[exec_id] = {"success": False, "error": f"Failed to start on node: {resp.status}"}
+                        self.results[exec_id] = {
+                            "success": False,
+                            "error": f"Failed to start on node: {resp.status}",
+                        }
         except Exception as e:
             self.results[exec_id] = {"success": False, "error": str(e)}
 
@@ -454,6 +474,7 @@ class DistributedCoordinator:
 # 分布式语义 VM 集群
 # =============================================================================
 
+
 class DistributedSemanticVM:
     """
     分布式语义虚拟机集群
@@ -469,6 +490,7 @@ class DistributedSemanticVM:
             llm_executor: LLM 执行器 (用于所有节点)
         """
         from intentos.semantic_vm import SemanticVM
+
         self.local_vm = SemanticVM(llm_executor)
 
         self.memory = DistributedSemanticMemory()
@@ -569,15 +591,15 @@ class DistributedOpcode(Enum):
     EXECUTE = "execute"
 
     # 分布式指令
-    REPLICATE = "replicate"     # 复制数据到多个节点
-    SHARD = "shard"             # 分片数据
-    MIGRATE = "migrate"         # 迁移数据到另一个节点
-    BROADCAST = "broadcast"     # 广播到所有节点
+    REPLICATE = "replicate"  # 复制数据到多个节点
+    SHARD = "shard"  # 分片数据
+    MIGRATE = "migrate"  # 迁移数据到另一个节点
+    BROADCAST = "broadcast"  # 广播到所有节点
 
     # 分布式控制流
-    SPAWN = "spawn"             # 在新节点上生成子程序
-    SYNC = "sync"               # 同步多个节点的执行
-    BARRIER = "barrier"         # 执行屏障 (等待所有节点)
+    SPAWN = "spawn"  # 在新节点上生成子程序
+    SYNC = "sync"  # 同步多个节点的执行
+    BARRIER = "barrier"  # 执行屏障 (等待所有节点)
 
 
 class DistributedProcessor(LLMProcessor):
@@ -630,7 +652,9 @@ class DistributedProcessor(LLMProcessor):
             target_name = instruction.target_name
             program = memory.get("PROGRAM", target_name)
             if program:
-                exec_id = await self.cluster.execute_program(program, instruction.parameters.get("context"))
+                exec_id = await self.cluster.execute_program(
+                    program, instruction.parameters.get("context")
+                )
                 return {"success": True, "exec_id": exec_id}
 
         elif opcode == DistributedOpcode.BROADCAST:
@@ -652,6 +676,7 @@ class DistributedProcessor(LLMProcessor):
 # =============================================================================
 # VM 节点服务器
 # =============================================================================
+
 
 class VMServer:
     """
@@ -698,6 +723,7 @@ class VMServer:
         context = data.get("context", {})
 
         from intentos.semantic_vm import SemanticProgram
+
         program = SemanticProgram.from_dict(program_data)
 
         # 异步执行，不阻塞 HTTP 响应
@@ -720,6 +746,7 @@ class VMServer:
 # =============================================================================
 # 便捷函数
 # =============================================================================
+
 
 def create_distributed_vm(llm_executor: Any = None) -> DistributedSemanticVM:
     """创建分布式语义 VM"""

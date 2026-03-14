@@ -14,6 +14,7 @@ from ..core import Intent, IntentType
 @dataclass
 class CompiledPrompt:
     """编译后的 Prompt"""
+
     system_prompt: str
     user_prompt: str
     intent: Intent
@@ -281,29 +282,33 @@ class IntentCompiler:
         """
         import json
 
-        return json.dumps({
-            "intent": {
-                "name": intent.name,
-                "type": intent.intent_type.value,
-                "goal": intent.goal,
-                "params": intent.params,
-                "constraints": intent.constraints,
+        return json.dumps(
+            {
+                "intent": {
+                    "name": intent.name,
+                    "type": intent.intent_type.value,
+                    "goal": intent.goal,
+                    "params": intent.params,
+                    "constraints": intent.constraints,
+                },
+                "context": {
+                    "user_id": intent.context.user_id,
+                    "user_role": intent.context.user_role,
+                    "session_id": intent.context.session_id,
+                },
+                "steps": [
+                    {
+                        "capability": step.capability_name,
+                        "params": step.params,
+                        "condition": step.condition,
+                        "output_var": step.output_var,
+                    }
+                    for step in intent.steps
+                ],
             },
-            "context": {
-                "user_id": intent.context.user_id,
-                "user_role": intent.context.user_role,
-                "session_id": intent.context.session_id,
-            },
-            "steps": [
-                {
-                    "capability": step.capability_name,
-                    "params": step.params,
-                    "condition": step.condition,
-                    "output_var": step.output_var,
-                }
-                for step in intent.steps
-            ],
-        }, ensure_ascii=False, indent=2)
+            ensure_ascii=False,
+            indent=2,
+        )
 
 
 class PromptTemplate:

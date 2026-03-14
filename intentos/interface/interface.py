@@ -17,6 +17,7 @@ from ..registry import IntentRegistry
 @dataclass
 class ConversationTurn:
     """对话轮次"""
+
     role: str  # "user" or "system"
     content: str
     intent: Optional[Intent] = None
@@ -36,8 +37,9 @@ class IntentInterface:
         self.context = Context(user_id="anonymous")
         self.conversation_history: list[ConversationTurn] = []
 
-    def set_user(self, user_id: str, role: str = "user",
-                 permissions: Optional[list[str]] = None) -> None:
+    def set_user(
+        self, user_id: str, role: str = "user", permissions: Optional[list[str]] = None
+    ) -> None:
         """设置当前用户"""
         self.context = Context(
             user_id=user_id,
@@ -57,10 +59,12 @@ class IntentInterface:
             系统响应
         """
         # 记录用户输入
-        self.conversation_history.append(ConversationTurn(
-            role="user",
-            content=text,
-        ))
+        self.conversation_history.append(
+            ConversationTurn(
+                role="user",
+                content=text,
+            )
+        )
 
         # 解析意图
         intent = self.parser.parse(text, self.context)
@@ -75,11 +79,13 @@ class IntentInterface:
         response = self._generate_response(intent, result)
 
         # 记录系统响应
-        self.conversation_history.append(ConversationTurn(
-            role="system",
-            content=response,
-            intent=intent,
-        ))
+        self.conversation_history.append(
+            ConversationTurn(
+                role="system",
+                content=response,
+                intent=intent,
+            )
+        )
 
         return response
 
@@ -134,7 +140,7 @@ class IntentOS:
             "memory": memory_state,
             "processes": [p.to_dict() for p in processes],
             "bootstrap": [r.to_dict() for r in bootstrap_history],
-            "registry": self.registry.introspect()
+            "registry": self.registry.introspect(),
         }
 
     def _register_builtin_capabilities(self) -> None:

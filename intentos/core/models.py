@@ -14,6 +14,7 @@ from typing import Any, Callable, Optional
 
 class IntentStatus(Enum):
     """意图执行状态"""
+
     PENDING = "pending"
     PARSING = "parsing"
     SCHEDULING = "scheduling"
@@ -25,10 +26,11 @@ class IntentStatus(Enum):
 
 class IntentType(Enum):
     """意图类型"""
-    ATOMIC = "atomic"           # 原子意图
-    COMPOSITE = "composite"     # 复合意图
-    SCENARIO = "scenario"       # 场景意图
-    META = "meta"               # 元意图（管理其他意图）
+
+    ATOMIC = "atomic"  # 原子意图
+    COMPOSITE = "composite"  # 复合意图
+    SCENARIO = "scenario"  # 场景意图
+    META = "meta"  # 元意图（管理其他意图）
 
 
 @dataclass
@@ -37,6 +39,7 @@ class Context:
     执行上下文
     包含用户身份、历史、环境、权限等动态变量
     """
+
     user_id: str
     user_role: str = "user"
     session_id: str = field(default_factory=lambda: str(uuid.uuid4()))
@@ -64,6 +67,7 @@ class Capability:
     原子能力
     系统可调度的最小执行单元
     """
+
     name: str
     description: str
     input_schema: dict[str, Any]
@@ -88,6 +92,7 @@ class IntentStep:
     意图执行步骤
     用于复合意图中的步骤定义
     """
+
     capability_name: str
     params: dict[str, Any] = field(default_factory=dict)
     condition: Optional[str] = None  # 执行条件（可选）
@@ -100,6 +105,7 @@ class Intent:
     意图
     核心概念：用户目标的结构性表达
     """
+
     name: str
     intent_type: IntentType
     description: str = ""
@@ -153,6 +159,7 @@ class IntentTemplate:
     意图模板
     可复用的意图定义，支持参数化
     """
+
     name: str
     description: str
     intent_type: IntentType = IntentType.COMPOSITE
@@ -175,10 +182,7 @@ class IntentTemplate:
         for step in self.steps:
             instantiated_step = IntentStep(
                 capability_name=step.capability_name,
-                params={
-                    k: self._resolve_param(v, params)
-                    for k, v in step.params.items()
-                },
+                params={k: self._resolve_param(v, params) for k, v in step.params.items()},
                 condition=step.condition,
                 output_var=step.output_var,
             )
@@ -205,6 +209,7 @@ class IntentTemplate:
 @dataclass
 class IntentExecutionResult:
     """意图执行结果"""
+
     intent_id: str
     success: bool
     result: Any = None

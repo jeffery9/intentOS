@@ -30,9 +30,11 @@ if TYPE_CHECKING:
 # 缓存条目
 # =============================================================================
 
+
 @dataclass
 class CacheEntry:
     """缓存条目"""
+
     key: str
     value: Any
     created_at: datetime = field(default_factory=datetime.now)
@@ -79,6 +81,7 @@ class CacheEntry:
 # =============================================================================
 # L1: 内存缓存
 # =============================================================================
+
 
 class MemoryCache:
     """
@@ -197,6 +200,7 @@ class MemoryCache:
 # L2: Redis 缓存
 # =============================================================================
 
+
 class RedisCache:
     """
     L2 Redis 缓存
@@ -234,6 +238,7 @@ class RedisCache:
         if self._client is None:
             try:
                 import redis.asyncio as redis
+
                 self._client = redis.Redis(
                     host=self.host,
                     port=self.port,
@@ -320,6 +325,7 @@ class RedisCache:
 # L3: 磁盘缓存 (SQLite)
 # =============================================================================
 
+
 class DiskCache:
     """
     L3 磁盘缓存
@@ -350,6 +356,7 @@ class DiskCache:
         """获取数据库连接"""
         if self._conn is None:
             import aiosqlite
+
             self._conn = await aiosqlite.connect(self.db_path)
             await self._init_db()
         return self._conn
@@ -357,7 +364,8 @@ class DiskCache:
     async def _init_db(self) -> None:
         """初始化数据库"""
         conn = await self._get_connection()
-        await conn.execute("""
+        await conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS cache (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL,
@@ -367,10 +375,9 @@ class DiskCache:
                 ttl_seconds INTEGER,
                 expires_at TIMESTAMP
             )
-        """)
-        await conn.execute(
-            "CREATE INDEX IF NOT EXISTS idx_expires ON cache(expires_at)"
+        """
         )
+        await conn.execute("CREATE INDEX IF NOT EXISTS idx_expires ON cache(expires_at)")
         await conn.commit()
 
     async def get(self, key: str) -> Optional[Any]:
@@ -484,6 +491,7 @@ class DiskCache:
 # =============================================================================
 # 多级缓存管理器
 # =============================================================================
+
 
 class MultiLevelCache:
     """
@@ -607,6 +615,7 @@ class MultiLevelCache:
 # 缓存键生成器
 # =============================================================================
 
+
 def generate_cache_key(intent_data: dict[str, Any]) -> str:
     """
     生成缓存键
@@ -625,6 +634,7 @@ def generate_cache_key(intent_data: dict[str, Any]) -> str:
 # =============================================================================
 # 便捷函数
 # =============================================================================
+
 
 def create_memory_cache(
     max_size: int = 1000,

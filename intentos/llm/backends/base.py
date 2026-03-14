@@ -14,6 +14,7 @@ from typing import Any, AsyncIterator, Callable, Optional
 
 class LLMRole(Enum):
     """消息角色"""
+
     SYSTEM = "system"
     USER = "user"
     ASSISTANT = "assistant"
@@ -23,6 +24,7 @@ class LLMRole(Enum):
 @dataclass
 class Message:
     """LLM 消息"""
+
     role: LLMRole
     content: str
     name: Optional[str] = None  # 工具调用时的名称
@@ -65,6 +67,7 @@ class Message:
 @dataclass
 class ToolDefinition:
     """工具定义"""
+
     name: str
     description: str
     parameters: dict[str, Any]  # JSON Schema
@@ -85,6 +88,7 @@ class ToolDefinition:
 @dataclass
 class ToolCall:
     """工具调用"""
+
     id: str
     name: str
     arguments: dict[str, Any]
@@ -110,6 +114,7 @@ class ToolCall:
 @dataclass
 class LLMUsage:
     """Token 使用统计"""
+
     prompt_tokens: int = 0
     completion_tokens: int = 0
     total_tokens: int = 0
@@ -125,14 +130,18 @@ class LLMUsage:
             prompt_tokens=usage.get("prompt_tokens", 0),
             completion_tokens=usage.get("completion_tokens", 0),
             total_tokens=usage.get("total_tokens", 0),
-            extra={k: v for k, v in usage.items()
-                   if k not in ["prompt_tokens", "completion_tokens", "total_tokens"]},
+            extra={
+                k: v
+                for k, v in usage.items()
+                if k not in ["prompt_tokens", "completion_tokens", "total_tokens"]
+            },
         )
 
 
 @dataclass
 class LLMResponse:
     """LLM 响应"""
+
     content: str
     model: str
     usage: LLMUsage
@@ -148,6 +157,7 @@ class LLMResponse:
 
 class LLMError(Exception):
     """LLM 错误基类"""
+
     def __init__(self, message: str, code: Optional[str] = None, raw_error: Any = None):
         super().__init__(message)
         self.code = code
@@ -156,16 +166,19 @@ class LLMError(Exception):
 
 class RateLimitError(LLMError):
     """速率限制错误"""
+
     pass
 
 
 class AuthenticationError(LLMError):
     """认证错误"""
+
     pass
 
 
 class TimeoutError(LLMError):
     """超时错误"""
+
     pass
 
 
@@ -260,7 +273,7 @@ class LLMBackend(ABC):
     def _estimate_tokens(self, text: str) -> int:
         """估算文本的 token 数 (英文约 4 字符/token，中文约 1.5 字符/token)"""
         # 简化估算
-        chinese_chars = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
+        chinese_chars = sum(1 for c in text if "\u4e00" <= c <= "\u9fff")
         other_chars = len(text) - chinese_chars
         return int(chinese_chars / 1.5 + other_chars / 4)
 
@@ -310,23 +323,27 @@ def _register_default_backends():
     # 延迟导入避免循环依赖
     try:
         from .openai_backend import OpenAIBackend
+
         BackendRegistry.register("openai", OpenAIBackend)
     except ImportError:
         pass
 
     try:
         from .anthropic_backend import AnthropicBackend
+
         BackendRegistry.register("anthropic", AnthropicBackend)
     except ImportError:
         pass
 
     try:
         from .ollama_backend import OllamaBackend
+
         BackendRegistry.register("ollama", OllamaBackend)
     except ImportError:
         pass
 
     from .mock_backend import MockBackend
+
     BackendRegistry.register("mock", MockBackend)
 
 

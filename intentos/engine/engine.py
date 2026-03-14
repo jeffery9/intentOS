@@ -111,21 +111,25 @@ class ExecutionEngine:
         # 编译意图为 Prompt
         compiled = self.compiler.compile(intent)
 
-        trace.append({
-            "step": "compile_intent",
-            "template": compiled.metadata.get("template"),
-            "timestamp": datetime.now().isoformat(),
-        })
+        trace.append(
+            {
+                "step": "compile_intent",
+                "template": compiled.metadata.get("template"),
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
 
         # LLM 执行
         llm_response = await self.llm_executor.execute(compiled)
 
-        trace.append({
-            "step": "llm_generate",
-            "content_length": len(llm_response.content),
-            "tool_calls": len(llm_response.tool_calls),
-            "timestamp": datetime.now().isoformat(),
-        })
+        trace.append(
+            {
+                "step": "llm_generate",
+                "content_length": len(llm_response.content),
+                "tool_calls": len(llm_response.tool_calls),
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
 
         # 处理工具调用
         if llm_response.tool_calls:
@@ -134,17 +138,21 @@ class ExecutionEngine:
                 capability = self.registry.get_capability(tc["name"])
                 if capability:
                     result = capability.execute(intent.context, **tc["arguments"])
-                    tool_results.append({
-                        "tool": tc["name"],
-                        "result": result,
-                    })
-                    trace.append({
-                        "step": "tool_call",
-                        "tool": tc["name"],
-                        "arguments": tc["arguments"],
-                        "result": result,
-                        "timestamp": datetime.now().isoformat(),
-                    })
+                    tool_results.append(
+                        {
+                            "tool": tc["name"],
+                            "result": result,
+                        }
+                    )
+                    trace.append(
+                        {
+                            "step": "tool_call",
+                            "tool": tc["name"],
+                            "arguments": tc["arguments"],
+                            "result": result,
+                            "timestamp": datetime.now().isoformat(),
+                        }
+                    )
 
             return {
                 "llm_content": llm_response.content,
@@ -174,11 +182,13 @@ class ExecutionEngine:
             if not intent.context.has_permission(perm):
                 raise PermissionError(f"缺少权限：{perm}")
 
-        trace.append({
-            "step": "execute_capability",
-            "capability": capability.name,
-            "timestamp": datetime.now().isoformat(),
-        })
+        trace.append(
+            {
+                "step": "execute_capability",
+                "capability": capability.name,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
 
         # 执行能力
         result = capability.execute(intent.context, **intent.params)
@@ -190,21 +200,27 @@ class ExecutionEngine:
 
         for i, step in enumerate(intent.steps):
             # 检查条件
-            if step.condition and not self._evaluate_condition(step.condition, intent.context, results):
-                trace.append({
-                    "step": i,
-                    "action": "skipped",
-                    "reason": "condition_not_met",
-                    "timestamp": datetime.now().isoformat(),
-                })
+            if step.condition and not self._evaluate_condition(
+                step.condition, intent.context, results
+            ):
+                trace.append(
+                    {
+                        "step": i,
+                        "action": "skipped",
+                        "reason": "condition_not_met",
+                        "timestamp": datetime.now().isoformat(),
+                    }
+                )
                 continue
 
-            trace.append({
-                "step": i,
-                "capability": step.capability_name,
-                "params": step.params,
-                "timestamp": datetime.now().isoformat(),
-            })
+            trace.append(
+                {
+                    "step": i,
+                    "capability": step.capability_name,
+                    "params": step.params,
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
 
             # 执行步骤
             capability = self.registry.get_capability(step.capability_name)
@@ -238,6 +254,7 @@ class ExecutionEngine:
             template_data = intent.params.get("template")
             # 动态创建并注册模板
             from .core import IntentTemplate
+
             template = IntentTemplate(**template_data)
             self.registry.register_template(template)
             return {"status": "registered", "name": template.name}
@@ -246,6 +263,7 @@ class ExecutionEngine:
             # 动态注册能力
             cap_data = intent.params.get("capability")
             from .core import Capability
+
             capability = Capability(**cap_data)
             self.registry.register_capability(capability)
             return {"status": "registered", "name": capability.name}

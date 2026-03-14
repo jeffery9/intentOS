@@ -31,6 +31,7 @@ from .backends.mock_backend import MockBackend
 @dataclass
 class BackendConfig:
     """后端配置"""
+
     name: str
     model: str
     api_key: Optional[str] = None
@@ -51,6 +52,7 @@ class BackendConfig:
 @dataclass
 class BackendStats:
     """后端统计信息"""
+
     total_requests: int = 0
     successful_requests: int = 0
     failed_requests: int = 0
@@ -119,6 +121,7 @@ class LLMRouter:
         # 根据配置创建对应的后端
         if "openai" in config.name.lower() or config.base_url:
             from .backends.openai_backend import OpenAIBackend
+
             backend = OpenAIBackend(
                 model=config.model,
                 api_key=config.api_key,
@@ -128,6 +131,7 @@ class LLMRouter:
             )
         elif "anthropic" in config.name.lower():
             from .backends.anthropic_backend import AnthropicBackend
+
             backend = AnthropicBackend(
                 model=config.model,
                 api_key=config.api_key,
@@ -136,6 +140,7 @@ class LLMRouter:
             )
         elif "ollama" in config.name.lower():
             from .backends.ollama_backend import OllamaBackend
+
             backend = OllamaBackend(
                 model=config.model,
                 host=config.base_url or "http://localhost:11434",
@@ -358,6 +363,7 @@ class LLMExecutor:
 
         elif provider_lower == "openai":
             from .backends.openai_backend import OpenAIBackend
+
             return OpenAIBackend(
                 model=model or "gpt-4o",
                 api_key=api_key,
@@ -367,6 +373,7 @@ class LLMExecutor:
 
         elif provider_lower == "anthropic":
             from .backends.anthropic_backend import AnthropicBackend
+
             return AnthropicBackend(
                 model=model or "claude-3-5-sonnet-20241022",
                 api_key=api_key,
@@ -375,6 +382,7 @@ class LLMExecutor:
 
         elif provider_lower == "ollama":
             from .backends.ollama_backend import OllamaBackend
+
             return OllamaBackend(
                 model=model or "llama3.1",
                 host=base_url or "http://localhost:11434",

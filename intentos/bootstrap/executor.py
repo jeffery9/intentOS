@@ -31,9 +31,11 @@ if TYPE_CHECKING:
 # Self-Bootstrap 核心数据结构
 # =============================================================================
 
+
 @dataclass
 class BootstrapRecord:
     """自举记录"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     action: str = ""  # modify_parse_prompt, modify_execute_prompt, extend_instructions...
     target: str = ""  # 修改目标
@@ -61,12 +63,15 @@ class BootstrapRecord:
 @dataclass
 class BootstrapPolicy:
     """自举策略"""
+
     allow_self_modification: bool = True
-    require_approval_for: list[str] = field(default_factory=lambda: [
-        "delete_all_templates",
-        "modify_audit_rules",
-        "disable_self_bootstrap",
-    ])
+    require_approval_for: list[str] = field(
+        default_factory=lambda: [
+            "delete_all_templates",
+            "modify_audit_rules",
+            "disable_self_bootstrap",
+        ]
+    )
     max_modifications_per_hour: int = 10
     require_confidence_threshold: float = 0.8
     replication_factor: int = 3  # 自修改需要复制到的节点数
@@ -86,6 +91,7 @@ class BootstrapPolicy:
 # =============================================================================
 # Self-Bootstrap 执行器
 # =============================================================================
+
 
 class SelfBootstrapExecutor:
     """
@@ -161,7 +167,7 @@ class SelfBootstrapExecutor:
             await self._apply_modification(target, new_value)
 
             # 6. 复制修改到多个节点 (分布式)
-            if hasattr(self.vm, 'memory'):
+            if hasattr(self.vm, "memory"):
                 await self._replicate_modification(target, new_value)
 
             # 7. 记录审计
@@ -199,12 +205,12 @@ class SelfBootstrapExecutor:
         parts = target.split(".")
 
         if parts[0] == "CONFIG":
-            if hasattr(self.vm, 'memory'):
+            if hasattr(self.vm, "memory"):
                 return await self.vm.memory.get("CONFIG", parts[1] if len(parts) > 1 else target)
         elif parts[0] == "INSTRUCTION_SET":
             # 返回当前指令集
             # 如果是分布式 VM，检查 local_vm 的处理器
-            vm_to_check = self.vm.local_vm if hasattr(self.vm, 'local_vm') else self.vm
+            vm_to_check = self.vm.local_vm if hasattr(self.vm, "local_vm") else self.vm
             return list(vm_to_check.processor.__class__.__dict__.keys())
         elif parts[0] == "POLICY":
             if len(parts) > 1:
@@ -217,19 +223,21 @@ class SelfBootstrapExecutor:
         parts = target.split(".")
 
         if parts[0] == "CONFIG":
-            if hasattr(self.vm, 'memory') and len(parts) > 1:
+            if hasattr(self.vm, "memory") and len(parts) > 1:
                 await self.vm.memory.set("CONFIG", parts[1], new_value)
         elif parts[0] == "INSTRUCTION_SET":
             # 扩展指令集：动态添加处理器方法
             instruction_name = parts[1] if len(parts) > 1 else "NEW_OP"
 
             # 如果是分布式 VM，修改 local_vm 的处理器
-            vm_to_modify = self.vm.local_vm if hasattr(self.vm, 'local_vm') else self.vm
+            vm_to_modify = self.vm.local_vm if hasattr(self.vm, "local_vm") else self.vm
 
             # 定义新方法的逻辑 (这里简化为调用 LLM 处理)
             async def new_method(self_proc, params, memory):
                 print(f"Executing new instruction: {instruction_name}")
-                return await self_proc.execute_llm(f"Execute {instruction_name} with {params}", memory)
+                return await self_proc.execute_llm(
+                    f"Execute {instruction_name} with {params}", memory
+                )
 
             # 将方法添加到处理器实例
             # 注意：setattr 在实例上只能添加属性，不能直接像方法一样被调用
@@ -242,7 +250,7 @@ class SelfBootstrapExecutor:
 
     async def _replicate_modification(self, target: str, new_value: Any) -> None:
         """复制修改到多个节点"""
-        if not hasattr(self.vm, 'memory'):
+        if not hasattr(self.vm, "memory"):
             return
 
         # 使用分布式内存的 set (会自动哈希到对应节点或广播)
@@ -252,10 +260,10 @@ class SelfBootstrapExecutor:
             key = parts[1] if len(parts) > 1 else target
 
             # 如果 VM 是分布式 VM，使用广播
-            if hasattr(self.vm, 'memory') and hasattr(self.vm.memory, 'get_nodes'):
+            if hasattr(self.vm, "memory") and hasattr(self.vm.memory, "get_nodes"):
                 nodes = self.vm.memory.get_nodes()
                 for node in nodes:
-                    if node.node_id != getattr(self.vm, 'local_node', {}).node_id:
+                    if node.node_id != getattr(self.vm, "local_node", {}).node_id:
                         # 实际调用远程设置
                         await self.vm.memory._remote_set(node, "CONFIG", key, new_value)
 
@@ -287,6 +295,7 @@ class SelfBootstrapExecutor:
 # 自举程序库
 # =============================================================================
 
+
 class BootstrapPrograms:
     """
     自举程序库
@@ -304,12 +313,14 @@ class BootstrapPrograms:
             description="修改解析 Prompt",
         )
 
-        program.add_instruction(create_instruction(
-            SemanticOpcode.MODIFY,
-            target="CONFIG",
-            target_name="PARSE_PROMPT",
-            value=new_prompt,
-        ))
+        program.add_instruction(
+            create_instruction(
+                SemanticOpcode.MODIFY,
+                target="CONFIG",
+                target_name="PARSE_PROMPT",
+                value=new_prompt,
+            )
+        )
 
         return program
 
@@ -323,12 +334,14 @@ class BootstrapPrograms:
             description="修改执行 Prompt",
         )
 
-        program.add_instruction(create_instruction(
-            SemanticOpcode.MODIFY,
-            target="CONFIG",
-            target_name="EXECUTE_PROMPT",
-            value=new_prompt,
-        ))
+        program.add_instruction(
+            create_instruction(
+                SemanticOpcode.MODIFY,
+                target="CONFIG",
+                target_name="EXECUTE_PROMPT",
+                value=new_prompt,
+            )
+        )
 
         return program
 
@@ -342,11 +355,13 @@ class BootstrapPrograms:
             description="扩展指令集",
         )
 
-        program.add_instruction(create_instruction(
-            SemanticOpcode.DEFINE_INSTRUCTION,
-            instruction_name="NEW_INSTRUCTION",
-            instructions=new_instructions,
-        ))
+        program.add_instruction(
+            create_instruction(
+                SemanticOpcode.DEFINE_INSTRUCTION,
+                instruction_name="NEW_INSTRUCTION",
+                instructions=new_instructions,
+            )
+        )
 
         return program
 
@@ -361,12 +376,14 @@ class BootstrapPrograms:
         )
 
         for key, value in policy_changes.items():
-            program.add_instruction(create_instruction(
-                SemanticOpcode.MODIFY,
-                target="POLICY",
-                target_name=key,
-                value=value,
-            ))
+            program.add_instruction(
+                create_instruction(
+                    SemanticOpcode.MODIFY,
+                    target="POLICY",
+                    target_name=key,
+                    value=value,
+                )
+            )
 
         return program
 
@@ -385,11 +402,13 @@ class BootstrapPrograms:
         )
 
         # 复制自身到其他节点
-        program.add_instruction(create_instruction(
-            DistributedOpcode.REPLICATE,
-            target="PROGRAM",
-            target_name="self_replicator",
-        ))
+        program.add_instruction(
+            create_instruction(
+                DistributedOpcode.REPLICATE,
+                target="PROGRAM",
+                target_name="self_replicator",
+            )
+        )
 
         return program
 
@@ -413,38 +432,40 @@ class BootstrapPrograms:
         )
 
         # 监控负载
-        program.add_instruction(create_instruction(
-            SemanticOpcode.WHILE,
-            condition="true",
-            body=[
-                # 高负载时扩容
-                SemanticInstruction(
-                    opcode=SemanticOpcode.IF,
-                    condition=f"cluster_load > {scale_up_threshold}",
-                    body=[
-                        SemanticInstruction(
-                            opcode=DistributedOpcode.SPAWN,
-                            target="NODE",
-                        ),
-                    ],
-                ),
-                # 低负载时缩容
-                SemanticInstruction(
-                    opcode=SemanticOpcode.IF,
-                    condition=f"cluster_load < {scale_down_threshold}",
-                    body=[
-                        SemanticInstruction(
-                            opcode=SemanticOpcode.DELETE,
-                            target="NODE",
-                        ),
-                    ],
-                ),
-                SemanticInstruction(
-                    opcode=SemanticOpcode.SET,
-                    parameters={"name": "_", "value": "sleep(60)"},
-                ),
-            ],
-        ))
+        program.add_instruction(
+            create_instruction(
+                SemanticOpcode.WHILE,
+                condition="true",
+                body=[
+                    # 高负载时扩容
+                    SemanticInstruction(
+                        opcode=SemanticOpcode.IF,
+                        condition=f"cluster_load > {scale_up_threshold}",
+                        body=[
+                            SemanticInstruction(
+                                opcode=DistributedOpcode.SPAWN,
+                                target="NODE",
+                            ),
+                        ],
+                    ),
+                    # 低负载时缩容
+                    SemanticInstruction(
+                        opcode=SemanticOpcode.IF,
+                        condition=f"cluster_load < {scale_down_threshold}",
+                        body=[
+                            SemanticInstruction(
+                                opcode=SemanticOpcode.DELETE,
+                                target="NODE",
+                            ),
+                        ],
+                    ),
+                    SemanticInstruction(
+                        opcode=SemanticOpcode.SET,
+                        parameters={"name": "_", "value": "sleep(60)"},
+                    ),
+                ],
+            )
+        )
 
         return program
 
@@ -452,6 +473,7 @@ class BootstrapPrograms:
 # =============================================================================
 # Self-Bootstrap 验证器
 # =============================================================================
+
 
 class BootstrapValidator:
     """
@@ -523,15 +545,15 @@ class BootstrapValidator:
         }
 
         # 检查各项能力
-        if hasattr(self.executor.vm, 'memory'):
+        if hasattr(self.executor.vm, "memory"):
             result["capabilities"]["modify_parse_prompt"] = True
             result["capabilities"]["modify_execute_prompt"] = True
             result["capabilities"]["modify_policy"] = True
 
-        if hasattr(self.executor.vm, 'processor'):
+        if hasattr(self.executor.vm, "processor"):
             result["capabilities"]["extend_instructions"] = True
 
-        if hasattr(self.executor.vm, 'add_node'):
+        if hasattr(self.executor.vm, "add_node"):
             result["capabilities"]["self_replicate"] = True
             result["capabilities"]["auto_scale"] = True
 
@@ -549,6 +571,7 @@ class BootstrapValidator:
 # =============================================================================
 # 便捷函数
 # =============================================================================
+
 
 def create_bootstrap_executor(
     semantic_vm: Any,

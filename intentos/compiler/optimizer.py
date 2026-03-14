@@ -27,8 +27,10 @@ if TYPE_CHECKING:
 # LLM 能力画像
 # =============================================================================
 
+
 class LLMProvider(Enum):
     """LLM 提供商"""
+
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     OLLAMA = "ollama"
@@ -42,6 +44,7 @@ class LLMProfile:
 
     用于根据 LLM 能力优化编译策略
     """
+
     provider: LLMProvider
     model: str
 
@@ -147,6 +150,7 @@ LLM_PROFILES = {
 # Prompt 优化器
 # =============================================================================
 
+
 class PromptOptimizer:
     """
     Prompt 优化器
@@ -179,7 +183,10 @@ class PromptOptimizer:
             compiled_prompt = self._convert_to_yaml(compiled_prompt)
 
         # 2. 如果超过上下文限制，进行裁剪
-        if target_tokens or self._estimate_tokens(compiled_prompt) > self.profile.max_context_size * 0.9:
+        if (
+            target_tokens
+            or self._estimate_tokens(compiled_prompt) > self.profile.max_context_size * 0.9
+        ):
             compiled_prompt = self._trim_prompt(compiled_prompt, target_tokens)
 
         # 3. 优化 JSON 模式
@@ -201,6 +208,7 @@ class PromptOptimizer:
         system_prompt = system_prompt.replace("```json", "").replace("```", "")
 
         from intentos.compiler.compiler import CompiledPrompt
+
         return CompiledPrompt(
             system_prompt=system_prompt,
             user_prompt=compiled_prompt.user_prompt,
@@ -212,10 +220,12 @@ class PromptOptimizer:
         """转换为 YAML 格式"""
         try:
             import yaml
+
             intent_dict = compiled_prompt.intent.to_dict()
             yaml_str = yaml.dump(intent_dict, default_flow_style=False, allow_unicode=True)
 
             from intentos.compiler.compiler import CompiledPrompt
+
             return CompiledPrompt(
                 system_prompt=f"请按照以下 YAML 格式的意图执行:\n\n{yaml_str}",
                 user_prompt=compiled_prompt.user_prompt,
@@ -240,6 +250,7 @@ class PromptOptimizer:
             system_prompt = system_prompt[:2000] + "\n..."
 
         from intentos.compiler.compiler import CompiledPrompt
+
         return CompiledPrompt(
             system_prompt=system_prompt,
             user_prompt=compiled_prompt.user_prompt,
@@ -254,6 +265,7 @@ class PromptOptimizer:
         system_prompt += "\n\n请以 JSON 格式返回结果。"
 
         from intentos.compiler.compiler import CompiledPrompt
+
         return CompiledPrompt(
             system_prompt=system_prompt,
             user_prompt=compiled_prompt.user_prompt,
@@ -266,8 +278,10 @@ class PromptOptimizer:
 # 编译策略选择器
 # =============================================================================
 
+
 class CompilationStrategy(Enum):
     """编译策略"""
+
     FAST = "fast"  # 快速编译 (使用模板)
     STANDARD = "standard"  # 标准编译
     OPTIMIZED = "optimized"  # 优化编译 (使用 LLM)
@@ -317,6 +331,7 @@ class StrategySelector:
 # Token 优化器
 # =============================================================================
 
+
 class TokenOptimizer:
     """
     Token 优化器
@@ -339,8 +354,9 @@ class TokenOptimizer:
         if compression_level == 1:
             # 级别 1: 移除空白和冗余
             import re
-            text = re.sub(r'\s+', ' ', text)
-            text = re.sub(r'\n{2,}', '\n', text)
+
+            text = re.sub(r"\s+", " ", text)
+            text = re.sub(r"\n{2,}", "\n", text)
 
         elif compression_level == 2:
             # 级别 2: 使用缩写
@@ -370,7 +386,7 @@ class TokenOptimizer:
         """
         batches = []
         for i in range(0, len(intents), max_batch_size):
-            batch = intents[i:i + max_batch_size]
+            batch = intents[i : i + max_batch_size]
             batches.append(batch)
         return batches
 
@@ -378,6 +394,7 @@ class TokenOptimizer:
 # =============================================================================
 # 上下文管理器
 # =============================================================================
+
 
 class ContextManager:
     """
@@ -407,6 +424,7 @@ class ContextManager:
             ttl_seconds: 生存时间
         """
         from datetime import datetime, timedelta
+
         entry = {
             "key": key,
             "value": value,
@@ -421,10 +439,7 @@ class ContextManager:
 
         # 1. 过滤过期条目
         now = datetime.now()
-        valid_entries = [
-            e for e in self._context_entries
-            if e["expires_at"] > now
-        ]
+        valid_entries = [e for e in self._context_entries if e["expires_at"] > now]
 
         # 2. 按重要性排序
         valid_entries.sort(key=lambda e: e["importance"], reverse=True)
@@ -448,14 +463,18 @@ class ContextManager:
 # 便捷函数
 # =============================================================================
 
+
 def get_llm_profile(model: str) -> LLMProfile:
     """获取 LLM 画像"""
-    return LLM_PROFILES.get(model, LLMProfile(
-        provider=LLMProvider.MOCK,
-        model=model,
-        max_context_size=4096,
-        max_output_tokens=1024,
-    ))
+    return LLM_PROFILES.get(
+        model,
+        LLMProfile(
+            provider=LLMProvider.MOCK,
+            model=model,
+            max_context_size=4096,
+            max_output_tokens=1024,
+        ),
+    )
 
 
 def create_prompt_optimizer(model: str) -> PromptOptimizer:
@@ -474,16 +493,19 @@ def create_strategy_selector(model: str) -> StrategySelector:
 # 分布式 Map/Reduce 优化
 # =============================================================================
 
+
 class MapReduceStrategy(Enum):
     """Map/Reduce 策略"""
+
     CENTRALIZED = "centralized"  # 中央处理 (默认)
-    MAP_REDUCE = "map_reduce"    # Map/Reduce (数据本地化)
-    HYBRID = "hybrid"            # 混合模式
+    MAP_REDUCE = "map_reduce"  # Map/Reduce (数据本地化)
+    HYBRID = "hybrid"  # 混合模式
 
 
 @dataclass
 class NodeCapability:
     """节点能力"""
+
     node_id: str
     has_llm: bool  # 是否有本地 LLM
     llm_model: Optional[str] = None  # LLM 模型

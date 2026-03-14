@@ -22,8 +22,10 @@ Metadata = Dict[str, Any]
 # 状态枚举
 # =============================================================================
 
+
 class TaskStatus(Enum):
     """任务状态"""
+
     PENDING = "pending"
     QUEUED = "queued"
     RUNNING = "running"
@@ -34,13 +36,15 @@ class TaskStatus(Enum):
 
 class MemoryType(Enum):
     """记忆类型"""
-    WORKING = "working"       # 工作记忆
-    SHORT_TERM = "short_term" # 短期记忆
-    LONG_TERM = "long_term"   # 长期记忆
+
+    WORKING = "working"  # 工作记忆
+    SHORT_TERM = "short_term"  # 短期记忆
+    LONG_TERM = "long_term"  # 长期记忆
 
 
 class MemoryPriority(Enum):
     """记忆优先级"""
+
     LOW = 1
     NORMAL = 2
     HIGH = 3
@@ -51,9 +55,11 @@ class MemoryPriority(Enum):
 # 结果类型
 # =============================================================================
 
+
 @dataclass
 class Result:
     """执行结果基类"""
+
     success: bool
     error: Optional[str] = None
     audit_id: Optional[str] = None
@@ -62,24 +68,28 @@ class Result:
 @dataclass
 class CreateResult(Result):
     """创建操作结果"""
+
     created_id: Optional[str] = None
 
 
 @dataclass
 class UpdateResult(Result):
     """更新操作结果"""
+
     pass
 
 
 @dataclass
 class DeleteResult(Result):
     """删除操作结果"""
+
     pass
 
 
 @dataclass
 class QueryResult(Result):
     """查询操作结果"""
+
     data: Any = None
 
 
@@ -87,9 +97,11 @@ class QueryResult(Result):
 # 配置类型
 # =============================================================================
 
+
 @dataclass
 class VMConfig:
     """虚拟机配置"""
+
     max_concurrency: int = 10
     timeout_seconds: int = 300
     retry_count: int = 3
@@ -99,6 +111,7 @@ class VMConfig:
 @dataclass
 class DistributedConfig:
     """分布式配置"""
+
     cluster_name: str = "intentos-cluster"
     node_id: Optional[str] = None
     seed_nodes: Optional[List[str]] = None

@@ -134,11 +134,13 @@ class AnthropicBackend(LLMBackend):
                 if block.type == "text":
                     content += block.text
                 elif block.type == "tool_use":
-                    tool_calls.append(ToolCall(
-                        id=block.id,
-                        name=block.name,
-                        arguments=block.input,
-                    ))
+                    tool_calls.append(
+                        ToolCall(
+                            id=block.id,
+                            name=block.name,
+                            arguments=block.input,
+                        )
+                    )
 
             usage = LLMUsage(
                 prompt_tokens=response.usage.input_tokens,
@@ -212,38 +214,46 @@ class AnthropicBackend(LLMBackend):
         result = []
         for msg in messages:
             if msg.role == LLMRole.USER:
-                result.append({
-                    "role": "user",
-                    "content": msg.content,
-                })
+                result.append(
+                    {
+                        "role": "user",
+                        "content": msg.content,
+                    }
+                )
             elif msg.role == LLMRole.ASSISTANT:
-                result.append({
-                    "role": "assistant",
-                    "content": msg.content,
-                })
+                result.append(
+                    {
+                        "role": "assistant",
+                        "content": msg.content,
+                    }
+                )
             elif msg.role == LLMRole.TOOL:
                 # 工具响应
-                result.append({
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": msg.tool_call_id,
-                            "content": msg.content,
-                        }
-                    ],
-                })
+                result.append(
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": msg.tool_call_id,
+                                "content": msg.content,
+                            }
+                        ],
+                    }
+                )
         return result
 
     def _convert_tools(self, tools: list[ToolDefinition]) -> list[dict]:
         """转换工具为 Anthropic 格式"""
         result = []
         for tool in tools:
-            result.append({
-                "name": tool.name,
-                "description": tool.description,
-                "input_schema": tool.parameters,
-            })
+            result.append(
+                {
+                    "name": tool.name,
+                    "description": tool.description,
+                    "input_schema": tool.parameters,
+                }
+            )
         return result
 
     def _convert_error(self, error: Exception) -> LLMError:

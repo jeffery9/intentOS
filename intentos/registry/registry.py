@@ -36,10 +36,7 @@ class IntentRegistry:
         if not tags:
             return list(self._templates.values())
 
-        return [
-            t for t in self._templates.values()
-            if any(tag in t.tags for tag in tags)
-        ]
+        return [t for t in self._templates.values() if any(tag in t.tags for tag in tags)]
 
     def remove_template(self, name: str) -> bool:
         """删除模板"""
@@ -63,10 +60,7 @@ class IntentRegistry:
         if not tags:
             return list(self._capabilities.values())
 
-        return [
-            c for c in self._capabilities.values()
-            if any(tag in c.tags for tag in tags)
-        ]
+        return [c for c in self._capabilities.values() if any(tag in c.tags for tag in tags)]
 
     def remove_capability(self, name: str) -> bool:
         """删除能力"""
@@ -127,12 +121,14 @@ class IntentRegistry:
         query_lower = query.lower()
 
         matched_templates = [
-            name for name, t in self._templates.items()
+            name
+            for name, t in self._templates.items()
             if query_lower in name.lower() or query_lower in t.description.lower()
         ]
 
         matched_capabilities = [
-            name for name, c in self._capabilities.items()
+            name
+            for name, c in self._capabilities.items()
             if query_lower in name.lower() or query_lower in c.description.lower()
         ]
 
@@ -159,6 +155,7 @@ def capability(
         def query_sales(context, region: str, period: str):
             ...
     """
+
     def decorator(func: Callable) -> Callable:
         cap = Capability(
             name=name,
