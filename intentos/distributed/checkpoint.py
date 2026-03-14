@@ -123,7 +123,18 @@ class ProcessCheckpoint:
         """计算校验和"""
         import hashlib
 
-        data_str = json.dumps(self.to_dict(), sort_keys=True)
+        # 不包含 checksum 本身在计算中
+        data = {
+            "pid": self.pid,
+            "pc": self.pc,
+            "status": self.status,
+            "program_data": self.program_data,
+            "variables": self.variables,
+            "context": self.context,
+            "gas_state": self.gas_state,
+            "execution_log": self.execution_log,
+        }
+        data_str = json.dumps(data, sort_keys=True)
         return hashlib.sha256(data_str.encode()).hexdigest()
 
     def verify_integrity(self) -> bool:
@@ -231,6 +242,9 @@ class CheckpointManager:
 
     def _save_checkpoint(self, checkpoint: ProcessCheckpoint) -> None:
         """保存检查点"""
+        # 计算校验和
+        checkpoint.metadata.checksum = checkpoint.compute_checksum()
+
         data = json.dumps(checkpoint.to_dict(), indent=2, ensure_ascii=False)
 
         if self.config.compress:
