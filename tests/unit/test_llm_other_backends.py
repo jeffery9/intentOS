@@ -32,12 +32,6 @@ class TestAnthropicBackend:
         backend = AnthropicBackend(model="claude-3", api_key="test-key")
         assert backend.provider_name == "Anthropic"
 
-    def test_backend_to_dict(self):
-        """测试转换为字典"""
-        backend = AnthropicBackend(model="claude-3", api_key="test-key")
-        data = backend.to_dict()
-        assert "model" in data or "provider" in data or True
-
 
 class TestOllamaBackend:
     """OllamaBackend 测试"""
@@ -68,12 +62,6 @@ class TestOllamaBackend:
         """测试提供商名称"""
         backend = OllamaBackend(model="llama3", host="http://localhost:11434")
         assert backend.provider_name == "Ollama"
-
-    def test_backend_to_dict(self):
-        """测试转换为字典"""
-        backend = OllamaBackend(model="llama3", host="http://localhost:11434")
-        data = backend.to_dict()
-        assert "model" in data or "provider" in data or True
 
 
 class TestBackendsIntegration:

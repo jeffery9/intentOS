@@ -53,24 +53,24 @@ class TestLLMExecutor:
 
     def test_executor_create_backend_openai(self):
         executor = LLMExecutor.__new__(LLMExecutor)
-        backend = executor._create_backend(provider="openai", model="gpt-4", api_key="test-key")
+        backend = executor._create_backend(provider="openai", model="gpt-4", api_key="test-key", base_url=None)
         assert backend is not None
         assert backend.model == "gpt-4"
 
     def test_executor_create_backend_anthropic(self):
         executor = LLMExecutor.__new__(LLMExecutor)
-        backend = executor._create_backend(provider="anthropic", model="claude-3", api_key="test-key")
+        backend = executor._create_backend(provider="anthropic", model="claude-3", api_key="test-key", base_url=None)
         assert backend is not None
 
     def test_executor_create_backend_ollama(self):
         executor = LLMExecutor.__new__(LLMExecutor)
-        backend = executor._create_backend(provider="ollama", model="llama3", base_url="http://localhost:11434")
+        backend = executor._create_backend(provider="ollama", model="llama3", api_key=None, base_url="http://localhost:11434")
         assert backend is not None
 
     def test_executor_create_backend_unknown(self):
         executor = LLMExecutor.__new__(LLMExecutor)
         with pytest.raises(ValueError, match="未知提供商"):
-            executor._create_backend(provider="unknown")
+            executor._create_backend(provider="unknown", model=None, api_key=None, base_url=None)
 
 
 class TestLLMExecutorIntegration:

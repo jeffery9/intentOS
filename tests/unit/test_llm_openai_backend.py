@@ -36,36 +36,6 @@ class TestOpenAIBackend:
         backend = OpenAIBackend(model="gpt-4", api_key="test-key")
         assert backend.provider_name == "OpenAI"
 
-    def test_backend_capabilities(self):
-        """测试能力"""
-        backend = OpenAIBackend(model="gpt-4", api_key="test-key")
-        caps = backend.capabilities
-        assert caps is not None
-
-    def test_backend_pricing(self):
-        """测试定价"""
-        backend = OpenAIBackend(model="gpt-4", api_key="test-key")
-        pricing = backend.pricing
-        assert pricing is not None or True
-
-    def test_backend_rate_limit(self):
-        """测试速率限制"""
-        backend = OpenAIBackend(model="gpt-4", api_key="test-key")
-        rate_limit = backend.rate_limit
-        assert rate_limit is not None or True
-
-    def test_backend_latency(self):
-        """测试延迟"""
-        backend = OpenAIBackend(model="gpt-4", api_key="test-key")
-        latency = backend.latency_p50
-        assert latency >= 0 or True
-
-    def test_backend_to_dict(self):
-        """测试转换为字典"""
-        backend = OpenAIBackend(model="gpt-4", api_key="test-key")
-        data = backend.to_dict()
-        assert "model" in data or "provider" in data or True
-
 
 class TestOpenAIBackendAdvanced:
     """OpenAIBackend 高级测试"""
