@@ -40,14 +40,7 @@ all = [
 asyncio_mode = "auto"
 testpaths = ["examples"]
 
-[tool.ruff]
-line-length = 100
-target-version = "py310"
-exclude = ["examples", "deprecated"]
-
-[tool.ruff.lint]
-select = ["E", "F", "W", "I"]
-ignore = ["E501", "F841"]
+# Ruff 配置已移动到 .ruff.toml
 
 [tool.setuptools]
 packages = ["intentos", "intentos.bootstrap", "intentos.compiler", "intentos.core", "intentos.distributed", "intentos.engine", "intentos.interface", "intentos.llm", "intentos.llm.backends", "intentos.parser", "intentos.registry", "intentos.semantic_vm"]
