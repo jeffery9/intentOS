@@ -56,5 +56,13 @@ ignore = ["E501", "F841"]
 [tool.ruff.format]
 exclude = ["deprecated", "build", "dist"]
 
+[tool.mypy]
+python_version = "3.10"
+exclude = ["deprecated/"]
+ignore_missing_imports = true
+warn_return_any = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+
 [tool.setuptools]
 packages = ["intentos", "intentos.bootstrap", "intentos.compiler", "intentos.core", "intentos.distributed", "intentos.engine", "intentos.interface", "intentos.llm", "intentos.llm.backends", "intentos.parser", "intentos.registry", "intentos.semantic_vm"]
