@@ -12,6 +12,7 @@ from .mcp_integration import MCPIntegration
 from .skill_integration import SkillIntegration
 from .compiler import IntentCompiler, PEF
 from .executor import AgentExecutor
+from .agent import AIAgent
 
 __all__ = [
     # 核心
@@ -31,4 +32,7 @@ __all__ = [
     "IntentCompiler",
     "PEF",
     "AgentExecutor",
+    
+    # Agent
+    "AIAgent",
 ]

@@ -49,7 +49,7 @@ class AIAgent(Agent):
         # 初始化 Skills (如果启用)
         if self.config.enable_skills:
             self.skills = SkillIntegration(self.registry)
-            self._load_skills()
+            await self._load_skills()
         
         return True
     
@@ -84,13 +84,12 @@ class AIAgent(Agent):
         
         self.registry.register(id="current_time", name="当前时间", description="获取时间", handler=get_time, tags=["system", "time"], source="builtin")
     
-    def _load_skills(self) -> None:
+    async def _load_skills(self) -> None:
         """加载 Skills"""
         if self.skills:
             skill_ids = self.skills.discover_skills()
             for skill_id in skill_ids:
-                import asyncio
-                asyncio.run(self.skills.load_skill(skill_id))
+                await self.skills.load_skill(skill_id)
     
     async def execute(self, intent: str, context: AgentContext) -> AgentResult:
         """执行意图"""
