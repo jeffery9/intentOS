@@ -6,6 +6,8 @@ AI Agent 主实现
 
 from __future__ import annotations
 
+from typing import Any, Optional
+
 from .core import Agent, AgentConfig, AgentContext, AgentResult
 from .registry import CapabilityRegistry
 from .mcp_integration import MCPIntegration
@@ -24,13 +26,13 @@ class AIAgent(Agent):
     - Skills (Claude Skills 规范)
     """
     
-    def __init__(self, config: AgentConfig = None):
+    def __init__(self, config: Optional[AgentConfig] = None) -> None:
         super().__init__(config)
-        self.registry = CapabilityRegistry()
-        self.compiler = IntentCompiler()
-        self.executor: AgentExecutor = None
-        self.mcp: MCPIntegration = None
-        self.skills: SkillIntegration = None
+        self.registry: CapabilityRegistry = CapabilityRegistry()
+        self.compiler: IntentCompiler = IntentCompiler()
+        self.executor: Optional[AgentExecutor] = None
+        self.mcp: Optional[MCPIntegration] = None
+        self.skills: Optional[SkillIntegration] = None
     
     async def initialize(self) -> bool:
         """初始化 Agent"""
@@ -55,47 +57,87 @@ class AIAgent(Agent):
     
     def _register_builtin_capabilities(self) -> None:
         """注册内置能力"""
-        import subprocess, shlex
+        import subprocess
+        import shlex
         from datetime import datetime
         
         # Shell
-        def shell_exec(command: str, timeout: int = 30) -> dict:
+        def shell_exec(command: str, timeout: int = 30) -> dict[str, Any]:
             try:
-                result = subprocess.run(shlex.split(command), capture_output=True, text=True, timeout=timeout, shell=True)
-                return {"success": result.returncode == 0, "stdout": result.stdout, "stderr": result.stderr}
+                result = subprocess.run(
+                    shlex.split(command),
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout,
+                    shell=True,
+                )
+                return {
+                    "success": result.returncode == 0,
+                    "stdout": result.stdout,
+                    "stderr": result.stderr,
+                }
             except Exception as e:
                 return {"success": False, "error": str(e)}
         
-        self.registry.register(id="shell", name="Shell 命令", description="执行 Shell 命令", handler=shell_exec, tags=["system", "shell"], source="builtin")
+        self.registry.register(
+            id="shell",
+            name="Shell 命令",
+            description="执行 Shell 命令",
+            handler=shell_exec,
+            tags=["system", "shell"],
+            source="builtin",
+        )
         
         # 计算器
-        def calc(expression: str) -> dict:
+        def calc(expression: str) -> dict[str, Any]:
             try:
-                return {"success": True, "result": eval(expression, {"__builtins__": {}}, {})}
+                result: float = eval(expression, {"__builtins__": {}}, {})
+                return {"success": True, "result": result}
             except Exception as e:
                 return {"success": False, "error": str(e)}
         
-        self.registry.register(id="calculator", name="计算器", description="数学计算", handler=calc, tags=["math"], source="builtin")
+        self.registry.register(
+            id="calculator",
+            name="计算器",
+            description="数学计算",
+            handler=calc,
+            tags=["math"],
+            source="builtin",
+        )
         
         # 时间
-        def get_time() -> dict:
-            now = datetime.now()
-            return {"success": True, "datetime": now.isoformat(), "time": now.strftime("%H:%M:%S")}
+        def get_time() -> dict[str, Any]:
+            now: datetime = datetime.now()
+            return {
+                "success": True,
+                "datetime": now.isoformat(),
+                "time": now.strftime("%H:%M:%S"),
+            }
         
-        self.registry.register(id="current_time", name="当前时间", description="获取时间", handler=get_time, tags=["system", "time"], source="builtin")
+        self.registry.register(
+            id="current_time",
+            name="当前时间",
+            description="获取时间",
+            handler=get_time,
+            tags=["system", "time"],
+            source="builtin",
+        )
     
     async def _load_skills(self) -> None:
         """加载 Skills"""
         if self.skills:
-            skill_ids = self.skills.discover_skills()
+            skill_ids: list[str] = self.skills.discover_skills()
             for skill_id in skill_ids:
                 await self.skills.load_skill(skill_id)
     
     async def execute(self, intent: str, context: AgentContext) -> AgentResult:
         """执行意图"""
-        capabilities = [cap.name for cap in self.registry.list_capabilities()]
+        if not self.executor:
+            return AgentResult(success=False, error="Agent not initialized")
+        
+        capabilities: list[str] = [cap.name for cap in self.registry.list_capabilities()]
         pef = self.compiler.compile(intent, capabilities, context.to_dict())
-        result = await self.executor.execute(pef, context.to_dict())
+        result: AgentResult = await self.executor.execute(pef, context.to_dict())
         
         context.conversation_history.append({"role": "user", "content": intent})
         context.conversation_history.append({"role": "assistant", "content": result.message})
@@ -104,12 +146,17 @@ class AIAgent(Agent):
     
     def get_capabilities(self) -> list[str]:
         """获取能力列表"""
-        caps = []
+        caps: list[str] = []
         for cap in self.registry.list_capabilities():
             caps.append(f"{cap.name} ({cap.source}): {cap.description}")
         return caps
     
-    async def connect_mcp(self, name: str, command: str, args: list[str] = None) -> bool:
+    async def connect_mcp(
+        self,
+        name: str,
+        command: str,
+        args: Optional[list[str]] = None
+    ) -> bool:
         """连接 MCP 服务器"""
         if self.mcp:
             return await self.mcp.connect_server(name, command, args)

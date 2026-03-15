@@ -7,8 +7,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
 from datetime import datetime
+from typing import Any, Optional
 
 
 @dataclass
@@ -40,7 +40,7 @@ class PEF:
 class IntentCompiler:
     """意图编译器"""
     
-    def __init__(self):
+    def __init__(self) -> None:
         self._prompt_templates: dict[str, str] = {}
         self._register_default_templates()
     
@@ -55,8 +55,8 @@ class IntentCompiler:
         context: Optional[dict[str, Any]] = None
     ) -> PEF:
         """编译意图为 PEF"""
-        template = self._prompt_templates.get("default")
-        system_prompt = template.format(capabilities=", ".join(capabilities), intent=intent)
+        template: str = self._prompt_templates.get("default", "")
+        system_prompt: str = template.format(capabilities=", ".join(capabilities), intent=intent)
         
         return PEF(
             intent=intent,

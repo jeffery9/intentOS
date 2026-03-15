@@ -4,9 +4,10 @@ AI Agent 核心定义
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Optional
 from datetime import datetime
+from typing import Any, Optional
 
 
 @dataclass
@@ -64,22 +65,23 @@ class AgentResult:
         }
 
 
-class Agent:
+class Agent(ABC):
     """
     AI Agent 基类
     
     新的实现方式：基于意图包和能力注册，支持 MCP 和 Skill
     """
     
-    def __init__(self, config: Optional[AgentConfig] = None):
-        self.config = config or AgentConfig()
-        self._initialized = False
+    def __init__(self, config: Optional[AgentConfig] = None) -> None:
+        self.config: AgentConfig = config or AgentConfig()
+        self._initialized: bool = False
     
     async def initialize(self) -> bool:
         """初始化 Agent"""
         self._initialized = True
         return True
     
+    @abstractmethod
     async def execute(
         self,
         intent: str,
@@ -95,7 +97,7 @@ class Agent:
         Returns:
             执行结果
         """
-        raise NotImplementedError("子类必须实现 execute 方法")
+        pass
     
     async def shutdown(self) -> None:
         """关闭 Agent"""

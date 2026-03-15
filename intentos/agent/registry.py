@@ -7,8 +7,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
 from datetime import datetime
+from typing import Any, Callable, Optional
 
 
 @dataclass
@@ -17,7 +17,7 @@ class Capability:
     id: str
     name: str
     description: str
-    handler: Callable
+    handler: Callable[..., Any]
     input_schema: dict[str, Any] = field(default_factory=dict)
     output_schema: dict[str, Any] = field(default_factory=dict)
     tags: list[str] = field(default_factory=list)
@@ -60,7 +60,7 @@ class CapabilityRegistry:
         id: str,
         name: str,
         description: str,
-        handler: Callable,
+        handler: Callable[..., Any],
         input_schema: Optional[dict[str, Any]] = None,
         output_schema: Optional[dict[str, Any]] = None,
         tags: Optional[list[str]] = None,
@@ -68,7 +68,7 @@ class CapabilityRegistry:
         source: str = "builtin",
     ) -> Capability:
         """注册能力"""
-        capability = Capability(
+        capability: Capability = Capability(
             id=id,
             name=name,
             description=description,
@@ -94,9 +94,13 @@ class CapabilityRegistry:
         """获取能力"""
         return self._capabilities.get(capability_id)
     
-    def list_capabilities(self, tags: Optional[list[str]] = None, source: Optional[str] = None) -> list[Capability]:
+    def list_capabilities(
+        self,
+        tags: Optional[list[str]] = None,
+        source: Optional[str] = None
+    ) -> list[Capability]:
         """列出能力"""
-        capabilities = list(self._capabilities.values())
+        capabilities: list[Capability] = list(self._capabilities.values())
         
         if tags:
             capabilities = [
@@ -115,13 +119,16 @@ class CapabilityRegistry:
     async def execute_capability(
         self,
         capability_id: str,
-        **kwargs
+        **kwargs: Any
     ) -> Any:
         """执行能力"""
-        capability = self.get_capability(capability_id)
+        capability: Optional[Capability] = self.get_capability(capability_id)
         
         if not capability:
             raise ValueError(f"能力不存在：{capability_id}")
         
         import asyncio
-        return await capability.handler(**kwargs) if asyncio.iscoroutinefunction(capability.handler) else capability.handler(**kwargs)
+        if asyncio.iscoroutinefunction(capability.handler):
+            return await capability.handler(**kwargs)
+        else:
+            return capability.handler(**kwargs)
