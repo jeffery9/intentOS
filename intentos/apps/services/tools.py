@@ -52,8 +52,8 @@ class ToolRegistry:
         name: str,
         description: str,
         handler: Callable,
-        params_schema: dict = None,
-        tags: list[str] = None
+        params_schema: Optional[dict[str, Any]] = None,
+        tags: Optional[list[str]] = None
     ) -> ToolDefinition:
         """注册工具"""
         tool = ToolDefinition(
@@ -64,7 +64,7 @@ class ToolRegistry:
             params_schema=params_schema or {},
             tags=tags or [],
         )
-        
+
         self.tools[id] = tool
         return tool
     

@@ -29,7 +29,7 @@ class MCPClient:
         self,
         name: str,
         command: str,
-        args: list[str] = None
+        args: Optional[list[str]] = None
     ) -> bool:
         """
         连接到 MCP 服务器

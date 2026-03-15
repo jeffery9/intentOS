@@ -167,21 +167,21 @@ class LongTermMemory:
         query_lower = query.lower()
         
         # 简单文本搜索（实际应该用向量搜索）
-        scored = []
+        scored: list[tuple[float, Memory]] = []
         for memory in self.memories.values():
-            score = 0
-            
+            score: float = 0.0
+
             # 内容匹配
             if query_lower in memory.content.lower():
                 score += 0.5
-            
+
             # 标签匹配
-            if any(query_lower in tag.lower() for tag in memory.tags):
+            if memory.tags and any(query_lower in tag.lower() for tag in memory.tags):
                 score += 0.3
-            
+
             # 重要性
             score += memory.importance * 0.2
-            
+
             if score > 0:
                 scored.append((score, memory))
         
