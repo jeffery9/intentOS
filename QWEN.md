@@ -36,6 +36,104 @@ Layer 3: Model Layer (模型层 - LLM Processor)
 
 ---
 
+## 代码规范
+
+### 类型注解 (强制要求)
+
+**所有代码必须使用类型注解**，这是 IntentOS 的核心要求：
+
+```python
+# ✅ 正确 - 使用类型注解
+from typing import Any, Optional, list
+
+def process_data(
+    data: dict[str, Any],
+    timeout: int = 30,
+    callback: Optional[Callable] = None
+) -> list[dict[str, Any]]:
+    """处理数据"""
+    ...
+
+class DataProcessor:
+    """数据处理器"""
+    
+    def __init__(self, config: dict[str, Any]) -> None:
+        self.config: dict[str, Any] = config
+        self._cache: dict[str, Any] = {}
+    
+    async def process(self, data: str) -> dict[str, Any]:
+        """处理数据"""
+        ...
+```
+
+```python
+# ❌ 错误 - 缺少类型注解
+def process_data(data, timeout=30, callback=None):
+    ...
+
+class DataProcessor:
+    def __init__(self, config):
+        self.config = config
+    
+    async def process(self, data):
+        ...
+```
+
+### 类型注解规则
+
+1. **函数参数和返回值** - 必须标注类型
+2. **类属性** - 必须标注类型
+3. **变量** - 复杂类型必须标注
+4. **泛型** - 使用 `list[T]`, `dict[K, V]`, `Optional[T]` 等
+5. **异步函数** - 使用 `async def` 和 `Awaitable[T]`
+
+### 类型检查
+
+使用 mypy 进行类型检查：
+
+```bash
+# 运行类型检查
+mypy intentos --exclude deprecated/
+
+# 配置 (pyproject.toml)
+[tool.mypy]
+python_version = "3.10"
+exclude = ["deprecated/"]
+ignore_missing_imports = true
+disallow_untyped_defs = true
+```
+
+### 常见类型
+
+```python
+from typing import Any, Optional, Callable, Awaitable
+from dataclasses import dataclass
+
+# 基础类型
+name: str
+count: int
+ratio: float
+enabled: bool
+
+# 容器类型
+items: list[str]
+mapping: dict[str, Any]
+optional_value: Optional[str]
+
+# 函数类型
+callback: Callable[[str], bool]
+async_callback: Callable[[str], Awaitable[bool]]
+
+# 数据类
+@dataclass
+class Result:
+    success: bool
+    data: Optional[dict[str, Any]] = None
+    error: Optional[str] = None
+```
+
+---
+
 ## 项目结构
 
 ```
