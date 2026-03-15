@@ -63,13 +63,13 @@ class KnowledgeBase:
         title: str,
         content: str,
         category: str = "general",
-        tags: list[str] = None,
+        tags: Optional[list[str]] = None,
         source: str = "",
     ) -> KnowledgeItem:
         """添加知识"""
         import hashlib
         item_id = hashlib.md5(f"{title}{content}".encode()).hexdigest()[:12]
-        
+
         item = KnowledgeItem(
             id=item_id,
             title=title,

@@ -104,7 +104,7 @@ class SkillLoader:
     https://github.com/anthropics/awesome-claude-skills
     """
 
-    def __init__(self, skills_dir: str = None):
+    def __init__(self, skills_dir: Optional[str] = None):
         self.skills_dir = skills_dir or os.path.expanduser("~/.claude/skills")
         os.makedirs(self.skills_dir, exist_ok=True)
 

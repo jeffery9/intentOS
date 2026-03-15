@@ -230,13 +230,13 @@ def app_metadata(
         class MyApp(AppBase):
             ...
     """
-    def decorator(cls: type) -> type:
-        cls.APP_ID = app_id
-        cls.APP_NAME = name
-        cls.APP_DESCRIPTION = description
-        cls.APP_VERSION = version
-        cls.APP_CATEGORY = category
-        cls.APP_ICON = icon
-        cls.APP_AUTHOR = author
+    def decorator(cls: type[AppBase]) -> type[AppBase]:
+        cls.APP_ID = app_id  # type: ignore
+        cls.APP_NAME = name  # type: ignore
+        cls.APP_DESCRIPTION = description  # type: ignore
+        cls.APP_VERSION = version  # type: ignore
+        cls.APP_CATEGORY = category  # type: ignore
+        cls.APP_ICON = icon  # type: ignore
+        cls.APP_AUTHOR = author  # type: ignore
         return cls
     return decorator

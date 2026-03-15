@@ -56,8 +56,8 @@ class ShortTermMemory:
     def add(
         self,
         content: str,
-        tags: list[str] = None,
-        metadata: dict = None
+        tags: Optional[list[str]] = None,
+        metadata: Optional[dict[str, Any]] = None
     ) -> Memory:
         """添加记忆"""
         memory = Memory(
@@ -66,9 +66,9 @@ class ShortTermMemory:
             tags=tags or [],
             metadata=metadata or {},
         )
-        
+
         self.memories.append(memory)
-        
+
         # 超出容量时删除最旧的
         if len(self.memories) > self.max_size:
             self.memories.pop(0)
@@ -135,8 +135,8 @@ class LongTermMemory:
     def add(
         self,
         content: str,
-        tags: list[str] = None,
-        metadata: dict = None,
+        tags: Optional[list[str]] = None,
+        metadata: Optional[dict[str, Any]] = None,
         importance: float = 0.5
     ) -> Memory:
         """添加记忆"""
@@ -147,10 +147,10 @@ class LongTermMemory:
             metadata=metadata or {},
             importance=importance,
         )
-        
+
         self.memories[memory.id] = memory
         self._save()
-        
+
         return memory
     
     def get(self, memory_id: str) -> Optional[Memory]:
@@ -266,7 +266,7 @@ class MemorySystem:
         self,
         intent: str,
         response: str,
-        tags: list[str] = None
+        tags: Optional[list[str]] = None
     ) -> None:
         """添加对话到记忆"""
         # 短期记忆
@@ -274,7 +274,7 @@ class MemorySystem:
             content=f"用户：{intent}\n助手：{response}",
             tags=tags or ["conversation"],
         )
-        
+
         # 长期记忆（重要对话）
         if self._is_important(intent, response):
             self.long_term.add(

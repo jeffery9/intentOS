@@ -78,10 +78,10 @@ class IntentTemplate:
     
     def _extract_params(self, text: str) -> dict[str, Any]:
         """提取参数"""
-        params = {"raw_text": text}
-        
+        params: dict[str, Any] = {"raw_text": text}
+
         # 提取时间
-        time_patterns = [
+        time_patterns: list[tuple[str, str]] = [
             (r'(\d{1,2}[点时])', 'time'),
             (r'(\d{1,2}:\d{2})', 'time_24h'),
             (r'(今天 | 明天 | 后天 | 下周)', 'relative_date'),
@@ -90,12 +90,12 @@ class IntentTemplate:
             match = re.search(pattern, text)
             if match:
                 params[name] = match.group(1)
-        
+
         # 提取数字
-        numbers = re.findall(r'\d+', text)
+        numbers: list[str] = re.findall(r'\d+', text)
         if numbers:
             params['numbers'] = numbers
-        
+
         return params
     
     def to_dict(self) -> dict[str, Any]:
