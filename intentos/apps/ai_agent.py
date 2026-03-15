@@ -72,6 +72,11 @@ class AIAgentApp(AppBase):
         # 加载已安装的 Skills
         self._load_skills()
         
+        # 确保 services 已初始化
+        if not self._services:
+            from .app_services import AppServices
+            self._services = AppServices()
+        
         if self._services:
             self._services.info(f"AI Agent 已初始化")
         return True
@@ -298,26 +303,50 @@ class AIAgentApp(AppBase):
     def _extract_tool_params(self, tool, intent: str) -> dict:
         """提取工具参数 (基于工具 schema，不硬编码)"""
         params = {}
-        
-        # 根据工具 ID 提取参数 (应该使用 params_schema)
+
+        # 根据工具 ID 提取参数
         if tool.id == "calculator":
             import re
             match = re.search(r'([\d+\-*/().\s]+)', intent)
             if match:
                 params["expression"] = match.group(1).strip()
-        elif tool.id == "weather":
-            # 提取城市名 (应该使用配置的城市列表)
-            cities = ["北京", "上海", "广州", "深圳", "杭州"]
-            for city in cities:
-                if city in intent:
-                    params["city"] = city
+        
+        elif tool.id == "shell":
+            import re
+            # 提取命令
+            patterns = [
+                r'["\']([^"\']+)["\']',  # 引号中的内容
+                r'执行 (.+)',
+                r'运行 (.+)',
+                r'run (.+)',
+            ]
+            for pattern in patterns:
+                match = re.search(pattern, intent)
+                if match:
+                    params["command"] = match.group(1).strip()
                     break
-            if "city" not in params:
-                params["city"] = "北京"  # 默认值
-        elif tool.id == "news":
-            params["category"] = "tech"  # 默认值
-        elif tool.id == "web_search":
-            params["query"] = intent.replace("搜索", "").replace("查找", "").strip()
+            if "command" not in params:
+                params["command"] = intent.replace("执行", "").replace("运行", "").strip()
+        
+        elif tool.id == "file_read":
+            import re
+            match = re.search(r'["\']([^"\']+)["\']', intent)
+            if match:
+                params["path"] = match.group(1)
+        
+        elif tool.id == "file_list":
+            import re
+            match = re.search(r'["\']([^"\']+)["\']', intent)
+            params["path"] = match.group(1) if match else "."
+        
+        elif tool.id == "http_request":
+            import re
+            match = re.search(r'https?://[^\s"\']+', intent)
+            if match:
+                params["url"] = match.group(0)
+        
+        elif tool.id == "current_time":
+            pass  # 不需要参数
         
         return params
     
