@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  # IntentOS 主服务
+  intentos:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: intentos-main
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - LOG_LEVEL=INFO
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+    volumes:
+      - intentos-data:/opt/intentos/data
+      - intentos-checkpoints:/opt/intentos/checkpoints
+      - ./logs:/opt/intentos/logs
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - intentos-net
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 4G
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+
+  # Redis（记忆存储）
+  redis:
+    image: redis:7-alpine
+    container_name: intentos-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    networks:
+      - intentos-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  intentos-data:
+  intentos-checkpoints:
+  redis-data:
+
+networks:
+  intentos-net:
+    driver: bridge
