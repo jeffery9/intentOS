@@ -31,7 +31,7 @@ Layer 3: Model Layer (模型层 - LLM Processor)
 - **语言**: Python 3.10+
 - **通信**: aiohttp (REST RPC)
 - **UI/UX**: rich (Shell Interface)
-- **类型系统**: 完整类型注解 (90%+ 覆盖率)
+- **类型系统**: 完整类型注解 (100% 覆盖率)
 - **测试**: pytest, pytest-asyncio
 
 ---
@@ -227,6 +227,7 @@ PYTHONPATH=. python intentos/interface/api.py
 
 | 版本 | 日期 | 说明 |
 |------|------|------|
+| **v10.0** | 2026-03-15 | AI Agent + Skill/MCP 支持 + 类型注解 100% |
 | **v9.0** | 2026-03-13 | 实现分布式进程管理与 PCB |
 | **v8.5** | 2026-03-13 | 实现 Shell、API 及真实分布式 RPC |
 | **v8.1** | 2026-03-13 | Map/Reduce 数据本地性优化 |
@@ -237,5 +238,5 @@ PYTHONPATH=. python intentos/interface/api.py
 
 ---
 
-**最后更新**: 2026-03-13  
-**版本**: v9.0 (Distributed Process Management)
+**最后更新**: 2026-03-15  
+**版本**: v10.0 (AI Agent + Skills + MCP)
