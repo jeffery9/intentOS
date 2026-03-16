@@ -24,18 +24,25 @@ class ConversationTurn:
     artifacts: list[dict[str, Any]] = field(default_factory=list)
 
 
+from ..kernel.core import PrivilegeLevel
+
 class IntentInterface:
     """
     意图界面
     人类与 IntentOS 交互的主接口
     """
 
-    def __init__(self, registry: Optional[IntentRegistry] = None):
+    def __init__(self, registry: Optional[IntentRegistry] = None, mode: PrivilegeLevel = PrivilegeLevel.USER):
         self.registry = registry or IntentRegistry()
         self.parser = IntentParser(self.registry)
         self.engine = ExecutionEngine(self.registry)
         self.context = Context(user_id="anonymous")
         self.conversation_history: list[ConversationTurn] = []
+        self.mode = mode
+
+    def set_mode(self, mode: PrivilegeLevel) -> None:
+        """设置执行模式"""
+        self.mode = mode
 
     def set_user(
         self, user_id: str, role: str = "user", permissions: Optional[list[str]] = None
@@ -47,6 +54,12 @@ class IntentInterface:
             permissions=permissions or [],
             history=[t.content for t in self.conversation_history],
         )
+        
+        # 自动切换模式：admin 角色进入内核态
+        if role == "admin":
+            self.mode = PrivilegeLevel.KERNEL
+        else:
+            self.mode = PrivilegeLevel.USER
 
     async def chat(self, text: str) -> str:
         """
@@ -72,8 +85,8 @@ class IntentInterface:
         # 更新上下文历史
         self.context.history.append(text)
 
-        # 执行意图
-        result = await self.engine.execute(intent)
+        # 执行意图 (传递执行模式)
+        result = await self.engine.execute(intent, mode=self.mode)
 
         # 生成响应
         response = self._generate_response(intent, result)

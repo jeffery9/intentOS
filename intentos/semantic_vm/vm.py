@@ -421,9 +421,10 @@ class LLMProcessor:
         )
 
         # LLM 执行
+        from intentos.llm.backends.base import Message
         messages = [
-            {"role": "system", "content": "你是语义 VM 处理器。"},
-            {"role": "user", "content": exec_prompt},
+            Message.system("你是语义 VM 处理器。"),
+            Message.user(exec_prompt),
         ]
 
         response = await self.llm_executor.execute(messages)
@@ -482,12 +483,10 @@ class LLMProcessor:
 
     async def execute_llm(self, prompt: str, memory: SemanticMemory) -> dict[str, Any]:
         """执行原始 LLM 提示"""
+        from intentos.llm.backends.base import Message
         messages = [
-            {"role": "system", "content": "你是语义 VM 处理器。"},
-            {
-                "role": "user",
-                "content": f"当前内存状态: {json.dumps(memory.get_state())}\n\n指令: {prompt}",
-            },
+            Message.system("你是语义 VM 处理器。"),
+            Message.user(f"当前内存状态: {json.dumps(memory.get_state())}\n\n指令: {prompt}"),
         ]
         response = await self.llm_executor.execute(messages)
         return self._parse_response(response.content)
@@ -496,6 +495,9 @@ class LLMProcessor:
         """更新处理器 Prompt (Self-Bootstrap)"""
         self.processor_prompt = new_prompt
 
+
+# =============================================================================
+from intentos.kernel.core import PrivilegeLevel
 
 # =============================================================================
 # 语义 VM 执行器
@@ -509,17 +511,30 @@ class SemanticVM:
     执行语义程序的完整虚拟机
     """
 
-    def __init__(self, llm_executor: Any):
+    def __init__(self, llm_executor: Optional[Any] = None, mode: PrivilegeLevel = PrivilegeLevel.USER):
         """
         初始化 VM
 
         Args:
-            llm_executor: LLM 执行器
+            llm_executor: LLM 执行器 (可选)
+            mode: 执行模式 (内核态/用户态)
         """
         self.memory = SemanticMemory()
-        self.processor = LLMProcessor(llm_executor)
+        self.processor = LLMProcessor(llm_executor) if llm_executor else None
         self.pc = 0  # 程序计数器
         self.running = False
+        self.mode = mode
+        self._llm_executor = llm_executor
+
+    async def initialize(self) -> None:
+        """初始化 VM"""
+        if not self.processor and self._llm_executor:
+            self.processor = LLMProcessor(self._llm_executor)
+        elif not self.processor:
+            # 如果没有提供执行器，使用默认 Mock
+            from intentos.llm import LLMExecutor
+            self._llm_executor = LLMExecutor(provider="mock")
+            self.processor = LLMProcessor(self._llm_executor)
 
     async def load_program(self, program: SemanticProgram) -> None:
         """加载程序"""
@@ -529,6 +544,7 @@ class SemanticVM:
         self,
         program_name: str,
         context: Optional[dict] = None,
+        mode: Optional[PrivilegeLevel] = None,
     ) -> dict[str, Any]:
         """
         执行程序
@@ -536,12 +552,19 @@ class SemanticVM:
         Args:
             program_name: 程序名称
             context: 执行上下文
+            mode: 指定执行模式 (可选，默认使用 VM 当前模式)
 
         Returns:
             执行结果
         """
+        # 如果指定了模式，临时使用
+        original_mode = self.mode
+        if mode is not None:
+            self.mode = mode
+
         program = self.memory.get("PROGRAM", program_name)
         if not program:
+            self.mode = original_mode
             return {"success": False, "error": f"程序不存在：{program_name}"}
 
         self.pc = 0
@@ -567,6 +590,7 @@ class SemanticVM:
             iterations += 1
 
         self.running = False
+        self.mode = original_mode
 
         return {
             "success": True,
@@ -580,6 +604,20 @@ class SemanticVM:
         program: SemanticProgram,
     ) -> dict[str, Any]:
         """执行单条指令"""
+
+        # 1. 特权操作检查
+        if self.mode == PrivilegeLevel.USER:
+            # 拒绝元指令 (Self-Bootstrap)
+            if instruction.opcode in (SemanticOpcode.DEFINE_INSTRUCTION, SemanticOpcode.MODIFY_PROCESSOR):
+                raise PermissionError(f"用户态禁止执行特权指令：{instruction.opcode.value}")
+            
+            # 拒绝修改系统配置和策略
+            if instruction.opcode == SemanticOpcode.MODIFY and instruction.target in ("CONFIG", "POLICY"):
+                raise PermissionError(f"用户态禁止修改系统配置：{instruction.target}")
+            
+            # 拒绝删除系统配置和策略
+            if instruction.opcode == SemanticOpcode.DELETE and instruction.target in ("CONFIG", "POLICY"):
+                raise PermissionError(f"用户态禁止删除系统配置：{instruction.target}")
 
         # 处理标签
         if instruction.label:

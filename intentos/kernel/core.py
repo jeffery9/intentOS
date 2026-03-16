@@ -212,6 +212,12 @@ class UserMode:
         if call_id not in self.protection_domain.allowed_syscalls:
             raise PermissionError(f"用户程序不允许调用 syscall {call_id}")
 
+        # 限制普通意图修改系统配置 (CONFIG/POLICY)
+        if call_id == 5:  # sys_modify
+            target_type = args[0] if args else None
+            if target_type in ("CONFIG", "POLICY"):
+                raise PermissionError(f"禁止在用户态修改 {target_type}")
+
         return self.kernel.syscall(call_id, args)
 
     def execute_program(self, program: Any) -> dict:

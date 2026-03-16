@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 from aiohttp import web
@@ -17,8 +18,27 @@ class IntentOSGateway:
         self.os.initialize()
         self.host = host
         self.port = port
-        self.app = web.Application()
+        self.app = web.Application(middlewares=[self.auth_middleware])
         self._setup_routes()
+
+    @web.middleware
+    async def auth_middleware(self, request, handler):
+        """Token 认证中间件"""
+        # 从环境变量获取 Token，默认为 intentos-secret-token
+        token = os.environ.get("INTENTOS_API_TOKEN", "intentos-secret-token")
+        
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or auth_header != f"Bearer {token}":
+            return web.json_response(
+                {
+                    "status": "error",
+                    "timestamp": datetime.now().isoformat(),
+                    "error": "Unauthorized: Invalid or missing API Token"
+                },
+                status=401
+            )
+        
+        return await handler(request)
 
     def _setup_routes(self):
         # 1. 执行层 (Execution)

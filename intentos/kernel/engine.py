@@ -33,6 +33,8 @@ class ExecutionResponse:
     metadata: dict[str, Any] = field(default_factory=dict)
 
 
+from ..kernel.core import KernelMode, UserMode, PrivilegeLevel
+
 class KernelEngine:
     """
     内核执行引擎
@@ -48,6 +50,11 @@ class KernelEngine:
         self.registry = IntentRegistry()
         self.vm = SemanticVM()
         self.engine = ExecutionEngine(self.registry)
+        
+        # 内核/用户隔离
+        self.kernel = KernelMode()
+        self.user_space = UserMode(self.kernel)
+        
         self._initialized = False
     
     async def initialize(self) -> None:

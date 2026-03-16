@@ -5,9 +5,12 @@
 
 from __future__ import annotations
 
+import asyncio
+import os
 from datetime import datetime
 from typing import Any, Optional
 
+from ..agent.errors import ErrorHandler
 from ..compiler import IntentCompiler
 from ..core import (
     Context,
@@ -19,6 +22,8 @@ from ..core import (
 from ..llm import LLMExecutor
 from ..registry import IntentRegistry
 
+
+from ..kernel.core import PrivilegeLevel
 
 class ExecutionEngine:
     """
@@ -42,12 +47,17 @@ class ExecutionEngine:
         self.compiler = IntentCompiler(registry)
         self._execution_history: list[IntentExecutionResult] = []
 
-    async def execute(self, intent: Intent) -> IntentExecutionResult:
+    async def execute(
+        self,
+        intent: Intent,
+        mode: PrivilegeLevel = PrivilegeLevel.USER
+    ) -> IntentExecutionResult:
         """
         执行意图
 
         Args:
             intent: 待执行的意图
+            mode: 执行模式 (内核态/用户态)
 
         Returns:
             执行结果
@@ -56,49 +66,75 @@ class ExecutionEngine:
         trace: list[dict[str, Any]] = []
         started_at = datetime.now()
 
-        try:
-            # 如果使用 LLM 执行模式
-            if self.use_llm:
-                result = await self._execute_with_llm(intent, trace)
-            else:
-                # 传统执行模式
-                if intent.intent_type == IntentType.ATOMIC:
-                    result = await self._execute_atomic(intent, trace)
-                elif intent.intent_type == IntentType.COMPOSITE:
-                    result = await self._execute_composite(intent, trace)
-                elif intent.intent_type == IntentType.SCENARIO:
-                    result = await self._execute_scenario(intent, trace)
-                elif intent.intent_type == IntentType.META:
-                    result = await self._execute_meta(intent, trace)
+        # 重试配置
+        max_retries = int(os.environ.get("INTENTOS_MAX_RETRIES", "3"))
+        retry_delay = float(os.environ.get("INTENTOS_RETRY_DELAY", "1.0"))
+
+        for attempt in range(max_retries + 1):
+            try:
+                # 如果使用 LLM 执行模式
+                if self.use_llm:
+                    result = await self._execute_with_llm(intent, trace, mode)
                 else:
-                    raise ValueError(f"未知意图类型：{intent.intent_type}")
+                    # 传统执行模式
+                    if intent.intent_type == IntentType.ATOMIC:
+                        result = await self._execute_atomic(intent, trace, mode)
+                    elif intent.intent_type == IntentType.COMPOSITE:
+                        result = await self._execute_composite(intent, trace, mode)
+                    elif intent.intent_type == IntentType.SCENARIO:
+                        result = await self._execute_scenario(intent, trace, mode)
+                    elif intent.intent_type == IntentType.META:
+                        result = await self._execute_meta(intent, trace, mode)
+                    else:
+                        raise ValueError(f"未知意图类型：{intent.intent_type}")
 
-            intent.update_status(IntentStatus.COMPLETED)
-            intent.result = result
+                intent.update_status(IntentStatus.COMPLETED)
+                intent.result = result
 
-            return IntentExecutionResult(
-                intent_id=intent.id,
-                success=True,
-                result=result,
-                execution_trace=trace,
-                started_at=started_at,
-                completed_at=datetime.now(),
-            )
+                execution_result = IntentExecutionResult(
+                    intent_id=intent.id,
+                    success=True,
+                    result=result,
+                    execution_trace=trace,
+                    started_at=started_at,
+                    completed_at=datetime.now(),
+                )
+                self._execution_history.append(execution_result)
+                return execution_result
 
-        except Exception as e:
-            intent.update_status(IntentStatus.FAILED)
-            intent.error = str(e)
+            except Exception as e:
+                # 处理错误并检查是否应重试
+                agent_error = ErrorHandler.handle_error(e)
+                
+                if attempt < max_retries and ErrorHandler.should_retry(agent_error):
+                    # 指数退避
+                    delay = retry_delay * (2 ** attempt)
+                    trace.append({
+                        "step": "retry",
+                        "attempt": attempt + 1,
+                        "error": str(agent_error),
+                        "next_retry_delay": delay,
+                        "timestamp": datetime.now().isoformat(),
+                    })
+                    await asyncio.sleep(delay)
+                    continue
+                else:
+                    # 最终失败
+                    intent.update_status(IntentStatus.FAILED)
+                    intent.error = str(agent_error)
 
-            return IntentExecutionResult(
-                intent_id=intent.id,
-                success=False,
-                error=str(e),
-                execution_trace=trace,
-                started_at=started_at,
-                completed_at=datetime.now(),
-            )
+                    execution_result = IntentExecutionResult(
+                        intent_id=intent.id,
+                        success=False,
+                        error=str(agent_error),
+                        execution_trace=trace,
+                        started_at=started_at,
+                        completed_at=datetime.now(),
+                    )
+                    self._execution_history.append(execution_result)
+                    return execution_result
 
-    async def _execute_with_llm(self, intent: Intent, trace: list[dict]) -> Any:
+    async def _execute_with_llm(self, intent: Intent, trace: list[dict], mode: PrivilegeLevel) -> Any:
         """
         使用 LLM 执行意图
 
@@ -137,6 +173,10 @@ class ExecutionEngine:
             for tc in llm_response.tool_calls:
                 capability = self.registry.get_capability(tc.name)  # type: ignore
                 if capability:
+                    # 特权能力检查
+                    if mode == PrivilegeLevel.USER and "system" in capability.tags:
+                        raise PermissionError(f"用户态禁止执行系统能力：{capability.name}")
+
                     result = capability.execute(intent.context, **tc.arguments)  # type: ignore
                     tool_results.append(
                         {
@@ -163,7 +203,7 @@ class ExecutionEngine:
             "llm_content": llm_response.content,
         }
 
-    async def _execute_atomic(self, intent: Intent, trace: list[dict]) -> Any:
+    async def _execute_atomic(self, intent: Intent, trace: list[dict], mode: PrivilegeLevel) -> Any:
         """执行原子意图"""
         # 查找匹配的能力
         capability = self.registry.get_capability(intent.name)
@@ -176,7 +216,11 @@ class ExecutionEngine:
         if not capability:
             raise ValueError(f"未找到能力：{intent.name}")
 
-        # 权限检查
+        # 特权检查 (内核态/用户态)
+        if mode == PrivilegeLevel.USER and "system" in capability.tags:
+            raise PermissionError(f"用户态禁止执行系统能力：{capability.name}")
+
+        # 权限检查 (Context-based)
         for perm in capability.requires_permissions:
             if not intent.context.has_permission(perm):
                 raise PermissionError(f"缺少权限：{perm}")
@@ -193,7 +237,7 @@ class ExecutionEngine:
         result = capability.execute(intent.context, **intent.params)
         return result
 
-    async def _execute_composite(self, intent: Intent, trace: list[dict]) -> Any:
+    async def _execute_composite(self, intent: Intent, trace: list[dict], mode: PrivilegeLevel) -> Any:
         """执行复合意图"""
         results: dict[str, Any] = {}
 
@@ -226,6 +270,10 @@ class ExecutionEngine:
             if not capability:
                 raise ValueError(f"步骤 {i}: 未找到能力 '{step.capability_name}'")
 
+            # 特权检查 (内核态/用户态)
+            if mode == PrivilegeLevel.USER and "system" in capability.tags:
+                raise PermissionError(f"用户态禁止执行系统能力：{capability.name}")
+
             # 解析参数（替换变量引用）
             resolved_params = self._resolve_params(step.params, results)
 
@@ -237,22 +285,27 @@ class ExecutionEngine:
 
         return results
 
-    async def _execute_scenario(self, intent: Intent, trace: list[dict]) -> Any:
+    async def _execute_scenario(self, intent: Intent, trace: list[dict], mode: PrivilegeLevel) -> Any:
         """执行场景意图"""
         # 场景意图本质上是预定义的复合意图
-        return await self._execute_composite(intent, trace)
+        return await self._execute_composite(intent, trace, mode)
 
-    async def _execute_meta(self, intent: Intent, trace: list[dict]) -> Any:
+    async def _execute_meta(self, intent: Intent, trace: list[dict], mode: PrivilegeLevel) -> Any:
         """
         执行元意图
         元意图用于管理意图系统本身
         """
         action = intent.params.get("action")
 
+        # 特权操作检查
+        privileged_actions = {"register_template", "register_capability"}
+        if mode == PrivilegeLevel.USER and action in privileged_actions:
+            raise PermissionError(f"用户态禁止执行特权元意图：{action}")
+
         if action == "register_template":
             template_data = intent.params.get("template")
             # 动态创建并注册模板
-            from .core import IntentTemplate
+            from ..core import IntentTemplate
 
             template = IntentTemplate(**template_data)
             self.registry.register_template(template)
@@ -261,7 +314,7 @@ class ExecutionEngine:
         elif action == "register_capability":
             # 动态注册能力
             cap_data = intent.params.get("capability")
-            from .core import Capability
+            from ..core import Capability
 
             capability = Capability(**cap_data)
             self.registry.register_capability(capability)

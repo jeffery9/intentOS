@@ -6,10 +6,10 @@ IntentOS 核心数据模型
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, List, Dict
+from pydantic import BaseModel, Field, validator
 
 
 class IntentStatus(Enum):
@@ -33,8 +33,7 @@ class IntentType(Enum):
     META = "meta"  # 元意图（管理其他意图）
 
 
-@dataclass
-class Context:
+class Context(BaseModel):
     """
     执行上下文
     包含用户身份、历史、环境、权限等动态变量
@@ -42,11 +41,14 @@ class Context:
 
     user_id: str
     user_role: str = "user"
-    session_id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    history: list[str] = field(default_factory=list)
-    permissions: list[str] = field(default_factory=list)
-    variables: dict[str, Any] = field(default_factory=dict)
-    created_at: datetime = field(default_factory=datetime.now)
+    session_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    history: List[str] = Field(default_factory=list)
+    permissions: List[str] = Field(default_factory=list)
+    variables: Dict[str, Any] = Field(default_factory=dict)
+    created_at: datetime = Field(default_factory=datetime.now)
+
+    class Config:
+        arbitrary_types_allowed = True
 
     def has_permission(self, permission: str) -> bool:
         """检查是否有指定权限"""
@@ -61,8 +63,7 @@ class Context:
         self.variables[key] = value
 
 
-@dataclass
-class Capability:
+class Capability(BaseModel):
     """
     原子能力
     系统可调度的最小执行单元
@@ -70,11 +71,14 @@ class Capability:
 
     name: str
     description: str
-    input_schema: dict[str, Any]
-    output_schema: dict[str, Any]
+    input_schema: Dict[str, Any] = Field(default_factory=dict)
+    output_schema: Dict[str, Any] = Field(default_factory=dict)
     func: Callable[..., Any]
-    requires_permissions: list[str] = field(default_factory=list)
-    tags: list[str] = field(default_factory=list)
+    requires_permissions: List[str] = Field(default_factory=list)
+    tags: List[str] = Field(default_factory=list)
+
+    class Config:
+        arbitrary_types_allowed = True
 
     def execute(self, context: Context, **kwargs) -> Any:
         """执行能力"""
@@ -86,21 +90,19 @@ class Capability:
         return self.func(context, **kwargs)
 
 
-@dataclass
-class IntentStep:
+class IntentStep(BaseModel):
     """
     意图执行步骤
     用于复合意图中的步骤定义
     """
 
     capability_name: str
-    params: dict[str, Any] = field(default_factory=dict)
+    params: Dict[str, Any] = Field(default_factory=dict)
     condition: Optional[str] = None  # 执行条件（可选）
     output_var: Optional[str] = None  # 输出绑定变量
 
 
-@dataclass
-class Intent:
+class Intent(BaseModel):
     """
     意图
     核心概念：用户目标的结构性表达
@@ -111,23 +113,22 @@ class Intent:
     description: str = ""
     actor: str = "user"
     goal: str = ""
-    context: Context = field(default_factory=lambda: Context(user_id="anonymous"))
-    params: dict[str, Any] = field(default_factory=dict)
-    constraints: dict[str, Any] = field(default_factory=dict)
-    steps: list[IntentStep] = field(default_factory=list)  # 复合意图的步骤
+    context: Context = Field(default_factory=lambda: Context(user_id="anonymous"))
+    params: Dict[str, Any] = Field(default_factory=dict)
+    constraints: Dict[str, Any] = Field(default_factory=dict)
+    steps: List[IntentStep] = Field(default_factory=list)  # 复合意图的步骤
     status: IntentStatus = IntentStatus.PENDING
     result: Any = None
     error: Optional[str] = None
     parent_intent: Optional[str] = None  # 父意图 ID（用于嵌套）
-    child_intents: list[str] = field(default_factory=list)
-    created_at: datetime = field(default_factory=datetime.now)
-    updated_at: datetime = field(default_factory=datetime.now)
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    child_intents: List[str] = Field(default_factory=list)
+    created_at: datetime = Field(default_factory=datetime.now)
+    updated_at: datetime = Field(default_factory=datetime.now)
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
 
-    def __post_init__(self):
-        """初始化后处理"""
-        if not self.context:
-            self.context = Context(user_id="anonymous")
+    class Config:
+        arbitrary_types_allowed = True
+        use_enum_values = False
 
     def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
@@ -153,8 +154,7 @@ class Intent:
         self.updated_at = datetime.now()
 
 
-@dataclass
-class IntentTemplate:
+class IntentTemplate(BaseModel):
     """
     意图模板
     可复用的意图定义，支持参数化
@@ -163,12 +163,15 @@ class IntentTemplate:
     name: str
     description: str
     intent_type: IntentType = IntentType.COMPOSITE
-    params_schema: dict[str, Any] = field(default_factory=dict)
-    steps: list[IntentStep] = field(default_factory=list)
-    constraints: dict[str, Any] = field(default_factory=dict)
-    required_permissions: list[str] = field(default_factory=list)
+    params_schema: Dict[str, Any] = Field(default_factory=dict)
+    steps: List[IntentStep] = Field(default_factory=list)
+    constraints: Dict[str, Any] = Field(default_factory=dict)
+    required_permissions: List[str] = Field(default_factory=list)
     version: str = "1.0.0"
-    tags: list[str] = field(default_factory=list)
+    tags: List[str] = Field(default_factory=list)
+
+    class Config:
+        arbitrary_types_allowed = True
 
     def instantiate(self, context: Context, **params) -> Intent:
         """根据模板实例化意图"""
@@ -206,18 +209,16 @@ class IntentTemplate:
         return value
 
 
-@dataclass
-class IntentExecutionResult:
+class IntentExecutionResult(BaseModel):
     """意图执行结果"""
 
     intent_id: str
     success: bool
     result: Any = None
     error: Optional[str] = None
-    execution_trace: list[dict[str, Any]] = field(default_factory=list)
-    started_at: datetime = field(default_factory=datetime.now)
-    completed_at: Optional[datetime] = None
+    execution_trace: List[Dict[str, Any]] = Field(default_factory=list)
+    started_at: datetime = Field(default_factory=datetime.now)
+    completed_at: Optional[datetime] = Field(default_factory=datetime.now)
 
-    def __post_init__(self):
-        if not self.completed_at and self.completed_at is not False:
-            self.completed_at = datetime.now()
+    class Config:
+        arbitrary_types_allowed = True
