@@ -5,6 +5,7 @@
 set -e
 
 INTENTOS_URL="${INTENTOS_URL:-http://localhost:8080}"
+INTENTOS_API_TOKEN="${INTENTOS_API_TOKEN:-intentos-secret-token}"
 HEALTH_ENDPOINT="/v1/status"
 MAX_RETRIES=5
 RETRY_DELAY=10
@@ -16,7 +17,10 @@ log() {
 
 check_health() {
     local response
-    response=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "${INTENTOS_URL}${HEALTH_ENDPOINT}" 2>/dev/null || echo "000")
+    response=$(curl -s -o /dev/null -w "%{http_code}" \
+        --connect-timeout 5 \
+        -H "Authorization: Bearer ${INTENTOS_API_TOKEN}" \
+        "${INTENTOS_URL}${HEALTH_ENDPOINT}" 2>/dev/null || echo "000")
     if [ "$response" -eq 200 ]; then
         return 0
     else

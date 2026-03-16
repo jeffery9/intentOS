@@ -158,11 +158,50 @@ class IntentOS:
         """检查系统是否正在运行"""
         return self._running
 
+    async def _watchdog_task(self) -> None:
+        """语义自愈监控任务"""
+        import asyncio
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info("Semantic Watchdog started")
+        while self._running:
+            try:
+                # 1. 检查 VM 状态
+                if not self.vm or not self.vm.local_vm:
+                    logger.error("VM or Local VM is missing!")
+                    # 尝试恢复 (此处简化为记录)
+                
+                # 2. 检查内存一致性
+                memory_state = self.vm.local_vm.memory.get_state()
+                if memory_state["audit_log_count"] > 10000:
+                    # 定期清理过大的审计日志
+                    self.vm.local_vm.memory.audit_log = self.vm.local_vm.memory.audit_log[-1000:]
+                    logger.info("Cleaned up old audit logs")
+
+                # 3. 检查并清理僵尸进程 (分布式)
+                # await self.vm.cleanup_zombie_processes()
+                
+                # 每 60 秒检查一次
+                await asyncio.sleep(60)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"Watchdog error: {e}")
+                await asyncio.sleep(10)
+
     async def start_background_services(self) -> None:
         """启动后台服务"""
-        # 这里可以启动各种后台监控服务
-        # 例如：进程监控、内存清理、健康检查等
-        pass
+        import asyncio
+        if not self._running:
+            return
+            
+        # 启动自愈监控
+        watchdog = asyncio.create_task(self._watchdog_task())
+        self._background_tasks.append(watchdog)
+        
+        # 启动其他云原生服务 (监控、心跳等)
+        print("✅ Background services (Watchdog) started")
 
     def run_daemon(self) -> None:
         """

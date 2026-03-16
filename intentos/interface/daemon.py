@@ -80,6 +80,8 @@ class IntentOSDaemon:
             asyncio.set_event_loop(loop)
             
             # 启动后台服务
+            loop.run_until_complete(self.os.start_background_services())
+            
             async def background_monitor():
                 """后台监控循环"""
                 while self._should_run:
