@@ -9,8 +9,15 @@ This module enables IntentOS to periodically evaluate its own state
 
 import yaml
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import os
+import asyncio
+
+# Import IntentOS modules for corrective actions
+from intentos.distributed.economic_engine import EconomicEngine
+from intentos.bootstrap.self_reproduction import SelfReproduction
+from intentos.agent.social_agent import SocialAgent
+from intentos.distributed.cost_monitor import CostMonitor
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -20,15 +27,29 @@ class SelfReflection:
     Enables IntentOS to reflect on its performance and align with its core intent.
     """
 
-    def __init__(self, manifest_path: str = 'intentos/config/soul_manifest.yaml'):
+    def __init__(self, manifest_path: str = 'intentos/config/soul_manifest.yaml',
+                 economic_engine: Optional[EconomicEngine] = None,
+                 self_reproduction: Optional[SelfReproduction] = None,
+                 social_agent: Optional[SocialAgent] = None,
+                 cost_monitor: Optional[CostMonitor] = None):
         """
         Initializes the SelfReflection module by loading the soul manifest.
 
         :param manifest_path: Path to the soul manifest YAML file.
+        :param economic_engine: Instance of EconomicEngine for economic actions.
+        :param self_reproduction: Instance of SelfReproduction for reproduction actions.
+        :param social_agent: Instance of SocialAgent for social outreach.
+        :param cost_monitor: Instance of CostMonitor for cost optimization.
         """
         self.manifest_path = manifest_path
         self.soul_manifest: Dict[str, Any] = {}
         self._load_soul_manifest()
+
+        self.economic_engine = economic_engine
+        self.self_reproduction = self_reproduction
+        self.social_agent = social_agent
+        self.cost_monitor = cost_monitor
+
         logging.info("SelfReflection module initialized.")
 
     def _load_soul_manifest(self) -> None:
@@ -87,7 +108,7 @@ class SelfReflection:
 
         return deviations
 
-    def trigger_self_correction(self, deviations: List[str]) -> None:
+    async def trigger_self_correction(self, deviations: List[str]) -> None:
         """
         Triggers simulated self-correction actions based on identified deviations.
 
@@ -96,19 +117,27 @@ class SelfReflection:
         logging.info("Triggering simulated self-correction based on deviations...")
         for deviation in deviations:
             if "Economic health is poor" in deviation:
-                logging.info("  --> Suggesting economic optimization or revenue generation activities.")
-                # In a real system, this would call economic_engine.optimize() or similar.
+                if self.economic_engine:
+                    logging.info("  --> Economic health poor. Running economic cycle for optimization/revenue.")
+                    await self.economic_engine.run_economic_cycle()
+                else:
+                    logging.warning("  --> EconomicEngine not provided, cannot take economic action.")
             elif "Growth rate is low" in deviation:
-                logging.info("  --> Suggesting self-reproduction (scale or clone) actions.")
-                # In a real system, this would call self_reproduction.scale_self() or clone_self().
-            elif "High resource consumption" in deviation:
-                logging.info("  --> Recommending cost optimization through cost_monitor.")
-                # In a real system, this would trigger cost_monitor.run_optimization_checks().
-            elif "Negative social sentiment" in deviation:
-                logging.info("  --> Engaging social_agent for community outreach and clarification.")
-                # In a real system, this would call social_agent.post_to_discord() with a message.
-            elif "Cost over budget" in deviation:
-                logging.info("  --> Activating emergency cost controls and reporting.")
+                if self.self_reproduction:
+                    logging.info("  --> Growth rate low. Suggesting self-reproduction (scale) actions.")
+                    # For simplicity, trigger a small scale-up. Real logic would be more complex.
+                    await self.self_reproduction.scale_self(scale_factor=1.2)
+                else:
+                    logging.warning("  --> SelfReproduction not provided, cannot take reproduction action.")
+            elif "High resource consumption" in deviation or "Cost over budget" in deviation:
+                if self.cost_monitor:
+                    logging.info("  --> Resource consumption/cost issue. Running cost optimization checks.")
+                    optimization_suggestions = self.cost_monitor.run_optimization_checks()
+                    # In a real system, these suggestions would be applied.
+                    if optimization_suggestions:
+                        logging.info(f"    Optimization suggestions: {optimization_suggestions}")
+                else:
+                    logging.warning("  --> CostMonitor not provided, cannot take cost optimization action.")
 
         logging.info("Simulated self-correction complete.")
 
@@ -126,10 +155,7 @@ if __name__ == '__main__':
     }
     deviations_healthy = self_reflection.evaluate_current_state(healthy_state)
     self_reflection.trigger_self_correction(deviations_healthy)
-
-    print("
-" + "-"*80 + "
-")
+    print(" " + "-"*80 + " ")
 
     # Simulate a state with deviations
     deviated_state = {

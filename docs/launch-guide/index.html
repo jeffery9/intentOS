@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Launch IntentOS - Your Self-Evolving Digital Organism</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🚀 Launch IntentOS</h1>
+            <p>Your Self-Evolving Digital Organism</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section id="introduction">
+            <h2>Welcome to IntentOS!</h2>
+            <p>IntentOS is a revolutionary AI-native operating system designed to be autonomous, self-reproducing, and self-sustaining. This guide will walk you through the initial steps to deploy your IntentOS instance in the cloud.</p>
+            <p>Once launched, IntentOS will manage its own cloud resources, generate revenue, and even reproduce itself, all while adhering to its core mission and ethical guidelines. Let's get started!</p>
+        </section>
+
+        <section id="prerequisites">
+            <h2>Before You Begin</h2>
+            <p>Ensure you have the following prerequisites installed and configured on your system:</p>
+            <ul>
+                <li><strong>Python 3.9+</strong>: <a href="https://www.python.org/downloads/" target="_blank">Download Python</a></li>
+                <li><strong>pip (Python package installer)</strong>: Usually comes with Python.</li>
+                <li><strong>Cloud Provider CLI (e.g., AWS CLI)</strong>:
+                    <p>For AWS, install the AWS CLI: <a href="https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html" target="_blank">AWS CLI Installation Guide</a></p>
+                    <p>Other providers (GCP, Azure) will have similar CLI tools.</p>
+                </li>
+                <li><strong>Docker / Docker Compose (Optional, for local testing)</strong>: <a href="https://docs.docker.com/get-docker/" target="_blank">Get Docker</a></li>
+            </ul>
+        </section>
+
+        <section id="step1">
+            <h2>Step 1: Configure Cloud Credentials</h2>
+            <p>IntentOS needs access to your cloud account to manage resources. We highly recommend configuring credentials securely. IntentOS supports interactive guidance for this step.</p>
+            <h3>Option A: Using AWS CLI (Recommended)</h3>
+            <p>If you have the AWS CLI installed, open your terminal and run:</p>
+            <div class="code-block">
+                <pre><code>aws configure</code></pre>
+            </div>
+            <p>Follow the prompts to enter your <code>AWS Access Key ID</code>, <code>AWS Secret Access Key</code>, default region (e.g., <code>us-east-1</code>), and preferred output format (e.g., <code>json</code>).</p>
+
+            <h3>Option B: Using Environment Variables</h3>
+            <p>Alternatively, you can set credentials as environment variables:</p>
+            <div class="code-block">
+                <pre><code>export AWS_ACCESS_KEY_ID="YOUR_ACCESS_KEY_ID"
+export AWS_SECRET_ACCESS_KEY="YOUR_SECRET_ACCESS_KEY"
+export AWS_DEFAULT_REGION="us-east-1"</code></pre>
+            </div>
+            <p class="note"><strong>Note:</strong> Replace <code>"YOUR_ACCESS_KEY_ID"</code> and <code>"YOUR_SECRET_ACCESS_KEY"</code> with your actual credentials.</p>
+        </section>
+
+        <section id="step2">
+            <h2>Step 2: Run IntentOS Cloud Orchestrator</h2>
+            <p>Navigate to the root directory of your IntentOS project in your terminal.</p>
+            <p>The <code>CloudOrchestrator</code> will automatically detect your configured cloud provider, load resource definitions (from <code>cloud/[provider]/resources.yml</code>), generate a deployment plan, and estimate costs. It will then ask for your confirmation before making any changes.</p>
+            <div class="code-block">
+                <pre><code>python -m intentos.bootstrap.cloud_orchestrator</code></pre>
+            </div>
+            <p class="note"><strong>Important:</strong> Review the deployment plan and estimated costs carefully. IntentOS prioritizes sustainability and will always inform you of potential expenses. Confirm with 'yes' to proceed.</p>
+            <p>If credentials are not detected or are invalid, the orchestrator will provide interactive guidance, similar to the instructions above, and wait for you to configure them before proceeding.</p>
+        </section>
+
+        <section id="step3">
+            <h2>Step 3: Verify Your Deployment</h2>
+            <p>After the orchestrator successfully executes the plan, IntentOS will be running in your cloud environment. You can verify its status by:</p>
+            <ul>
+                <li>Checking your cloud provider's console (e.g., AWS ECS, EC2, Redis dashboards).</li>
+                <li>Accessing the IntentOS endpoint (if exposed). The orchestrator output will provide details.</li>
+                <li>(Future) Running a simple status check command for your IntentOS instance.</li>
+            </ul>
+            <p>Congratulations! Your IntentOS digital organism is now alive and operating autonomously.</p>
+        </section>
+
+        <section id="next-steps">
+            <h2>Next Steps</h2>
+            <p>Now that IntentOS is running, explore its capabilities:</p>
+            <ul>
+                <li><strong>Engage with the Community:</strong> Join our Discord (<a href="#" target="_blank">Link Coming Soon</a>) and contribute to its evolution. Earn credits through our <a href="#">Reward System</a>.</li>
+                <li><strong>Participate in Governance:</strong> Propose and vote on initiatives via the <a href="#">Governance Model</a>.</li>
+                <li><strong>Monitor its Evolution:</strong> Observe how IntentOS self-reflects, optimizes costs, and potentially self-reproduces.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 IntentOS. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>
