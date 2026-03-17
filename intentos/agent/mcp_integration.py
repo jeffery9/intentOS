@@ -8,7 +8,11 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from typing import Any, Optional
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 class MCPIntegration:
@@ -71,7 +75,7 @@ class MCPIntegration:
             
             return True
         except Exception as e:
-            print(f"连接 MCP 服务器失败：{name}, 错误：{e}")
+            logging.error(f"连接 MCP 服务器失败：{name}, 错误：{e}")
             return False
     
     async def disconnect_server(self, name: str) -> bool:
@@ -149,3 +153,36 @@ class MCPIntegration:
     def get_connected_servers(self) -> list[str]:
         """获取已连接的服务器列表"""
         return list(self.servers.keys())
+
+    async def setup_metered_api_gateway(self) -> Dict[str, Any]:
+        """
+        Simulates setting up a public-facing API Gateway with a metering layer.
+
+        This gateway will route requests to the core IntentOS services
+        and record usage for billing purposes.
+
+        :return: A dictionary containing details of the simulated API Gateway.
+        """
+        logging.info("Setting up Metered API Gateway...")
+
+        # Placeholder: In a real implementation, this would involve actual cloud SDK calls
+        # to configure API Gateway, integrate with a metering service, and expose endpoints.
+        
+        gateway_details = {
+            "endpoint": "https://api.intentos.com/v1",
+            "status": "active",
+            "capabilities_exposed": [],
+            "metering_system": "active",
+            "pricing_model": "pay-as-you-go",
+            "metrics_dashboard": "https://monitor.intentos.com/metrics"
+        }
+
+        logging.info("Simulating exposure of registered capabilities through the metered API.")
+        # In a real scenario, we would iterate through self.registry.list_capabilities()
+        # and configure each one as an API endpoint, linking it to the metering system.
+        for cap_id, capability in self.registry.list_capabilities().items():
+            # For simulation, just add the capability ID to the list
+            gateway_details["capabilities_exposed"].append(cap_id)
+
+        logging.info(f"Metered API Gateway setup complete. Endpoint: {gateway_details['endpoint']}")
+        return gateway_details
