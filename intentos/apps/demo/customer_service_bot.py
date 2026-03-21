@@ -11,8 +11,7 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
-from intentos.agent.submission import LocalAppBuilder, IntentOSConnector
-
+from intentos.agent.submission import IntentOSConnector, LocalAppBuilder
 
 logger: logging.Logger = logging.getLogger(__name__)
 

@@ -8,8 +8,9 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Optional, List, Dict
-from pydantic import BaseModel, Field, validator
+from typing import Any, Callable, Dict, List, Optional
+
+from pydantic import BaseModel, Field
 
 
 class IntentStatus(Enum):

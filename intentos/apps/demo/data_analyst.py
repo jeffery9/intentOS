@@ -8,9 +8,9 @@ Data Analyst Demo App
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, Optional
-
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -285,10 +285,6 @@ class DataAnalystApp:
             logger.info(f"数据分析助手 App 已提交：{result['app_id']}")
 
             return result
-
-
-# 需要导入 asyncio
-import asyncio
 
 
 # 便捷创建函数
