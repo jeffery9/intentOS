@@ -6,47 +6,47 @@ Agent 错误处理
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Any, Optional
+from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Optional
 
 
 class ErrorCode(Enum):
     """错误码"""
     # 成功
     SUCCESS = "SUCCESS_000"
-    
+
     # 通用错误 (1xxx)
     UNKNOWN_ERROR = "ERR_1000"
     INVALID_ARGUMENT = "ERR_1001"
     MISSING_ARGUMENT = "ERR_1002"
     TIMEOUT = "ERR_1003"
-    
+
     # 能力相关错误 (2xxx)
     CAPABILITY_NOT_FOUND = "ERR_2000"
     CAPABILITY_EXECUTION_FAILED = "ERR_2001"
     CAPABILITY_NOT_REGISTERED = "ERR_2002"
-    
+
     # 意图相关错误 (3xxx)
     INTENT_NOT_UNDERSTOOD = "ERR_3000"
     INTENT_AMBIGUOUS = "ERR_3001"
     INTENT_NO_MATCHING_CAPABILITY = "ERR_3002"
-    
+
     # PEF 相关错误 (4xxx)
     PEF_COMPILE_FAILED = "ERR_4000"
     PEF_EXECUTE_FAILED = "ERR_4001"
     PEF_CACHE_ERROR = "ERR_4002"
-    
+
     # MCP 相关错误 (5xxx)
     MCP_CONNECTION_FAILED = "ERR_5000"
     MCP_TIMEOUT = "ERR_5001"
     MCP_TOOL_NOT_FOUND = "ERR_5002"
-    
+
     # Skill 相关错误 (6xxx)
     SKILL_NOT_FOUND = "ERR_6000"
     SKILL_LOAD_FAILED = "ERR_6001"
     SKILL_EXECUTION_FAILED = "ERR_6002"
-    
+
     # 权限相关错误 (7xxx)
     PERMISSION_DENIED = "ERR_7000"
     AUTHENTICATION_REQUIRED = "ERR_7001"
@@ -60,7 +60,7 @@ class AgentError:
     message: str
     details: Optional[dict[str, Any]] = None
     cause: Optional[Exception] = None
-    
+
     def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
@@ -69,14 +69,14 @@ class AgentError:
             "details": self.details,
             "cause": str(self.cause) if self.cause else None,
         }
-    
+
     def __str__(self) -> str:
         return f"[{self.code.value}] {self.message}"
 
 
 class AgentException(Exception):
     """Agent 异常"""
-    
+
     def __init__(
         self,
         code: ErrorCode,
@@ -90,11 +90,11 @@ class AgentException(Exception):
         self.details = details
         self.cause = cause
         self.error = AgentError(code, message, details, cause)
-    
+
     def to_error(self) -> AgentError:
         """转换为错误对象"""
         return self.error
-    
+
     def __str__(self) -> str:
         return str(self.error)
 
@@ -191,43 +191,43 @@ def create_permission_denied_error(resource: str) -> AgentError:
 
 class ErrorHandler:
     """错误处理器"""
-    
+
     @staticmethod
     def handle_error(error: Exception) -> AgentError:
         """
         处理错误，转换为统一的 AgentError
-        
+
         Args:
             error: 原始异常
-        
+
         Returns:
             统一的错误对象
         """
         # 如果已经是 AgentException，直接返回
         if isinstance(error, AgentException):
             return error.to_error()
-        
+
         # 根据异常类型转换
         if isinstance(error, ValueError):
             return create_invalid_argument_error(str(error))
-        
+
         if isinstance(error, KeyError):
             return create_capability_not_found_error(str(error))
-        
+
         if isinstance(error, TimeoutError):
             return AgentError(ErrorCode.TIMEOUT, str(error))
-        
+
         # 未知错误
         return create_unknown_error(str(error), cause=error)
-    
+
     @staticmethod
     def should_retry(error: AgentError) -> bool:
         """
         判断是否应该重试
-        
+
         Args:
             error: 错误对象
-        
+
         Returns:
             是否应该重试
         """
@@ -238,15 +238,15 @@ class ErrorHandler:
             ErrorCode.PEF_EXECUTE_FAILED,
         }
         return error.code in retry_codes
-    
+
     @staticmethod
     def is_user_error(error: AgentError) -> bool:
         """
         判断是否为用户错误（非系统错误）
-        
+
         Args:
             error: 错误对象
-        
+
         Returns:
             是否为用户错误
         """

@@ -31,7 +31,7 @@ class AgentContext:
     conversation_history: list[dict[str, Any]] = field(default_factory=list)
     variables: dict[str, Any] = field(default_factory=dict)
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
-    
+
     def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
@@ -52,7 +52,7 @@ class AgentResult:
     error: Optional[str] = None
     artifacts: list[Any] = field(default_factory=list)
     next_actions: list[str] = field(default_factory=list)
-    
+
     def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
         return {
@@ -68,19 +68,19 @@ class AgentResult:
 class Agent(ABC):
     """
     AI Agent 基类
-    
+
     新的实现方式：基于意图包和能力注册，支持 MCP 和 Skill
     """
-    
+
     def __init__(self, config: Optional[AgentConfig] = None) -> None:
         self.config: AgentConfig = config or AgentConfig()
         self._initialized: bool = False
-    
+
     async def initialize(self) -> bool:
         """初始化 Agent"""
         self._initialized = True
         return True
-    
+
     @abstractmethod
     async def execute(
         self,
@@ -89,16 +89,16 @@ class Agent(ABC):
     ) -> AgentResult:
         """
         执行意图
-        
+
         Args:
             intent: 用户意图
             context: 执行上下文
-        
+
         Returns:
             执行结果
         """
         pass
-    
+
     async def shutdown(self) -> None:
         """关闭 Agent"""
         self._initialized = False
