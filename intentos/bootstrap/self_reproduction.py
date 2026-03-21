@@ -8,14 +8,14 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging  # Import logging for ethical checks
 import os
-import shutil
 import uuid
-import yaml # Import yaml for reading soul manifest
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
-import logging # Import logging for ethical checks
+from typing import Any, Dict, Optional
+
+import yaml  # Import yaml for reading soul manifest
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -175,7 +175,7 @@ class SelfReproduction:
         )
 
         self._current_instance = instance
-        print(f"✓ 实例发现完成")
+        print("✓ 实例发现完成")
         print(f"  提供商：{provider}")
         print(f"  区域：{region}")
         print(f"  端点：{instance.endpoint}")
@@ -261,7 +261,6 @@ class SelfReproduction:
         """
         扫描 Docker 资源
         """
-        import subprocess
 
         try:
             # 获取容器
@@ -349,7 +348,7 @@ class SelfReproduction:
         Returns:
             ReproductionPlan: 繁殖计划
         """
-        print(f"\n🔄 开始自我克隆...")
+        print("\n🔄 开始自我克隆...")
         print(f"  源实例：{self.instance_id}")
         print(f"  目标区域：{target_region}")
 
@@ -386,7 +385,7 @@ class SelfReproduction:
         Returns:
             ReproductionPlan: 繁殖计划
         """
-        print(f"\n📈 开始自我扩展...")
+        print("\n📈 开始自我扩展...")
         print(f"  当前实例：{self.instance_id}")
         print(f"  扩展倍数：{scale_factor}x")
 
@@ -424,7 +423,7 @@ class SelfReproduction:
         Returns:
             ReproductionPlan: 繁殖计划
         """
-        print(f"\n🧬 开始自我演化...")
+        print("\n🧬 开始自我演化...")
         print(f"  当前版本：{self._current_instance.version if self._current_instance else 'unknown'}")
         print(f"  改进项：{improvements or ['自动检测']}")
 
@@ -462,7 +461,7 @@ class SelfReproduction:
         Returns:
             ReproductionPlan: 繁殖计划
         """
-        print(f"\n🔧 开始自我修复...")
+        print("\n🔧 开始自我修复...")
 
         if not issues:
             # 自动检测问题
@@ -573,7 +572,7 @@ class SelfReproduction:
         with open(f"{target_dir}/docker-compose.yml", 'w') as f:
             f.write(compose_content)
 
-        print(f"    ✓ Docker Compose 已生成")
+        print("    ✓ Docker Compose 已生成")
 
     def _generate_docker_compose(self, plan: ReproductionPlan) -> str:
         """
@@ -610,7 +609,7 @@ volumes:
                 'source_instance': self._current_instance.id,
                 'source_config': self._current_instance.config,
             })
-        print(f"    ✓ 配置已复制")
+        print("    ✓ 配置已复制")
 
     async def _deploy_instance(self, plan: ReproductionPlan) -> None:
         """
@@ -622,14 +621,14 @@ volumes:
             await asyncio.create_subprocess_exec(
                 'docker-compose', '-f', f'{target_dir}/docker-compose.yml', 'up', '-d'
             )
-        print(f"    ✓ 实例已部署")
+        print("    ✓ 实例已部署")
 
     async def _sync_data(self, plan: ReproductionPlan) -> None:
         """
         同步数据
         """
         # 同步 Redis 数据
-        print(f"    ✓ 数据已同步")
+        print("    ✓ 数据已同步")
 
     async def _verify_health(self, plan: ReproductionPlan) -> None:
         """
@@ -644,7 +643,7 @@ volumes:
             try:
                 async with session.get(f'{plan.target_endpoint or "http://localhost:8080"}/v1/status', timeout=10) as resp:
                     if resp.status == 200:
-                        print(f"    ✓ 健康检查通过")
+                        print("    ✓ 健康检查通过")
                     else:
                         raise Exception(f"健康检查失败：{resp.status}")
             except Exception as e:

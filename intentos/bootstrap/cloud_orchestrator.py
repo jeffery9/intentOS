@@ -7,10 +7,11 @@ in a cloud environment. It reads resource definitions, generates an execution
 plan, and applies it using the appropriate cloud provider's SDK.
 """
 
-import yaml
 import logging
 import sys
-from typing import Dict, Any, List
+from typing import Any, Dict
+
+import yaml
 
 from intentos.distributed.cost_monitor import CostMonitor
 
@@ -42,7 +43,7 @@ class CloudOrchestrator:
         self.definitions = None
         self.plan = None
         self.cost_monitor = CostMonitor(provider=self.provider, region=self.region)
-        
+
         logging.info(f"CloudOrchestrator initialized for provider: {self.provider}")
         self._initial_setup()
 
@@ -180,7 +181,7 @@ You can set the credentials as environment variables in your shell:
         print("-"*80)
         print(f"💰 Estimated Total Monthly Cost: ${self.plan['estimated_cost']['total_monthly_cost']}")
         print("="*80 + "\n")
-        
+
         return self.plan
 
     def execute_plan(self, auto_approve: bool = False) -> None:
@@ -216,7 +217,7 @@ You can set the credentials as environment variables in your shell:
 if __name__ == '__main__':
     # This is a simple demonstration of how the orchestrator will be used.
     # It requires a 'resources.yml' file for the demonstration.
-    
+
     # Create a dummy resource definition file for testing
     dummy_resources = {
         "provider": "aws",

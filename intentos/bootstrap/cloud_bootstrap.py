@@ -7,9 +7,7 @@ IntentOS 云资源 Self-Bootstrap 模块
 from __future__ import annotations
 
 import asyncio
-import json
 import os
-import sys
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Optional
@@ -60,21 +58,21 @@ class BootstrapPlan:
 class CloudResourceProvisioner:
     """
     云资源开通器
-    
+
     支持自动开通和人类引导授权
     """
-    
+
     def __init__(self, provider: str, region: str = ""):
         self.provider = provider
         self.region = region
         self.credentials_valid = False
         self._check_credentials()
-    
+
     def _check_credentials(self) -> None:
         """检查云凭证"""
         if self.provider == "aws":
             self.credentials_valid = bool(
-                os.getenv('AWS_ACCESS_KEY_ID') and 
+                os.getenv('AWS_ACCESS_KEY_ID') and
                 os.getenv('AWS_SECRET_ACCESS_KEY')
             )
         elif self.provider == "gcp":
@@ -88,7 +86,7 @@ class CloudResourceProvisioner:
             )
         elif self.provider == "docker":
             self.credentials_valid = True
-    
+
     async def check_resource(self, resource: CloudResource) -> ResourceStatus:
         """检查资源是否存在"""
         if self.provider == "aws":
@@ -98,15 +96,15 @@ class CloudResourceProvisioner:
         elif self.provider == "docker":
             return await self._check_docker_resource(resource)
         return ResourceStatus.NOT_EXISTS
-    
+
     async def _check_aws_resource(self, resource: CloudResource) -> ResourceStatus:
         """检查 AWS 资源"""
         if not self.credentials_valid:
             return ResourceStatus.NEEDS_AUTH
-        
+
         try:
             import boto3
-            
+
             if resource.type == "vpc":
                 client = boto3.client('ec2', region_name=self.region)
                 response = client.describe_vpcs(
@@ -115,14 +113,14 @@ class CloudResourceProvisioner:
                 if response['Vpcs']:
                     resource.id = response['Vpcs'][0]['VpcId']
                     return ResourceStatus.ACTIVE
-                    
+
             elif resource.type == "ecs_cluster":
                 client = boto3.client('ecs', region_name=self.region)
                 response = client.describe_clusters(clusters=[resource.name])
                 if response['clusters']:
                     resource.id = response['clusters'][0]['clusterArn']
                     return ResourceStatus.ACTIVE
-                    
+
             elif resource.type == "elasticache":
                 client = boto3.client('elasticache', region_name=self.region)
                 response = client.describe_cache_clusters(
@@ -131,35 +129,35 @@ class CloudResourceProvisioner:
                 if response['CacheClusters']:
                     resource.id = response['CacheClusters'][0]['CacheClusterId']
                     return ResourceStatus.ACTIVE
-            
+
             return ResourceStatus.NOT_EXISTS
-            
+
         except Exception as e:
             if "credential" in str(e).lower() or "auth" in str(e).lower():
                 return ResourceStatus.NEEDS_AUTH
             return ResourceStatus.ERROR
-    
+
     async def create_resource(self, resource: CloudResource) -> bool:
         """创建资源"""
         if not self.credentials_valid:
             # 需要人类介入
             return await self._guide_human_creation(resource)
-        
+
         if self.provider == "aws":
             return await self._create_aws_resource(resource)
         elif self.provider == "gcp":
             return await self._create_gcp_resource(resource)
         elif self.provider == "docker":
             return await self._create_docker_resource(resource)
-        
+
         return False
-    
+
     async def _create_aws_resource(self, resource: CloudResource) -> bool:
         """创建 AWS 资源"""
         try:
             import boto3
             import botocore
-            
+
             if resource.type == "vpc":
                 client = boto3.client('ec2', region_name=self.region)
                 response = client.create_vpc(
@@ -171,7 +169,7 @@ class CloudResourceProvisioner:
                 )
                 resource.id = response['Vpc']['VpcId']
                 print(f"  ✓ VPC 已创建：{resource.id}")
-                
+
             elif resource.type == "ecs_cluster":
                 client = boto3.client('ecs', region_name=self.region)
                 response = client.create_cluster(
@@ -180,7 +178,7 @@ class CloudResourceProvisioner:
                 )
                 resource.id = response['cluster']['clusterArn']
                 print(f"  ✓ ECS Cluster 已创建：{resource.id}")
-                
+
             elif resource.type == "elasticache":
                 client = boto3.client('elasticache', region_name=self.region)
                 response = client.create_cache_cluster(
@@ -192,80 +190,80 @@ class CloudResourceProvisioner:
                 )
                 resource.id = response['CacheCluster']['CacheClusterId']
                 print(f"  ✓ ElastiCache 已创建：{resource.id}")
-            
+
             resource.status = ResourceStatus.ACTIVE
             return True
-            
+
         except botocore.exceptions.ClientError as e:
             error_code = e.response['Error']['Code']
             if error_code in ['AccessDenied', 'UnauthorizedOperation']:
-                print(f"  ⚠️  权限不足，需要人类介入")
+                print("  ⚠️  权限不足，需要人类介入")
                 return await self._guide_human_creation(resource)
             raise
-    
+
     async def _guide_human_creation(self, resource: CloudResource) -> bool:
         """引导人类创建资源"""
         print(f"\n{'='*60}")
         print(f"⚠️  需要人类介入：{resource.name} ({resource.type})")
         print(f"{'='*60}")
-        
+
         guide = self._get_creation_guide(resource)
-        
-        print(f"\n📋 资源信息:")
+
+        print("\n📋 资源信息:")
         print(f"  名称：{resource.name}")
         print(f"  类型：{resource.type}")
         print(f"  提供商：{resource.provider}")
-        
-        print(f"\n📖 创建方式（选择一种）:")
-        
+
+        print("\n📖 创建方式（选择一种）:")
+
         # 方式 1: 控制台
         if 'console_url' in guide:
-            print(f"\n  【方式 1】AWS 控制台:")
+            print("\n  【方式 1】AWS 控制台:")
             print(f"  1. 访问：{guide['console_url']}")
             print(f"  2. 点击\"创建{resource.type.replace('_', ' ').title()}\"")
-            print(f"  3. 配置参数:")
+            print("  3. 配置参数:")
             for param, value in guide.get('parameters', {}).items():
                 print(f"     - {param}: {value}")
-            print(f"  4. 点击\"创建\"")
-        
+            print("  4. 点击\"创建\"")
+
         # 方式 2: CLI
         if 'cli_command' in guide:
-            print(f"\n  【方式 2】AWS CLI:")
-            print(f"  运行以下命令:")
-            print(f"  ```bash")
+            print("\n  【方式 2】AWS CLI:")
+            print("  运行以下命令:")
+            print("  ```bash")
             print(f"  {guide['cli_command']}")
-            print(f"  ```")
-        
+            print("  ```")
+
         # 方式 3: Terraform
         if 'terraform_code' in guide:
-            print(f"\n  【方式 3】Terraform:")
-            print(f"  添加以下配置到 main.tf:")
-            print(f"  ```hcl")
+            print("\n  【方式 3】Terraform:")
+            print("  添加以下配置到 main.tf:")
+            print("  ```hcl")
             print(f"  {guide['terraform_code']}")
-            print(f"  ```")
-            print(f"  然后运行：terraform apply")
-        
+            print("  ```")
+            print("  然后运行：terraform apply")
+
         print(f"\n{'='*60}")
-        
+
         # 等待确认
         while True:
             choice = input("\n请选择操作:\n  [1] 我已创建资源\n  [2] 显示指南\n  [3] 跳过此资源\n  选择：")
-            
+
             if choice == '1':
                 # 验证资源是否已创建
                 status = await self.check_resource(resource)
                 if status == ResourceStatus.ACTIVE:
-                    print(f"  ✓ 资源验证成功！")
+                    print("  ✓ 资源验证成功！")
                     return True
                 else:
-                    print(f"  ⚠️  未找到资源，请确认创建成功")
+                    print("  ⚠️  未找到资源，请确认创建成功")
             elif choice == '2':
                 print(f"\n{guide.get('console_url', '')}")
             elif choice == '3':
                 print(f"  ⚠️  跳过资源：{resource.name}")
                 resource.status = ResourceStatus.NOT_EXISTS
                 return False
-    
+
     def _get_creation_guide(self, resource: CloudResource) -> dict[str, Any]:
         """获取创建指南"""
         guides = {
@@ -312,9 +310,9 @@ resource "aws_elasticache_cluster" "{resource.name}" {{
                 }
             }
         }
-        
+
         return guides.get(resource.type, {
-            'console_url': f'https://console.aws.amazon.com/',
+            'console_url': 'https://console.aws.amazon.com/',
             'cli_command': f'# 请访问 AWS 控制台创建 {resource.name}',
             'terraform_code': f'# 请手动配置 {resource.name}',
             'parameters': {}
@@ -324,10 +322,10 @@ resource "aws_elasticache_cluster" "{resource.name}" {{
 class CloudSelfBootstrap:
     """
     云 Self-Bootstrap 管理器（增强版）
-    
+
     支持自动开通资源和引导人类授权
     """
-    
+
     def __init__(self, provider: str, region: str = "", config: dict[str, Any] = None):
         self.provider = provider
         self.region = region
@@ -335,11 +333,11 @@ class CloudSelfBootstrap:
         self.provisioner = CloudResourceProvisioner(provider, region)
         self._resources: list[CloudResource] = []
         self._plan: Optional[BootstrapPlan] = None
-    
+
     def define_resources(self) -> list[CloudResource]:
         """定义所需资源"""
         resources = []
-        
+
         if self.provider == "aws":
             resources = [
                 CloudResource(
@@ -382,7 +380,7 @@ class CloudSelfBootstrap:
                     auto_create=True
                 ),
             ]
-        
+
         elif self.provider == "docker":
             resources = [
                 CloudResource(
@@ -399,41 +397,41 @@ class CloudSelfBootstrap:
                     auto_create=True
                 ),
             ]
-        
+
         self._resources = resources
         return resources
-    
+
     async def plan(self) -> BootstrapPlan:
         """创建 Bootstrap 计划"""
-        print(f"\n📋 创建 Bootstrap 计划...")
-        
+        print("\n📋 创建 Bootstrap 计划...")
+
         plan = BootstrapPlan()
-        
+
         for resource in self._resources:
             print(f"\n  检查资源：{resource.name} ({resource.type})")
             status = await self.provisioner.check_resource(resource)
             resource.status = status
-            
+
             if status == ResourceStatus.ACTIVE:
                 print(f"    ✓ 已存在：{resource.id}")
             elif status == ResourceStatus.NEEDS_AUTH:
-                print(f"    ⚠️  需要授权")
+                print("    ⚠️  需要授权")
                 plan.requires_human_action = True
             elif status == ResourceStatus.NOT_EXISTS:
                 if resource.auto_create:
-                    print(f"    → 将自动创建")
+                    print("    → 将自动创建")
                 else:
-                    print(f"    ⚠️  需要人类创建")
+                    print("    ⚠️  需要人类创建")
                     plan.requires_human_action = True
-            
+
             plan.resources.append(resource)
-        
+
         # 估算成本
         plan.estimated_cost = self._estimate_cost()
-        
+
         self._plan = plan
         return plan
-    
+
     def _estimate_cost(self) -> dict[str, float]:
         """估算成本"""
         costs = {
@@ -443,39 +441,39 @@ class CloudSelfBootstrap:
             'alb': 22.0,  # ALB ~$22/月
             'secretsmanager': 1.0,  # Secrets Manager ~$1/月
         }
-        
+
         total = sum(costs.get(r.type, 0) for r in self._resources if r.status != ResourceStatus.ACTIVE)
-        
+
         return {
             'monthly': total,
             'yearly': total * 12,
             'breakdown': costs
         }
-    
+
     async def execute(self) -> bool:
         """执行 Bootstrap"""
         if not self._plan:
             await self.plan()
-        
+
         print(f"\n{'='*60}")
-        print(f"🚀 开始执行 Cloud Self-Bootstrap")
+        print("🚀 开始执行 Cloud Self-Bootstrap")
         print(f"{'='*60}")
-        
+
         if self._plan.requires_human_action:
-            print(f"\n⚠️  需要人类介入")
-            print(f"以下资源需要您的授权或手动创建:\n")
-            
+            print("\n⚠️  需要人类介入")
+            print("以下资源需要您的授权或手动创建:\n")
+
             for resource in self._plan.resources:
                 if resource.status in [ResourceStatus.NEEDS_AUTH, ResourceStatus.NOT_EXISTS]:
                     print(f"  - {resource.name} ({resource.type})")
-            
-            print(f"\n您可以选择:")
-            print(f"  [1] 授权自动创建（需要云凭证）")
-            print(f"  [2] 手动创建资源（显示指南）")
-            print(f"  [3] 跳过所有资源（仅使用已有资源）")
-            
-            choice = input(f"\n请选择：")
-            
+
+            print("\n您可以选择:")
+            print("  [1] 授权自动创建（需要云凭证）")
+            print("  [2] 手动创建资源（显示指南）")
+            print("  [3] 跳过所有资源（仅使用已有资源）")
+
+            choice = input("\n请选择：")
+
             if choice == '1':
                 # 引导配置凭证
                 await self._guide_credential_setup()
@@ -484,19 +482,19 @@ class CloudSelfBootstrap:
                 await self._show_manual_guides()
             elif choice == '3':
                 # 跳过
-                print(f"⚠️  将仅使用已有资源")
-        
+                print("⚠️  将仅使用已有资源")
+
         # 创建资源
         created = 0
         skipped = 0
         failed = 0
-        
+
         for resource in self._plan.resources:
             if resource.status == ResourceStatus.ACTIVE:
                 continue
-            
+
             print(f"\n  处理资源：{resource.name}...")
-            
+
             try:
                 success = await self.provisioner.create_resource(resource)
                 if success:
@@ -506,22 +504,22 @@ class CloudSelfBootstrap:
             except Exception as e:
                 print(f"  ❌ 创建失败：{e}")
                 failed += 1
-        
+
         print(f"\n{'='*60}")
-        print(f"Bootstrap 完成!")
+        print("Bootstrap 完成!")
         print(f"  创建：{created}")
         print(f"  跳过：{skipped}")
         print(f"  失败：{failed}")
         print(f"{'='*60}")
-        
+
         return failed == 0
-    
+
     async def _guide_credential_setup(self) -> None:
         """引导凭证配置"""
-        print(f"\n📖 配置云凭证")
-        
+        print("\n📖 配置云凭证")
+
         if self.provider == "aws":
-            print(f"""
+            print("""
 请访问 AWS 控制台获取凭证:
 
 1. 登录 AWS 控制台：https://console.aws.amazon.com/
@@ -539,20 +537,20 @@ class CloudSelfBootstrap:
    aws_access_key_id = your_access_key
    aws_secret_access_key = your_secret_key
 """)
-            
+
             # 等待用户配置
             input("\n配置完成后按回车继续...")
-            
+
             # 重新检查凭证
             self.provisioner._check_credentials()
-            
+
             if not self.provisioner.credentials_valid:
                 print("⚠️  凭证配置失败，请检查")
-    
+
     async def _show_manual_guides(self) -> None:
         """显示手动创建指南"""
-        print(f"\n📖 手动创建资源指南")
-        
+        print("\n📖 手动创建资源指南")
+
         for resource in self._plan.resources:
             if resource.status != ResourceStatus.ACTIVE:
                 guide = self.provisioner._get_creation_guide(resource)
@@ -560,51 +558,51 @@ class CloudSelfBootstrap:
                 print(f"资源：{resource.name} ({resource.type})")
                 print(f"{'='*60}")
                 print(f"控制台：{guide.get('console_url', 'N/A')}")
-                print(f"\nCLI 命令:")
+                print("\nCLI 命令:")
                 print(f"  {guide.get('cli_command', 'N/A')}")
-                print(f"\nTerraform:")
+                print("\nTerraform:")
                 print(f"  {guide.get('terraform_code', 'N/A')}")
-        
+
         input("\n查看完成后按回车继续...")
 
 
 async def main():
     """主函数"""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description='IntentOS Cloud Self-Bootstrap')
     parser.add_argument('--provider', choices=['aws', 'gcp', 'azure', 'docker'], default='docker')
     parser.add_argument('--region', default='')
     parser.add_argument('--auto', action='store_true', help='自动模式（无需交互）')
-    
+
     args = parser.parse_args()
-    
+
     print(f"\n{'='*60}")
-    print(f"  IntentOS Cloud Self-Bootstrap")
-    print(f"  云资源自动开通与人类引导授权")
+    print("  IntentOS Cloud Self-Bootstrap")
+    print("  云资源自动开通与人类引导授权")
     print(f"{'='*60}\n")
-    
+
     bootstrap = CloudSelfBootstrap(
         provider=args.provider,
         region=args.region
     )
-    
+
     # 定义资源
     resources = bootstrap.define_resources()
     print(f"📦 定义了 {len(resources)} 个资源")
-    
+
     # 创建计划
     plan = await bootstrap.plan()
-    
-    print(f"\n📊 资源状态:")
+
+    print("\n📊 资源状态:")
     for resource in plan.resources:
         icon = "✓" if resource.status == ResourceStatus.ACTIVE else "○"
         print(f"  {icon} {resource.name} ({resource.type}): {resource.status.value}")
-    
-    print(f"\n💰 预估成本:")
+
+    print("\n💰 预估成本:")
     print(f"  月度：${plan.estimated_cost['monthly']:.2f}")
     print(f"  年度：${plan.estimated_cost['yearly']:.2f}")
-    
+
     if args.auto:
         # 自动模式
         success = await bootstrap.execute()
@@ -616,7 +614,7 @@ async def main():
         else:
             print("Bootstrap 已取消")
             success = False
-    
+
     return 0 if success else 1
 
 
