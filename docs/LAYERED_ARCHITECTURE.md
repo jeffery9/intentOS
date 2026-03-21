@@ -84,7 +84,60 @@
 | **记忆系统** | `memory/` | 短期/长期记忆 |
 | **上下文管理** | `context.py` | 租户/用户上下文 |
 
-### 2.3 核心 API
+### 2.3 IO 能力层
+
+**IO 能力层** (`intentos/agent/`) 是语义 VM 内部的高层级组件，在**编译/链接 PEF 过程中**将 IO 能力注入到 prompt：
+
+| IO 能力 | 模块 | 作用 |
+|--------|------|------|
+| **Shell 能力** | `agent.py` | 提供 shell 命令执行能力 |
+| **MCP 集成** | `mcp_integration.py` | 提供 MCP 工具调用能力 |
+| **Skills 集成** | `skill_integration.py` | 提供技能调用能力 |
+| **能力注册** | `registry.py` | 注册和管理所有 IO 能力 |
+
+**IO 能力的定位**：
+- ✅ **属于 OS 内核** - 是语义 VM 的有机组成部分，不是外部工具
+- ✅ **处于高层级** - 在语义 VM 内部，为 PEF 编译/链接提供 IO 能力
+- ✅ **注入到 Prompt** - 在编译/链接时将 IO 能力注入到 prompt
+- ✅ **LLM 驱动调用** - LLM 返回工具调用时触发 IO 能力执行
+
+**IO 能力在 PEF 编译/链接中的作用**：
+```
+1. 用户意图 → 意图解析 → 任务规划
+   ↓
+2. 编译/链接 PEF
+   ↓
+3. 注入 IO 能力到 Prompt
+   ↓
+4. 生成完整的 PEF（包含 IO 能力定义）
+```
+
+**PEF 执行过程中的 IO 能力调用（Loop 机制）**：
+```
+1. 执行 PEF
+   ↓
+2. LLM 处理 Prompt（已包含 IO 能力）
+   ↓
+3. LLM 返回工具调用（包含 IO 能力调用）
+   ↓
+4. 检测到 IO 能力调用
+   ↓
+5. 调用 IO 能力获取数据
+   ↓
+6. 将 IO 结果返回给 LLM
+   ↓
+7. LLM 再次处理（可能需要再次调用工具）
+   ↓
+8. 重复步骤 3-7，直到不再需要工具调用 ← Loop
+   ↓
+9. LLM 生成最终结果
+```
+
+**编译/链接时 vs 执行时**：
+- **编译/链接时**：注入 IO 能力到 Prompt → 生成 PEF
+- **执行时**：LLM Loop 调用 IO 能力 → 获取数据 → 直到不再需要 Loop → 生成结果
+
+### 2.4 核心 API
 
 ```python
 from intentos import Agent, AgentContext
@@ -110,7 +163,7 @@ print(result.data)         # 数据结果
 print(result.usage)        # Token 使用
 ```
 
-### 2.4 能力注册
+### 2.5 能力注册
 
 ```python
 from intentos import register_capability
@@ -133,7 +186,7 @@ def load_data(path: str, context: AgentContext) -> dict:
 
 ## 三、PaaS 服务层
 
-### 3.1 PaaS 服务模块
+### 3.1 PaaS 服务模块（已独立）
 
 | 模块 | 文件 | 功能 |
 |------|------|------|

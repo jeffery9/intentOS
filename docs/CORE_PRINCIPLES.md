@@ -79,7 +79,7 @@ CPU → 取指 → 解码 → 执行 → 写回
 
 ## 二、OS 层面的设计约束
 
-### 2.1 什么必须在 OS 层面
+### 2.2 什么必须在 OS 层面
 
 **必须遵循核心理念**:
 - ✅ 语义 VM 实现
@@ -89,6 +89,55 @@ CPU → 取指 → 解码 → 执行 → 写回
 - ✅ 记忆系统
 - ✅ 上下文管理
 
+**IO 能力层 (intentos/agent/)**:
+- ✅ 属于 OS 内核（语义 VM 内部高层级）
+- ✅ 在编译/链接 PEF 过程中注入 IO 能力
+- ✅ 提供 Shell、MCP、Skills 等 IO 能力
+- ✅ 通过能力注册中心提供统一接口
+
+| IO 能力 | 模块 | 作用 |
+|--------|------|------|
+| **Shell 能力** | `agent.py` | 提供 shell 命令执行能力 |
+| **MCP 集成** | `mcp_integration.py` | 提供 MCP 工具调用能力 |
+| **Skills 集成** | `skill_integration.py` | 提供技能调用能力 |
+| **能力注册** | `registry.py` | 注册和管理所有 IO 能力 |
+
+**IO 能力在 PEF 编译/链接中的作用**：
+```
+1. 用户意图 → 意图解析 → 任务规划
+   ↓
+2. 编译/链接 PEF
+   ↓
+3. 注入 IO 能力到 Prompt
+   ↓
+4. 生成完整的 PEF（包含 IO 能力定义）
+```
+
+**PEF 执行过程中的 IO 能力调用（Loop 机制）**：
+```
+1. 执行 PEF
+   ↓
+2. LLM 处理 Prompt（已包含 IO 能力）
+   ↓
+3. LLM 返回工具调用（包含 IO 能力调用）
+   ↓
+4. 检测到 IO 能力调用
+   ↓
+5. 调用 IO 能力获取数据
+   ↓
+6. 将 IO 结果返回给 LLM
+   ↓
+7. LLM 再次处理（可能需要再次调用工具）
+   ↓
+8. 重复步骤 3-7，直到不再需要工具调用 ← Loop
+   ↓
+9. LLM 生成最终结果
+```
+
+**编译/链接时 vs 执行时**：
+- **编译/链接时**：注入 IO 能力到 Prompt → 生成 PEF
+- **执行时**：LLM Loop 调用 IO 能力 → 获取数据 → 直到不再需要 Loop → 生成结果
+
 **必须在 OS 层面实现的功能**:
 ```python
 # OS 层 API
@@ -96,6 +145,8 @@ from intentos import Agent, AgentContext
 
 agent = Agent()
 context = AgentContext(tenant_id="acme", user_id="alice")
+
+# 编译/链接时，IO 能力获取上下文
 result = await agent.execute(intent="分析数据", context=context)
 ```
 
