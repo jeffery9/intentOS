@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any, Callable, Optional
-
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -107,36 +107,27 @@ class CapabilityBinder:
         user_context: Optional[Any] = None
     ) -> BoundCapability:
         """
-        绑定能力
-
-        Args:
-            template_id: 能力模板 ID
-            tenant_id: 租户 ID
-            resources: 租户资源字典
-            config: 额外配置
-            user_context: 用户上下文（可选）
-
-        Returns:
-            已绑定的能力
+        对齐新内核的能力绑定
         """
         template = self.get_template(template_id)
         if not template:
             raise ValueError(f"能力模板不存在：{template_id}")
 
-        # 检查必需资源
+        # 1. 检查必需资源 (原有逻辑)
         for required_resource in template.required_resources:
             if required_resource not in resources:
                 raise ValueError(
                     f"能力 {template_id} 需要资源 {required_resource}，但租户 {tenant_id} 未提供"
                 )
 
-        # 合并配置
+        # 2. 合并配置并注入物理句柄 (对齐 OS 层 IO)
         bound_config = self._merge_config(template.config_schema, config or {}, resources)
 
-        # 创建处理器
+        # 3. 创建处理器 (保持您的原有实现，但增加 Context 感知)
         handler = self._create_handler(template, bound_config, resources)
 
-        # 创建已绑定的能力
+        # 4. 生成 BoundCapability
+        # 注意：这里增加了对新内核 required_permissions 的自动映射
         capability_id = f"{template_id}_{tenant_id}"
         capability = BoundCapability(
             id=capability_id,
@@ -150,7 +141,22 @@ class CapabilityBinder:
             bound_config=bound_config,
             resources=resources,
             tags=template.tags,
-            metadata={"created_by": user_context.user_id if user_context else "system"},
+            metadata={
+                "created_by": user_context.user_id if user_context else "system",
+                "kernel_permission_required": f"tenant:{tenant_id}:use:{template_id}" # 自动生成内核权限名
+            },
+        )
+
+        # 5. 【关键对齐】将绑定后的私有能力同步到 OS 层的注册中心
+        from intentos.agent.registry import CapabilityRegistry
+        registry = CapabilityRegistry()
+        registry.register(
+            id=capability_id,
+            name=capability.name,
+            description=capability.description,
+            handler=capability.handler,
+            required_permissions=[f"tenant:{tenant_id}:use:{template_id}"],
+            source="paas_bound"
         )
 
         # 缓存绑定结果
@@ -158,7 +164,7 @@ class CapabilityBinder:
             self.bound_capabilities[template_id] = {}
         self.bound_capabilities[template_id][tenant_id] = capability
 
-        logger.info(f"能力绑定完成：{capability_id}")
+        logger.info(f"✅ PaaS -> Kernel Alignment: Bound and registered private capability {capability_id}")
 
         return capability
 
@@ -172,8 +178,59 @@ class CapabilityBinder:
             return None
         return self.bound_capabilities[template_id].get(tenant_id)
 
+    def bind_private_resource(
+        self,
+        tenant_id: str,
+        resource_id: str,
+        capability_id: str
+    ) -> bool:
+        """
+        私有资源嫁接 (Secure Resource Grafting)
+
+        第一性原理：将物理资源（如私有 DB）绑定到语义能力（如 DataQuery），
+        使 App 可以在不感知物理细节的情况下操作私有数据。
+        """
+        # 1. 获取绑定的能力实例
+        # 注意：这里假设能力模板已经处理了资源注入逻辑
+        bound_map = self.bound_capabilities.get(capability_id, {})
+        if tenant_id not in bound_map:
+            logger.warning(f"Tenant {tenant_id} has no bound capability {capability_id}")
+            return False
+
+        # 2. 标记该能力正在使用特定私有资源 (Virtual Handle)
+        bound_cap = bound_map[tenant_id]
+        bound_cap.metadata["private_resource_link"] = resource_id
+        bound_cap.metadata["grafted_at"] = datetime.now().isoformat()
+
+        logger.info(f"✅ Grafted private resource {resource_id} onto {capability_id} for tenant {tenant_id}")
+        return True
+
+    def get_grafted_context(self, tenant_id: str, app_instance_id: str) -> dict[str, Any]:
+        """
+        获取已嫁接的执行上下文
+
+        为 App 执行提供已注入私有资源的物理句柄。
+        """
+        grafted_context = {
+            "tenant_id": tenant_id,
+            "app_instance": app_instance_id,
+            "active_bindings": []
+        }
+
+        # 遍历所有已绑定的能力，提取其私有资源链接
+        for tid, tenants in self.bound_capabilities.items():
+            if tenant_id in tenants:
+                cap = tenants[tenant_id]
+                if "private_resource_link" in cap.metadata:
+                    grafted_context["active_bindings"].append({
+                        "capability": cap.id,
+                        "resource_id": cap.metadata["private_resource_link"]
+                    })
+
+        return grafted_context
+
     def unbind(self, template_id: str, tenant_id: str) -> bool:
-        """解绑能力"""
+        """解绑能力 (恢复原有设计)"""
         if template_id not in self.bound_capabilities:
             return False
 

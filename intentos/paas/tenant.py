@@ -13,35 +13,37 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Optional
 
-
 logger: logging.Logger = logging.getLogger(__name__)
 
 
 @dataclass
-class ResourceQuota:
-    """资源配额"""
+class TenantQuota:
+    """
+    租户配额 (物理+语义融合版)
+    """
+    # --- 物理资源限制 ---
     cpu_seconds: int = 3600          # CPU 秒数/月
     memory_mb: int = 512             # 内存 MB
     storage_mb: int = 1024           # 存储 MB
     api_calls: int = 10000           # API 调用次数/月
-    tokens: int = 1000000            # Token 数量/月
     bandwidth_mb: int = 1000         # 带宽 MB/月
 
+    # --- 语义/分布式限制 ---
+    total_gas_limit: int = 1000000   # 总 Gas 限制 (跨节点)
+    max_gas_per_intent: int = 5000   # 单次意图执行的最大 Gas
+    concurrent_processes: int = 5    # 集群最大并发进程数
+
     def to_dict(self) -> dict[str, Any]:
-        """转换为字典"""
         return {
             "cpu_seconds": self.cpu_seconds,
             "memory_mb": self.memory_mb,
             "storage_mb": self.storage_mb,
             "api_calls": self.api_calls,
-            "tokens": self.tokens,
             "bandwidth_mb": self.bandwidth_mb,
+            "total_gas_limit": self.total_gas_limit,
+            "max_gas_per_intent": self.max_gas_per_intent,
+            "concurrent_processes": self.concurrent_processes,
         }
-
-    @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "ResourceQuota":
-        """从字典创建"""
-        return cls(**data)
 
 
 @dataclass
@@ -91,18 +93,35 @@ class TenantCapability:
 
 @dataclass
 class Tenant:
-    """租户"""
-    id: str                          # 租户 ID
-    name: str                        # 租户名称
-    status: str = "active"           # 状态 (active/suspended/deleted)
-    plan: str = "free"               # 套餐 (free/pro/enterprise)
-    quota: ResourceQuota = field(default_factory=ResourceQuota)
+    """
+    租户 (完整功能版)
+    """
+    id: str
+    name: str
+    status: str = "active"
+    plan: str = "free"
+    quota: TenantQuota = field(default_factory=TenantQuota)
+
+    # 运行时消耗 (融合物理与语义)
+    cumulative_gas_used: int = 0
+    current_cpu_used: int = 0
+    active_pids: list[str] = field(default_factory=list)
+
     resources: dict[str, TenantResource] = field(default_factory=dict)
     capabilities: dict[str, TenantCapability] = field(default_factory=dict)
     config: dict[str, Any] = field(default_factory=dict)
     metadata: dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
+
+    def can_consume_gas(self, amount: int) -> bool:
+        return (self.cumulative_gas_used + amount) <= self.quota.total_gas_limit
+
+    def record_usage(self, gas: int = 0, cpu: int = 0):
+        """记录综合用量"""
+        self.cumulative_gas_used += gas
+        self.current_cpu_used += cpu
+        self.updated_at = datetime.now()
 
     def get_resource(self, resource_id: str) -> Optional[TenantResource]:
         """获取资源"""
@@ -197,7 +216,7 @@ class TenantManager:
         tenant_id: str,
         name: str,
         plan: str = "free",
-        quota: Optional[ResourceQuota] = None,
+        quota: Optional[TenantQuota] = None,
         config: Optional[dict[str, Any]] = None
     ) -> Tenant:
         """创建租户"""
@@ -208,7 +227,7 @@ class TenantManager:
             id=tenant_id,
             name=name,
             plan=plan,
-            quota=quota or ResourceQuota(),
+            quota=quota or TenantQuota(),
             config=config or {},
         )
 
@@ -329,30 +348,48 @@ class TenantManager:
 
         return tenants
 
+    def report_gas_usage(self, tenant_id: str, amount: int) -> bool:
+        """从任意分布式节点汇报 Gas 消耗"""
+        tenant = self.get_tenant(tenant_id)
+        if not tenant:
+            return False
+
+        tenant.record_usage(gas=amount)
+
+        # 配额预警
+        if tenant.cumulative_gas_used > tenant.quota.total_gas_limit * 0.9:
+            logger.warning(f"Tenant {tenant_id} gas usage at 90%: {tenant.cumulative_gas_used}")
+
+        return True
+
     def get_usage_stats(self, tenant_id: str) -> dict[str, Any]:
-        """获取租户用量统计"""
+        """
+        获取租户用量统计
+        """
         tenant = self.get_tenant(tenant_id)
         if not tenant:
             return {}
 
-        # 实际实现会从计量系统获取真实用量
         return {
             "tenant_id": tenant_id,
             "period": "current_month",
             "usage": {
-                "cpu_seconds": 0,
+                "cpu_seconds": tenant.current_cpu_used,
+                "cumulative_gas": tenant.cumulative_gas_used,
+                "active_processes": len(tenant.active_pids),
                 "memory_mb": 0,
                 "storage_mb": 0,
-                "api_calls": 0,
-                "tokens": 0,
             },
             "quota": tenant.quota.to_dict(),
             "usage_percent": {
-                "cpu_seconds": 0,
-                "api_calls": 0,
-                "tokens": 0,
+                "gas": round((tenant.cumulative_gas_used / tenant.quota.total_gas_limit) * 100, 2),
+                "cpu": round((tenant.current_cpu_used / tenant.quota.cpu_seconds) * 100, 2) if tenant.quota.cpu_seconds else 0
             },
         }
+
+    def get_cluster_usage_report(self, tenant_id: str) -> dict[str, Any]:
+        """获取集群视角的实时报告"""
+        return self.get_usage_stats(tenant_id)
 
 
 class RoleManager:
@@ -394,13 +431,28 @@ class RoleManager:
         roles: Optional[list[str]] = None,
         preferences: Optional[dict[str, Any]] = None
     ) -> UserContext:
-        """创建用户上下文"""
+        """
+        创建用户上下文 (带动态私有能力注入)
+
+        第一性原理：权限应是“静态角色”与“动态租户资产”的合集。
+        """
         roles = roles or ["user"]
-        
-        # 收集所有权限
+
+        # 1. 收集静态角色权限
         permissions: set[str] = set()
         for role in roles:
             permissions.update(self.get_role_permissions(role))
+
+        # 2. 动态注入租户私有能力的权限令牌
+        from .capability_binding import get_capability_binder
+        binder = get_capability_binder()
+
+        # 扫描该租户已绑定的所有能力
+        for template_id, tenants in binder.bound_capabilities.items():
+            if tenant_id in tenants:
+                # 注入对应的内核权限令牌
+                token = f"tenant:{tenant_id}:use:{template_id}"
+                permissions.add(token)
 
         # 处理通配符权限
         if "*" in permissions:

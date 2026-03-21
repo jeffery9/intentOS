@@ -8,7 +8,7 @@ These credits can eventually be used to pay for IntentOS services.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Optional
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -78,8 +78,44 @@ class RewardSystem:
         logging.info(f"Entity {entity_id} spent {amount} credits. New balance: {self.ledger[entity_id]}")
         return self.ledger[entity_id]
 
-    def get_contribution_types(self) -> Dict[str, float]:
+    def process_gas_settlement(
+        self,
+        user_id: str,
+        app_id: str,
+        developer_id: str,
+        gas_used: int,
+        gas_price: float = 0.001 # 每 Gas 对应的信用额度
+    ) -> dict[str, float]:
         """
-        Returns a dictionary of all recognized contribution types and their base credit awards.
+        Gas 结算逻辑 (Economic Pipeline)
+
+        第一性原理：OS 产生的每一单位物理消耗（Gas）都应在经济层面被补偿。
         """
-        return self.contribution_types
+        total_cost = gas_used * gas_price
+
+        # 1. 扣除用户信用额度
+        try:
+            self.spend_credits(user_id, total_cost)
+        except ValueError:
+            # 如果额度不足，此处仅记录日志，实际生产应在 OS 层拦截
+            logging.error(f"User {user_id} has insufficient credits to pay for gas: {total_cost}")
+
+        # 2. 分成计算
+        developer_share = total_cost * 0.8  # 80% 归开发者
+        platform_share = total_cost * 0.2   # 20% 留存平台用于成长
+
+        # 3. 分发收益
+        self.ledger[developer_id] = self.ledger.get(developer_id, 0.0) + developer_share
+        self.ledger["platform_reserve"] = self.ledger.get("platform_reserve", 0.0) + platform_share
+
+        logging.info(f"Gas Settlement: App {app_id} used {gas_used} gas. User {user_id} paid {total_cost:.4f}. Developer {developer_id} earned {developer_share:.4f}.")
+
+        return {
+            "total_cost": total_cost,
+            "developer_earned": developer_share,
+            "platform_retained": platform_share
+        }
+
+    def get_platform_reserve(self) -> float:
+        """获取平台留存资金，用于 OS 自动扩容/研发"""
+        return self.ledger.get("platform_reserve", 0.0)

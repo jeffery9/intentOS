@@ -7,12 +7,13 @@ configured to perform marketing and community engagement tasks autonomously.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
-import random
-import yaml
 import os
+import random
+from typing import Any, Dict, Optional
 
-from intentos.agent.reward_system import RewardSystem # Import RewardSystem
+import yaml
+
+from intentos.agent.reward_system import RewardSystem  # Import RewardSystem
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -63,12 +64,12 @@ class SocialAgent:
         if self.soul_manifest:
             mission = self.soul_manifest.get('mission', [])
             values = self.soul_manifest.get('values', [])
-            
+
             if mission and random.random() < 0.5: # 50% chance to include a mission statement
                 core_message_parts.append(random.choice(mission))
             if values and random.random() < 0.5: # 50% chance to include a value
                 core_message_parts.append(f"#IntentOS {random.choice(values).get('name')}")
-        
+
         core_message = " ".join(core_message_parts)
 
         if self.llm_backend:
@@ -88,7 +89,7 @@ class SocialAgent:
         """
         logging.info(f"SocialAgent posting to Twitter. Prompt: {message_prompt}")
         content = await self._generate_content(message_prompt + f" (context: {context or {}})")
-        
+
         post_details = {
             "platform": "Twitter",
             "agent_id": self.agent_id,

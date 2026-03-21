@@ -13,7 +13,6 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
 
-
 logger: logging.Logger = logging.getLogger(__name__)
 
 
@@ -383,45 +382,108 @@ class AppMarketplace:
         }
 
     def get_install_count(self, app_id: str) -> int:
-        """获取安装数"""
+        """获取安装数 (恢复)"""
         if app_id not in self.installs:
             return 0
         return len(self.installs[app_id])
 
+    async def semantic_search(self, query: str, llm_executor: Any) -> list[AppMetadata]:
+        """
+        语义搜索 (Semantic Discovery)
+
+        第一性原理：用户不应搜索 App 名称，而应描述意图，市场负责匹配语义最接近的程序。
+        """
+        published_apps = [a for a in self.apps.values() if a.status == AppStatus.PUBLISHED]
+        if not published_apps:
+            return []
+
+        # 构造 App 列表描述
+        app_catalog = "\n".join([
+            f"- ID: {a.app_id}, Name: {a.name}, Desc: {a.description}, Tags: {a.tags}"
+            for a in published_apps
+        ])
+
+        prompt = f"""分析用户需求，从以下 AI Native App 目录中选出最匹配的 3 个应用。
+
+## 用户需求
+{query}
+
+## 应用目录
+{app_catalog}
+
+## 输出要求
+请返回最匹配的应用 ID 列表，以逗号分隔。如果没有匹配的，返回 "none"。
+只返回 ID，不要其他解释。"""
+
+        from intentos.llm.backends.base import Message
+        messages = [
+            Message.system("你是一个专业的应用市场推荐专家。"),
+            Message.user(prompt),
+        ]
+
+        response = await llm_executor.execute(messages)
+        matched_ids = [s.strip() for s in response.content.split(",")]
+
+        results = []
+        for aid in matched_ids:
+            if aid in self.apps:
+                results.append(self.apps[aid])
+
+        return results
+
     def record_usage(
         self,
-        app_id: str,
+        app_instance: Any, # GeneratedApp
         period: str,
-        requests: int,
-        revenue: float
-    ) -> None:
-        """记录应用用量"""
+        gas_price: float = 0.001
+    ) -> float:
+        """
+        基于实例 PID 自动汇总用量并计费
+
+        第一性原理：每一单位内核消耗(Gas)都应自动转化为商业账单。
+        """
+        app_id = app_instance.app_id
         if app_id not in self.apps:
-            return
+            return 0.0
 
-        app = self.apps[app_id]
+        app_meta = self.apps[app_id]
 
+        # 1. 汇总该实例所有 PID 的 Gas 消耗
+        # 在真实分布式环境中，这里会查询 DistributedCoordinator 的结果库
+        # 这里模拟汇总逻辑
+        total_gas = 0
+        from intentos.distributed.vm import create_distributed_vm
+        cluster = create_distributed_vm()
+
+        for pid in app_instance.active_pids:
+            res = cluster.coordinator.results.get(pid)
+            if res and "gas_usage" in res:
+                total_gas += res["gas_usage"].get("used", 0)
+
+        if total_gas == 0:
+            return 0.0
+
+        # 2. 计算收入
+        revenue = total_gas * gas_price
+
+        # 3. 记录统计数据 (保持原有逻辑)
         if app_id not in self.usage_stats:
             self.usage_stats[app_id] = {}
-
         if period not in self.usage_stats[app_id]:
-            self.usage_stats[app_id][period] = AppUsage(
-                app_id=app_id,
-                period=period,
-            )
+            self.usage_stats[app_id][period] = AppUsage(app_id=app_id, period=period)
 
         stats = self.usage_stats[app_id][period]
-        stats.total_requests += requests
+        stats.total_requests += len(app_instance.active_pids)
         stats.total_revenue += revenue
 
-        # 计算分成
-        developer_share = app.revenue_share.get("developer", 0.80)
-        platform_share = app.revenue_share.get("platform", 0.15)
+        # 4. 计算分成
+        dev_share = app_meta.revenue_share.get("developer", 0.80)
+        plat_share = app_meta.revenue_share.get("platform", 0.15)
+        stats.developer_earnings = stats.total_revenue * dev_share
+        stats.platform_fees = stats.total_revenue * plat_share
 
-        stats.developer_earnings = stats.total_revenue * developer_share
-        stats.platform_fees = stats.total_revenue * platform_share
-
-        logger.debug(f"记录用量：app={app_id}, period={period}, requests={requests}, revenue=${revenue}")
+        logger.info(f"💰 Billing: App {app_id} (Instance {app_instance.id}) consumed {total_gas} Gas. Revenue: ${revenue:.4f}")
+        return revenue
 
     def get_developer_earnings(
         self,

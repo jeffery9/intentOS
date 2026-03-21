@@ -7,7 +7,7 @@ for managing products, subscriptions, and processing payments for IntentOS servi
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Any, Dict
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 

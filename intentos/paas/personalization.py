@@ -13,7 +13,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Optional
 
-
 logger: logging.Logger = logging.getLogger(__name__)
 
 
