@@ -26,7 +26,7 @@ class IntentOSGateway:
         """Token 认证中间件"""
         # 从环境变量获取 Token，默认为 intentos-secret-token
         token = os.environ.get("INTENTOS_API_TOKEN", "intentos-secret-token")
-        
+
         auth_header = request.headers.get("Authorization")
         if not auth_header or auth_header != f"Bearer {token}":
             return web.json_response(
@@ -37,7 +37,7 @@ class IntentOSGateway:
                 },
                 status=401
             )
-        
+
         return await handler(request)
 
     def _setup_routes(self):

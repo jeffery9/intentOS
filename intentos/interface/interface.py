@@ -10,6 +10,7 @@ from typing import Any, Optional
 
 from ..core import Context, Intent
 from ..engine import ExecutionEngine
+from ..kernel.core import PrivilegeLevel
 from ..parser import IntentParser
 from ..registry import IntentRegistry
 
@@ -23,8 +24,6 @@ class ConversationTurn:
     intent: Optional[Intent] = None
     artifacts: list[dict[str, Any]] = field(default_factory=list)
 
-
-from ..kernel.core import PrivilegeLevel
 
 class IntentInterface:
     """
@@ -54,7 +53,7 @@ class IntentInterface:
             permissions=permissions or [],
             history=[t.content for t in self.conversation_history],
         )
-        
+
         # 自动切换模式：admin 角色进入内核态
         if role == "admin":
             self.mode = PrivilegeLevel.KERNEL
@@ -128,11 +127,13 @@ class IntentOS:
     def __init__(self, llm_executor: Any = None):
         from ..bootstrap.executor import create_bootstrap_executor
         from ..distributed.vm import create_distributed_vm
+        from ..kernel.watchdog import SemanticWatchdog
 
         self.registry = IntentRegistry()
         self.vm = create_distributed_vm(llm_executor)
         self.bootstrap = create_bootstrap_executor(self.vm)
         self.interface = IntentInterface(self.registry)
+        self.watchdog = SemanticWatchdog(self.vm.local_vm)
         self._initialized = False
         self._running = False
         self._background_tasks: list = []
@@ -147,6 +148,7 @@ class IntentOS:
     def shutdown(self) -> None:
         """关闭系统"""
         self._running = False
+        self.watchdog.stop()
         # 清理后台任务
         for task in self._background_tasks:
             if hasattr(task, 'cancel'):
@@ -158,48 +160,14 @@ class IntentOS:
         """检查系统是否正在运行"""
         return self._running
 
-    async def _watchdog_task(self) -> None:
-        """语义自愈监控任务"""
-        import asyncio
-        import logging
-        logger = logging.getLogger(__name__)
-        
-        logger.info("Semantic Watchdog started")
-        while self._running:
-            try:
-                # 1. 检查 VM 状态
-                if not self.vm or not self.vm.local_vm:
-                    logger.error("VM or Local VM is missing!")
-                    # 尝试恢复 (此处简化为记录)
-                
-                # 2. 检查内存一致性
-                memory_state = self.vm.local_vm.memory.get_state()
-                if memory_state["audit_log_count"] > 10000:
-                    # 定期清理过大的审计日志
-                    self.vm.local_vm.memory.audit_log = self.vm.local_vm.memory.audit_log[-1000:]
-                    logger.info("Cleaned up old audit logs")
-
-                # 3. 检查并清理僵尸进程 (分布式)
-                # await self.vm.cleanup_zombie_processes()
-                
-                # 每 60 秒检查一次
-                await asyncio.sleep(60)
-            except asyncio.CancelledError:
-                break
-            except Exception as e:
-                logger.error(f"Watchdog error: {e}")
-                await asyncio.sleep(10)
-
     async def start_background_services(self) -> None:
         """启动后台服务"""
-        import asyncio
         if not self._running:
             return
-            
-        # 启动自愈监控
-        watchdog = asyncio.create_task(self._watchdog_task())
-        self._background_tasks.append(watchdog)
-        
+
+        # 启动自愈监控 (Watchdog)
+        await self.watchdog.start()
+
         # 启动其他云原生服务 (监控、心跳等)
         print("✅ Background services (Watchdog) started")
 

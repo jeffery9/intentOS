@@ -238,19 +238,14 @@ class IntentShell(cmd.Cmd):
 
     def do_exit(self, arg):
         """Exit IntentOS Shell: exit"""
-        self.console.print("Shutting down IntentOS Kernel...", style="bold red")
+        self.console.print("\n🛑  Shutting down IntentOS Kernel...", style="bold red")
+        self.os.shutdown()
+        print("👋  Goodbye!")
         return True
 
     def do_EOF(self, arg):
         print("")
-        return True
-
-    def do_exit(self, arg):
-        """退出系统"""
-        print("\n🛑  Shutting down IntentOS...")
-        self.os.shutdown()
-        print("👋  Goodbye!")
-        return True
+        return self.do_exit(arg)
 
 
 def start_shell():

@@ -6,7 +6,6 @@ IntentOS 守护进程启动脚本
 
 import signal
 import sys
-import time
 from datetime import datetime
 
 from intentos.interface.interface import IntentOS
@@ -15,7 +14,7 @@ from intentos.interface.interface import IntentOS
 class IntentOSDaemon:
     """
     IntentOS 守护进程
-    
+
     持续运行 OS 内核，提供后台服务
     """
 
@@ -53,7 +52,7 @@ class IntentOSDaemon:
     def run(self) -> None:
         """
         运行守护进程
-        
+
         持续运行直到接收到中断信号
         """
         # 注册信号处理器
@@ -68,7 +67,7 @@ class IntentOSDaemon:
         print("  IntentOS Daemon is running")
         print("=" * 60)
         print(f"  Start time: {self.start_time.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"  Mode: Daemon Process")
+        print("  Mode: Daemon Process")
         print(f"  PID: {self.get_pid()}")
         print("=" * 60)
         print("\nPress Ctrl+C to stop\n")
@@ -78,21 +77,21 @@ class IntentOSDaemon:
             import asyncio
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            
+
             # 启动后台服务
             loop.run_until_complete(self.os.start_background_services())
-            
+
             async def background_monitor():
                 """后台监控循环"""
                 while self._should_run:
                     # 这里可以添加定期任务
                     # 例如：健康检查、内存清理、进程监控等
                     await asyncio.sleep(60)  # 每分钟检查一次
-            
+
             # 启动监控任务
             monitor_task = loop.create_task(background_monitor())
             self.os._background_tasks.append(monitor_task)
-            
+
             # 运行事件循环
             loop.run_forever()
         except KeyboardInterrupt:
