@@ -1,295 +1,163 @@
 # AI Native App 概述
 
-> **语言即软件 · 意图即应用 · 语义即执行**
+> **语言即系统 · Prompt 即可执行文件 · 语义 VM**
 
-**文档版本**: 1.0  
+**文档版本**: 2.0  
 **创建日期**: 2026-03-21  
+**最后更新**: 2026-03-21  
 **状态**: Release Candidate
 
 ---
 
 ## 一、什么是 AI Native App？
 
-### 1.1 定义
-
-**AI Native App** 是运行在 AI Native OS（如意图 OS）上的应用程序，其核心特征是：
+**AI Native App** 是运行在 IntentOS 上的应用程序，其核心特征是：
 
 1. **自然语言交互** - 用户通过自然语言而非 GUI 进行操作
-2. **语义编译执行** - 意图被编译为 LLM 可执行的 Prompt
+2. **语义编译执行** - 意图被编译为 LLM 可执行的 PEF (Prompt Executable File)
 3. **动态能力组合** - 运行时动态匹配和组合能力
-4. **即时生成** - 根据租户资源和用户身份即时生成 App 实例
-5. **按使用计费** - 基于资源消耗（CPU/Token/时长）的计费模式
-6. **Self-Bootstrap** - 应用可以自我演进和扩展
-
-### 1.2 与传统 App 的对比
-
-| 维度 | 传统 App | AI Native App |
-|------|---------|---------------|
-| **交互方式** | GUI（按钮/表单/菜单） | LUI（自然语言对话） |
-| **执行逻辑** | 预定义代码路径 | 动态语义编译 + 能力匹配 |
-| **数据结构** | 关系型数据库 | 语义记忆 + 知识图谱 |
-| **扩展方式** | 版本更新（天/周） | Self-Bootstrap（秒级） |
-| **计费模式** | 订阅/买断 | 按量计费（Pay-per-use） |
-| **开发范式** | 编写代码 | 定义意图 + 注册能力 |
-| **应用实例** | 所有用户共享 | 每用户唯一实例（即时生成） |
-
-### 1.3 核心洞察
-
-> **AI Native App 不是"AI + App"，而是"AI = App"**
-
-在传统范式中，AI 是 App 的一个功能模块；在 AI Native 范式中，**AI 就是 App 本身**——应用的行为完全由 LLM 的语义理解和执行能力决定。
-
-> **AI Native App 不是预编译的，而是即时生成的**
-
-应用实例在用户请求时动态生成，根据租户资源、用户身份、个人偏好进行定制，实现真正的个性化体验。
+4. **按使用计费** - 基于 Token 消耗的计费模式
+5. **Self-Bootstrap** - 应用可以自我演进和扩展
 
 ---
 
-## 二、核心架构
-
-### 2.1 整体架构
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  AI Native App (意图包)                                      │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ 1. 意图定义层 (Intent Definition)                    │   │
-│  │    • 意图模板 (YAML/DSL)                             │   │
-│  │    • 能力描述 (Capability Schema)                    │   │
-│  │    • 计费规则 (Pricing Rules)                        │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                            ↓ 定义                           │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ 2. 能力注册层 (Capability Registry)                  │   │
-│  │    • 内置能力 (Shell/文件/计算器/时间)               │   │
-│  │    • MCP Tools (外部服务：天气/股票/新闻)            │   │
-│  │    • Skills (Claude Skills 规范)                     │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                            ↓ 注册                           │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ 3. 执行引擎层 (Execution Engine)                     │   │
-│  │    • 意图编译器 (NLP → PEF)                          │   │
-│  │    • 能力匹配器 (关键词/标签/语义)                   │   │
-│  │    • 执行监控器 (资源计量/错误处理)                  │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                            ↓ 执行                           │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ 4. 服务层 (Services)                                 │   │
-│  │    • 记忆系统 (短期/长期记忆)                        │   │
-│  │    • 知识库 (结构化知识/文档)                        │   │
-│  │    • 支付集成 (数字钱包/自动扣费)                    │   │
-│  │    • 计量系统 (用量统计/账单生成)                    │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                            ↓ 服务                           │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │ 5. 用户交互层 (User Interface)                       │   │
-│  │    • Chat TUI (命令行聊天界面)                       │   │
-│  │    • REST API (HTTP 接口)                            │   │
-│  │    • Web UI (React/Vue 前端)                         │   │
-│  │    • Mobile App (iOS/Android)                        │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-                            ↓ 调用
-┌─────────────────────────────────────────────────────────────┐
-│  IntentOS Kernel (意图层 / 模型层)                           │
-│  • 语义 VM • 分布式调度 • LLM Processor                     │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 2.2 即时生成架构
-
-AI Native App 在运行时根据租户和用户身份即时生成：
+## 二、分层架构
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                        用户请求                                  │
-│                   "分析销售数据"                                  │
+│              PaaS 服务层 (PaaS Service Layer)                   │
+│  • 多租户管理 • 计费系统 • 应用市场 • 开发者工具                │
 └────────────────────┬────────────────────────────────────────────┘
-                     │
+                     │ IntentOS API
                      ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  IntentOS - App 即时生成引擎                                     │
-│                                                                 │
-│  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐          │
-│  │ 身份识别    │ → │ 能力绑定    │ → │ App 生成     │          │
-│  │ 租户/用户   │   │ 资源/权限   │   │ 动态组合    │          │
-│  └─────────────┘   └─────────────┘   └─────────────┘          │
-│         │                 │                 │                   │
-│         ▼                 ▼                 ▼                   │
-│  ┌─────────────────────────────────────────────────────┐       │
-│  │           运行时 App 实例 (唯一、隔离、个性化)            │       │
-│  │  • 版本：v2.3 (用户选择的版本)                         │       │
-│  │  • 能力：data_loader(analytics_db), analyzer, ...   │       │
-│  │  • 配置：{theme: dark, default_chart: line, ...}    │       │
-│  │  • 记忆：用户历史、偏好、数据                         │       │
-│  └─────────────────────────────────────────────────────┘       │
+│              IntentOS 核心层 (IntentOS Core)                    │
+│  • 语义 VM • 意图编译 • 能力注册 • 执行引擎 • 记忆系统          │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-详细架构请参考：[即时生成架构文档](./JIT_GENERATION_ARCHITECTURE.md)
+**IntentOS 核心层**: 语言即系统 · Prompt 即可执行文件 · 语义 VM
+
+**PaaS 服务层**: 多租户、计费、应用市场、开发者工具
 
 ---
 
-## 三、工作流程
+## 三、IntentOS 核心层
 
-### 3.1 App 即时生成流程
+### 3.1 核心模块
 
-```
-1. 用户发起请求
-   │
-   ▼
-2. 身份识别 (租户 ID + 用户 ID)
-   │
-   ▼
-3. 获取用户 App 版本偏好
-   │
-   ▼
-4. 加载对应版本意图包
-   │
-   ▼
-5. 能力绑定 (根据租户资源)
-   │
-   ▼
-6. 注入个性化配置
-   │
-   ▼
-7. 生成运行时 App 实例
-   │
-   ▼
-8. 执行意图
-   │
-   ▼
-9. 返回结果 + 更新记忆
-```
+| 模块 | 功能 |
+|------|------|
+| **语义 VM** | LLM 作为处理器，执行语义指令 |
+| **意图编译器** | 自然语言 → PEF |
+| **能力注册中心** | 注册和管理能力 |
+| **执行引擎** | 执行 PEF，调用能力 |
+| **记忆系统** | 短期/长期记忆 |
+| **上下文管理** | 租户/用户上下文 |
 
-### 3.2 示例场景
+### 3.2 使用示例
 
-#### 场景 1：多租户 SaaS
+```python
+from intentos import Agent, AgentContext
 
-```
-租户 A (acme 公司):
-  - 数据库：acme_analytics_db
-  - 能力：data_loader(acme_db), analyzer, reporter
-  - 用户 Alice 偏好：line_chart, dark_theme
+agent = Agent()
+context = AgentContext(tenant_id="acme_corp", user_id="alice")
 
-租户 B (globex 公司):
-  - 数据库：globex_sales_db
-  - 能力：data_loader(globex_db), analyzer, reporter
-  - 用户 Bob 偏好：bar_chart, light_theme
+result = await agent.execute(
+    intent="分析华东区 Q3 销售数据",
+    context=context
+)
 
-同一 App 定义 → 不同租户 → 不同数据源 → 不同配置 → 隔离运行
+print(result.message)      # 自然语言回复
+print(result.data)         # 数据结果
+print(result.usage)        # Token 使用
 ```
 
-#### 场景 2：版本灰度发布
+### 3.3 能力注册
 
-```
-App v2.0 发布:
-  - 10% 用户 → v2.0 (灰度)
-  - 90% 用户 → v1.9 (稳定)
-  
-用户可手动选择:
-  - "切换到稳定版" → v1.9
-  - "体验最新版" → v2.0
-```
+```python
+from intentos import register_capability
 
-#### 场景 3：个性化保持
-
-```
-用户 Alice 使用数据分析 App:
-  1. 首次使用：默认配置
-  2. 设置偏好：line_chart, dark_theme, export_format=png
-  3. 下次使用：自动加载个人配置
-  4. App 升级：配置保持，体验一致
+@register_capability(
+    id="data_loader",
+    name="数据加载",
+    description="从文件/数据库加载数据",
+    tags=["data", "io"],
+)
+def load_data(path: str, context: AgentContext) -> dict:
+    db = context.tenant_config.get("database")
+    # 加载数据
+    ...
 ```
 
 ---
 
-## 四、计费与收益
+## 四、PaaS 服务层
 
-### 4.1 计费模式
+### 4.1 PaaS 服务模块
 
-| 模型 | 适用场景 | 计费单位 | 示例 |
-|------|---------|---------|------|
-| **按量计费** | 临时使用 | CPU 秒/Token/次 | $0.10/分钟 |
-| **订阅制** | 高频使用 | 月/年 | $9.99/月 |
-| **配额制** | 中等频率 | 配额包 | $49.99/500 次 |
-| **免费 + 增值** | 获客 | 免费额度 + 付费 | 免费 10 次/月 |
-| **阶梯定价** | 大量使用 | 用量阶梯 | 1-100 次$0.1, 101+ 次$0.08 |
+| 模块 | 功能 |
+|------|------|
+| **多租户管理** | 租户隔离、资源配置、配额管理 |
+| **计费系统** | 用量计量、账单生成、支付、分成 |
+| **应用市场** | App 发布、审核、上架、评价 |
+| **开发者工具** | SDK、CLI、调试器、文档 |
 
-### 4.2 收益分成
+### 4.2 多租户管理
 
-```
-用户支付 $100
-    ↓
-┌─────────────────────────────────────┐
-│           收益分配                   │
-├─────────────────────────────────────┤
-│  开发者：$80 (80%)                  │
-│  平台：$15 (15%)                    │
-│  推荐者：$5 (5%)                    │
-└─────────────────────────────────────┘
+```python
+from intentos.paas import TenantManager
+
+manager = TenantManager()
+tenant = manager.create_tenant(
+    tenant_id="acme_corp",
+    name="ACME 公司",
+    plan="pro",
+)
 ```
 
-详细计费规则请参考：[计费与收益分成文档](./BILLING_AND_REVENUE.md)
+### 4.3 计费系统
+
+```python
+from intentos.paas import BillingEngine
+
+billing = BillingEngine()
+billing.record_usage(tenant_id="acme_corp", tokens=2500)
+invoice = billing.generate_invoice(tenant_id="acme_corp", period="2026-03")
+```
+
+### 4.4 应用市场
+
+```python
+from intentos.paas import AppMarketplace
+
+marketplace = AppMarketplace()
+app_id = marketplace.publish_app(developer_id="dev_alice", app_package={...})
+```
 
 ---
 
-## 五、示范 App
-
-### 5.1 智能客服 Bot
-- **功能**: 自动回答用户问题，处理客户支持请求
-- **计费**: $0.01/次对话
-- **开发者分成**: $0.008/次
-
-### 5.2 数据分析助手
-- **功能**: 用自然语言分析数据，生成洞察和报告
-- **计费**: $0.10/分钟
-- **开发者分成**: $0.08/分钟
-
-### 5.3 代码生成工具
-- **功能**: 根据需求生成代码，支持多种编程语言
-- **计费**: $0.02/1K tokens
-- **开发者分成**: $0.016/1K tokens
-
-### 5.4 文档总结服务
-- **功能**: 自动总结长文档、论文、报告等
-- **计费**: $0.05/页
-- **开发者分成**: $0.04/页
-
-### 5.5 多语言翻译
-- **功能**: 支持 100+ 语言互译
-- **计费**: $0.01/100 字
-- **开发者分成**: $0.008/100 字
-
----
-
-## 六、开发者指南
-
-### 6.1 开发流程
+## 五、开发流程
 
 ```
-1. 定义意图包
-   ↓
-2. 注册能力
-   ↓
-3. 配置计费规则
-   ↓
-4. 测试执行
-   ↓
-5. 发布到市场
-   ↓
-6. 监控用量和收益
+1. 定义意图包 → 2. 注册能力 → 3. 测试 → 4. 发布到市场 → 5. 获得收益
 ```
 
-### 6.2 快速开始
+### 意图包结构
+
+```
+my-app/
+├── SKILL.md              # 元数据
+├── intents/              # 意图模板
+├── capabilities/         # 能力定义
+└── pricing/              # 计费规则
+```
+
+### 快速开始
 
 ```bash
 # 1. 创建意图包
-mkdir my_app
-cd my_app
+mkdir my_app && cd my_app
 
 # 2. 创建 SKILL.md
 cat > SKILL.md << EOF
@@ -298,188 +166,68 @@ name: my_app
 description: 我的应用
 license: MIT
 ---
-
-# My App
-
-我的应用描述
-
-## 何时使用
-
-- 使用场景 1
-- 使用场景 2
 EOF
 
 # 3. 创建能力
 mkdir capabilities
 cat > capabilities/main.py << EOF
-from intentos.agent import register_capability
+from intentos import register_capability
 
-@register_capability(
-    id="my_capability",
-    name="我的能力",
-    description="能力描述",
-    tags=["custom"],
-)
+@register_capability(id="my_capability", name="我的能力")
 def my_capability(param: str) -> dict:
     return {"result": f"处理：{param}"}
 EOF
 
-# 4. 配置计费
-mkdir pricing
-cat > pricing/rules.yaml << EOF
-pricing:
-  model: pay_per_use
-  price_per_call: 0.01
-EOF
-
-# 5. 测试
-python -m intentos.apps.test my_app
-
-# 6. 发布
+# 4. 发布
 intentos marketplace publish my_app
 ```
 
-详细开发指南请参考：
-- [意图包格式规范](./INTENT_PACKAGE_SPEC.md)
-- [应用开发指南](./APP_DEVELOPMENT_GUIDE.md)
-
 ---
 
-## 七、安全与权限
+## 六、计费模式
 
-### 7.1 权限模型
+| 模型 | 计费单位 | 示例 |
+|------|---------|------|
+| **按量计费** | Token | $0.02/1K tokens |
+| **订阅制** | 月/年 | $9.99/月 |
+| **配额制** | 配额包 | $49.99/500 次 |
 
-IntentOS 采用基于能力的权限模型 (Capability-Based Security)：
-
-- **文件权限**: read/write/execute/delete
-- **网络权限**: api_call/http_get/http_post/websocket
-- **数据权限**: read_own/write_own/read_shared/admin
-- **记忆权限**: store/retrieve/delete
-- **系统权限**: shell/process/config_read/config_write
-
-### 7.2 安全策略
-
-- **输入验证**: 最大长度、文件类型、HTML 清理
-- **数据保护**: AES-256 静态加密、TLS-1.3 传输加密
-- **访问控制**: RBAC 模型、多因素认证
-- **速率限制**: 全局/每用户/每应用三级限制
-- **审计日志**: 365 天保留
-
-详细安全文档请参考：[安全与权限管理文档](./SECURITY_AND_PERMISSIONS.md)
-
----
-
-## 八、性能优化
-
-### 8.1 缓存策略
-
-- **L1 缓存**: 64MB 内存，TTL 60 秒，LRU 驱逐
-- **L2 缓存**: 512MB Redis，TTL 3600 秒，LFU 驱逐
-- **L3 缓存**: 10GB 数据库，TTL 86400 秒，TTL 驱逐
-
-### 8.2 并行执行
-
-- 最大 10 并发意图
-- 最大 5 并发能力
-- DAG 独立节点并行
-
-### 8.3 性能监控
-
-- **延迟指标**: p50 < 100ms, p95 < 500ms, p99 < 1000ms
-- **吞吐量**: 1000 QPS, 10000 tokens/s
-- **资源利用率**: CPU < 70%, Memory < 80%
-- **缓存命中率**: > 80%
-
-详细性能优化请参考：[性能优化策略文档](./PERFORMANCE_OPTIMIZATION.md)
-
----
-
-## 九、测试与调试
-
-### 9.1 单元测试
-
-```python
-from intentos.testing import IntentTestCase, mock_capability
-
-class TestDataAnalysisIntent(IntentTestCase):
-    app_id = "data_analyst"
-    intent_id = "data_analysis"
-    
-    @mock_capability("data_loader", returns={"data": []})
-    async def test_empty_data(self):
-        result = await self.execute_intent(
-            intent="分析数据",
-            parameters={"data_source": "file://empty.csv"}
-        )
-        assert result.success is True
-```
-
-### 9.2 调试工具
-
-- **断点**: 在意图步骤前设置断点
-- **变量监视**: 监视执行过程中的变量
-- **执行轨迹**: 查看完整的执行流程
-- **性能分析**: 火焰图、瓶颈分析
-
-详细测试调试指南请参考：[测试与调试指南文档](./TESTING_AND_DEBUGGING.md)
-
----
-
-## 十、技术路线图
+### 收益分成
 
 ```
-2026 Q2 (v12.0)          2026 Q3 (v13.0)          2026 Q4 (v14.0+)
-     │                        │                        │
-     ▼                        ▼                        ▼
-┌─────────┐            ┌─────────┐            ┌─────────┐
-│ AI Native│            │ 即时生成 │            │ 生态繁荣 │
-│   PaaS  │     →      │ 租户隔离 │     →      │ 千款应用 │
-│ 商业化  │            │ 版本管理 │            │ 万级开发者│
-└─────────┘            └─────────┘            └─────────┘
-     │                        │                        │
-     • 5 款示范 App           • 身份感知              • 1000+ 应用
-     • 收益分成              • 个性化保持            • 10000+ 开发者
-     • 自动 Scale            • 灰度发布              • 全球化部署
+用户支付 $100 → 开发者 $80 (80%) + 平台 $15 (15%) + 推荐者 $5 (5%)
 ```
 
 ---
 
-## 十一、加入 IntentOS 生态
+## 七、示范 App
 
-### 开发者
-1. 阅读本文档和开发指南
-2. 创建第一个意图包
-3. 提交到应用市场
-4. 获得收益分成 (80%)
-
-### 用户
-1. 通过终端或 API 访问 IntentOS
-2. 使用已发布的 AI Native App
-3. 按实际使用付费
-
-### 合作伙伴
-1. 提供 MCP 服务
-2. 集成现有系统
-3. 共同开发行业解决方案
+| App | 功能 | 计费 |
+|-----|------|------|
+| 🤖 智能客服 Bot | 自动回答用户问题 | $0.01/次 |
+| 📊 数据分析助手 | 自然语言数据分析 | $0.10/分钟 |
+| 💻 代码生成工具 | 多语言代码生成 | $0.02/1K tokens |
+| 📝 文档总结服务 | 长文档自动总结 | $0.05/页 |
+| 🌐 多语言翻译 | 100+ 语言互译 | $0.01/100 字 |
 
 ---
 
-## 十二、参考文档
+## 八、参考文档
 
 | 文档 | 说明 |
 |------|------|
-| [即时生成架构](./JIT_GENERATION_ARCHITECTURE.md) | App 即时生成、身份感知、版本管理 |
-| [租户架构](./TENANT_ARCHITECTURE.md) | 多租户隔离、资源配置、能力绑定 |
-| [计费与收益](./BILLING_AND_REVENUE.md) | 计费模式、收益分成、账单管理 |
-| [意图包格式](./INTENT_PACKAGE_SPEC.md) | manifest.yaml Schema、意图模板 |
-| [安全与权限](./SECURITY_AND_PERMISSIONS.md) | 权限模型、安全策略、沙箱执行 |
-| [性能优化](./PERFORMANCE_OPTIMIZATION.md) | 缓存策略、并行执行、性能监控 |
-| [测试与调试](./TESTING_AND_DEBUGGING.md) | 单元测试、集成测试、调试工具 |
+| [分层架构](./LAYERED_ARCHITECTURE.md) | ⭐ 总入口：IntentOS 核心层 + PaaS 服务层 |
+| [AI Native 核心理念](./AI_NATIVE_CORE_PRINCIPLES.md) | 语言即系统 · Prompt 即可执行文件 · 语义 VM |
+| [意图包格式规范](./INTENT_PACKAGE_SPEC.md) | manifest.yaml Schema |
 | [应用开发指南](./APP_DEVELOPMENT_GUIDE.md) | 开发流程、最佳实践 |
+| [计费与收益](./BILLING_AND_REVENUE.md) | 计费模式、收益分成 |
+| [安全与权限](./SECURITY_AND_PERMISSIONS.md) | 权限模型、安全策略 |
+| [性能优化策略](./PERFORMANCE_OPTIMIZATION.md) | 缓存策略、并行执行 |
+| [测试与调试指南](./TESTING_AND_DEBUGGING.md) | 单元测试、集成测试 |
 
 ---
 
-**文档版本**: 1.0  
+**文档版本**: 2.0  
 **创建日期**: 2026-03-21  
 **最后更新**: 2026-03-21  
 **状态**: Release Candidate

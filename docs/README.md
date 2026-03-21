@@ -8,11 +8,23 @@
 
 ## 📚 文档导航
 
-### 🌟 AI Native App 核心文档 (新)
+### ⭐ 核心原则 (必须遵循)
 
 | 文档 | 说明 |
 |------|------|
-| [AI Native App 概述](./AI_NATIVE_APP.md) | ⭐ 总入口：核心概念、架构概览 |
+| [核心原则](./CORE_PRINCIPLES.md) | **语言即系统 · Prompt 即可执行文件 · 语义 VM** (不可违背) |
+
+### 🌟 架构文档
+
+| 文档 | 说明 |
+|------|------|
+| [分层架构](./LAYERED_ARCHITECTURE.md) | ⭐ 总入口：IntentOS 核心层 + PaaS 服务层 |
+| [AI Native App 概述](./AI_NATIVE_APP.md) | AI Native App 概念、架构、开发指南 |
+
+### AI Native App 文档体系
+
+| 文档 | 说明 |
+|------|------|
 | [即时生成架构](./JIT_GENERATION_ARCHITECTURE.md) | App 即时生成、身份感知、版本管理 |
 | [租户架构](./TENANT_ARCHITECTURE.md) | 多租户隔离、资源配置、能力绑定 |
 | [计费与收益](./BILLING_AND_REVENUE.md) | 计费模式、收益分成、账单管理 |
