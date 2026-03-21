@@ -7,17 +7,18 @@ This module enables IntentOS to periodically evaluate its own state
 (the 'soul manifest'). It identifies deviations and can trigger corrective actions.
 """
 
-import yaml
 import logging
-from typing import Dict, Any, List, Optional
 import os
-import asyncio
+from typing import Any, Dict, List, Optional
+
+import yaml
+
+from intentos.agent.social_agent import SocialAgent
+from intentos.bootstrap.self_reproduction import SelfReproduction
+from intentos.distributed.cost_monitor import CostMonitor
 
 # Import IntentOS modules for corrective actions
 from intentos.distributed.economic_engine import EconomicEngine
-from intentos.bootstrap.self_reproduction import SelfReproduction
-from intentos.agent.social_agent import SocialAgent
-from intentos.distributed.cost_monitor import CostMonitor
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -144,7 +145,7 @@ class SelfReflection:
 if __name__ == '__main__':
     # Example usage
     self_reflection = SelfReflection()
-    
+
     # Simulate a healthy state
     healthy_state = {
         'economic_health': 'good',

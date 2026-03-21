@@ -8,10 +8,9 @@ to autonomously wake up and trigger self-maintenance and reproduction tasks.
 
 import asyncio
 import logging
-from typing import Dict, Any, List
-import random # For simulating current state
+import random  # For simulating current state
 
-from intentos.kernel.self_reflection import SelfReflection # Import SelfReflection
+from intentos.kernel.self_reflection import SelfReflection  # Import SelfReflection
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
