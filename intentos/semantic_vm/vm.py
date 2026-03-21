@@ -16,13 +16,18 @@ IntentOS 的本质是一个语义虚拟机：
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from typing import Any, Optional, Union
 
+from intentos.kernel.core import PrivilegeLevel
+
 from .safe_eval import SafeConditionEvaluator
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # 语义指令类型
@@ -217,25 +222,44 @@ class SemanticProgram:
 
 class SemanticMemory:
     """
-    语义内存
-
-    存储语义数据的内存空间
+    语义内存 (带命名空间隔离)
     """
 
     def __init__(self):
         # 语义存储
-        self.templates: dict[str, Any] = {}  # 意图模板
-        self.capabilities: dict[str, Any] = {}  # 能力
-        self.policies: dict[str, Any] = {}  # 策略
-        self.prompts: dict[str, Any] = {}  # Prompt
-        self.configs: dict[str, Any] = {}  # 配置
-        self.programs: dict[str, SemanticProgram] = {}  # 程序
-        self.variables: dict[str, Any] = {}  # 变量
-        self.audit_log: list[dict] = []  # 审计日志
+        self.templates: dict[str, Any] = {}
+        self.capabilities: dict[str, Any] = {}
+        self.policies: dict[str, Any] = {}
+        self.prompts: dict[str, Any] = {}
+        self.configs: dict[str, Any] = {}
+        self.programs: dict[str, SemanticProgram] = {}
+        self.variables: dict[str, Any] = {}
+        self.audit_log: list[dict] = []
 
-    def get(self, store: str, key: str) -> Optional[Any]:
-        """获取数据"""
-        store_map = {
+    def _get_ns_key(self, key: str, context: Optional[dict] = None) -> str:
+        """生成带命名空间的 Key: tenant_id:user_id:key"""
+        if not context:
+            return f"system:global:{key}"
+
+        tenant = context.get("tenant_id", "public")
+        user = context.get("user_id", "guest")
+        return f"{tenant}:{user}:{key}"
+
+    def get(self, store: str, key: str, context: Optional[dict] = None) -> Optional[Any]:
+        """获取数据 (带隔离)"""
+        ns_key = self._get_ns_key(key, context)
+        store_map = self._get_store_map(store)
+        return store_map.get(ns_key)
+
+    def set(self, store: str, key: str, value: Any, context: Optional[dict] = None) -> None:
+        """设置数据 (带隔离)"""
+        ns_key = self._get_ns_key(key, context)
+        store_map = self._get_store_map(store)
+        if store_map is not None:
+            store_map[ns_key] = value
+
+    def _get_store_map(self, store: str) -> dict:
+        maps = {
             "TEMPLATE": self.templates,
             "CAPABILITY": self.capabilities,
             "POLICY": self.policies,
@@ -244,21 +268,7 @@ class SemanticMemory:
             "PROGRAM": self.programs,
             "VARIABLE": self.variables,
         }
-        return store_map.get(store, {}).get(key)
-
-    def set(self, store: str, key: str, value: Any) -> None:
-        """设置数据"""
-        store_map = {
-            "TEMPLATE": self.templates,
-            "CAPABILITY": self.capabilities,
-            "POLICY": self.policies,
-            "PROMPT": self.prompts,
-            "CONFIG": self.configs,
-            "PROGRAM": self.programs,
-            "VARIABLE": self.variables,
-        }
-        if store in store_map:
-            store_map[store][key] = value
+        return maps.get(store, {})
 
     def delete(self, store: str, key: str) -> bool:
         """删除数据"""
@@ -382,6 +392,29 @@ class LLMProcessor:
 }}
 """
 
+    # 任务分解 Prompt 模板
+    DECOMPOSE_PROMPT = """
+你是一个高级语义调度器。请将以下复杂的意图拆分为 2-5 个可以并行执行的独立子任务。
+
+## 复杂意图
+{intent}
+
+## 当前集群能力
+{capabilities}
+
+## 输出要求
+请返回 JSON 数组，每个元素包含：
+- name: 子任务名称
+- description: 子任务详细描述
+- required_capabilities: 该子任务需要的物理能力列表 (如 ["shell", "filesystem"])
+
+格式示例:
+[
+    {{"name": "subtask_1", "description": "...", "required_capabilities": ["shell"]}},
+    {{"name": "subtask_2", "description": "...", "required_capabilities": ["math"]}}
+]
+"""
+
     def __init__(self, llm_executor: Any):
         """
         初始化处理器
@@ -391,6 +424,33 @@ class LLMProcessor:
         """
         self.llm_executor = llm_executor
         self.processor_prompt = self.EXECUTE_PROMPT
+
+    async def decompose_intent(self, intent: str, capabilities: list[str]) -> list[dict[str, Any]]:
+        """
+        智能意图分解 (Semantic Decomposition)
+        """
+        prompt = self.DECOMPOSE_PROMPT.format(
+            intent=intent,
+            capabilities=", ".join(capabilities)
+        )
+
+        from intentos.llm.backends.base import Message
+        messages = [
+            Message.system("你是一个专业的任务分解引擎。"),
+            Message.user(prompt),
+        ]
+
+        response = await self.llm_executor.execute(messages)
+        try:
+            # 解析 JSON 结果
+            import json
+            content = response.content.strip()
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0]
+            return json.loads(content)
+        except Exception as e:
+            logger.error(f"Intent decomposition failed: {e}")
+            return [{"name": "fallback", "description": intent, "required_capabilities": []}]
 
     async def execute(
         self,
@@ -497,9 +557,6 @@ class LLMProcessor:
 
 
 # =============================================================================
-from intentos.kernel.core import PrivilegeLevel
-
-# =============================================================================
 # 语义 VM 执行器
 # =============================================================================
 
@@ -547,17 +604,11 @@ class SemanticVM:
         mode: Optional[PrivilegeLevel] = None,
     ) -> dict[str, Any]:
         """
-        执行程序
-
-        Args:
-            program_name: 程序名称
-            context: 执行上下文
-            mode: 指定执行模式 (可选，默认使用 VM 当前模式)
-
-        Returns:
-            执行结果
+        执行程序 (集成 Gas 计量与熔断)
         """
-        # 如果指定了模式，临时使用
+        from .gas import GasCost, GasTracker, OutOfGasError
+
+        # 1. 初始环境设置
         original_mode = self.mode
         if mode is not None:
             self.mode = mode
@@ -567,36 +618,79 @@ class SemanticVM:
             self.mode = original_mode
             return {"success": False, "error": f"程序不存在：{program_name}"}
 
+        # 2. 注入 Gas 追踪器 (Gas Quota)
+        gas_limit = context.get("gas_limit", 1000) if context else 1000
+        gas_tracker = GasTracker(limit=gas_limit)
+
         self.pc = 0
         self.running = True
 
         results = []
-        max_iterations = 10000  # 防止无限循环
         iterations = 0
 
-        while self.pc < len(program.instructions) and self.running and iterations < max_iterations:
-            instruction = program.instructions[self.pc]
+        try:
+            while self.pc < len(program.instructions) and self.running:
+                instruction = program.instructions[self.pc]
 
-            # 执行指令
-            result = await self._execute_instruction(instruction, program)
-            results.append(result)
+                # 3. Gas 预扣除 (Pre-execution Metering)
+                gas_amount = self._calculate_instruction_gas(instruction)
+                gas_tracker.consume(gas_amount)
 
-            # 更新程序计数器
-            if result.get("jump"):
-                self.pc = result["jump"]
-            else:
-                self.pc += 1
+                # 4. 执行指令
+                result = await self._execute_instruction(instruction, program)
 
-            iterations += 1
+                # 5. 后扣除 (针对 LLM 调用等动态成本)
+                if result.get("operation") == "llm_call":
+                    gas_tracker.consume(GasCost.LLM_CALL.value)
+
+                results.append(result)
+
+                # 更新程序计数器
+                if result.get("jump"):
+                    self.pc = result["jump"]
+                else:
+                    self.pc += 1
+
+                iterations += 1
+
+        except OutOfGasError as e:
+            self.running = False
+            results.append({"success": False, "error": str(e), "status": "OUT_OF_GAS"})
+        except Exception as e:
+            self.running = False
+            results.append({"success": False, "error": str(e)})
 
         self.running = False
         self.mode = original_mode
 
         return {
-            "success": True,
+            "success": any(r.get("success") for r in results),
             "results": results,
+            "gas_usage": {
+                "limit": gas_limit,
+                "used": gas_tracker.used,
+                "remaining": gas_tracker.remaining
+            },
             "final_state": self.memory.get_state(),
         }
+
+    def _calculate_instruction_gas(self, instruction: SemanticInstruction) -> int:
+        """根据操作码计算基础 Gas 成本"""
+        from .gas import GasCost
+
+        # 基础跳转指令 (IF/LOOP/JUMP)
+        if instruction.opcode in (SemanticOpcode.IF, SemanticOpcode.LOOP, SemanticOpcode.WHILE):
+            return GasCost.LOOP_ITERATION.value
+
+        # 存储操作 (CREATE/MODIFY/SET)
+        if instruction.opcode in (SemanticOpcode.CREATE, SemanticOpcode.MODIFY, SemanticOpcode.SET):
+            return GasCost.MEMORY_WRITE.value + GasCost.CREATE_OP.value
+
+        # 远程执行 (EXECUTE)
+        if instruction.opcode == SemanticOpcode.EXECUTE:
+            return GasCost.LLM_CALL.value
+
+        return GasCost.BASE_INSTRUCTION.value
 
     async def _execute_instruction(
         self,
@@ -610,11 +704,11 @@ class SemanticVM:
             # 拒绝元指令 (Self-Bootstrap)
             if instruction.opcode in (SemanticOpcode.DEFINE_INSTRUCTION, SemanticOpcode.MODIFY_PROCESSOR):
                 raise PermissionError(f"用户态禁止执行特权指令：{instruction.opcode.value}")
-            
+
             # 拒绝修改系统配置和策略
             if instruction.opcode == SemanticOpcode.MODIFY and instruction.target in ("CONFIG", "POLICY"):
                 raise PermissionError(f"用户态禁止修改系统配置：{instruction.target}")
-            
+
             # 拒绝删除系统配置和策略
             if instruction.opcode == SemanticOpcode.DELETE and instruction.target in ("CONFIG", "POLICY"):
                 raise PermissionError(f"用户态禁止删除系统配置：{instruction.target}")

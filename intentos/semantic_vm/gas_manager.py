@@ -1,9 +1,8 @@
 """
-Gas 管理器
+Gas 管理器 (Gas Manager)
 
-管理 Gas 成本计算、消耗追踪、统计报告
-
-设计文档：docs/private/003-gas-mechanism.md
+负责语义程序的 Gas 消耗估算、实时监控与审计记录。
+体现“Prompt 即可执行文件”的执行成本。
 """
 
 from __future__ import annotations
@@ -11,116 +10,82 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
-from ..semantic_vm import SemanticInstruction, SemanticOpcode
-from .gas import ExecutionBudget, GasCosts, GasReceipt
+from .gas import GasCost, GasTracker, GasReceipt, OutOfGasError
+from .vm import SemanticInstruction, SemanticOpcode
 
 logger = logging.getLogger(__name__)
 
-
 class GasManager:
     """
-    Gas 管理器
-
-    管理 Gas 成本计算、消耗追踪、统计报告
+    Gas 管理器：语义 OS 的资源调度中心
     """
 
-    def __init__(self, costs: Optional[GasCosts] = None):
-        self.costs = costs or GasCosts()
+    def __init__(self):
         self._receipts: list[GasReceipt] = []
 
-    def estimate_gas(
-        self,
-        instructions: list[SemanticInstruction],
-        variables: Optional[dict] = None,
-    ) -> int:
+    def estimate_gas(self, instructions: list[SemanticInstruction]) -> int:
         """
-        估算程序的 Gas 消耗
-
-        Args:
-            instructions: 指令列表
-            variables: 变量（用于条件评估）
-
-        Returns:
-            估算的 Gas 总量
+        基于第一性原理估算 PEF 指令集的 Gas 消耗
         """
         total_gas = 0
-
         for instr in instructions:
-            # 基础成本
-            opcode = instr.opcode
-            gas = self.costs.get_cost(opcode)
-            total_gas += gas
+            # 获取指令基础成本
+            cost = self._get_base_cost(instr.opcode)
+            total_gas += cost
 
-            # 循环体成本（估算）
-            if opcode == SemanticOpcode.LOOP:
-                times = instr.parameters.get("times", 1)
-                body_gas = self.estimate_gas(instr.body, variables)
-                total_gas += body_gas * times
-
-            elif opcode == SemanticOpcode.WHILE:
-                # WHILE 循环按最大可能次数估算（保守）
-                max_iterations = 100  # 可配置
-                body_gas = self.estimate_gas(instr.body, variables)
-                total_gas += body_gas * max_iterations
-
-            elif opcode == SemanticOpcode.IF:
-                # IF/ELSE 体取最大值
-                if instr.body:
-                    body_gas = self.estimate_gas(instr.body, variables)
-                    total_gas += body_gas
-
+            # 递归处理复合指令 (LOOP/WHILE)
+            if hasattr(instr, 'body') and instr.body:
+                body_gas = self.estimate_gas(instr.body)
+                if instr.opcode == SemanticOpcode.LOOP:
+                    times = instr.parameters.get("times", 1)
+                    total_gas += body_gas * times
+                elif instr.opcode == SemanticOpcode.WHILE:
+                    total_gas += body_gas * 100 # 默认最大循环步数
+        
         return total_gas
 
-    def consume_gas(
-        self,
-        budget: ExecutionBudget,
-        opcode: Any,
-        extra_gas: int = 0,
-    ) -> tuple[bool, int]:
-        """
-        消耗 Gas
+    def _get_base_cost(self, opcode: Any) -> int:
+        """映射操作码到 GasCost 枚举"""
+        if opcode in (SemanticOpcode.IF, SemanticOpcode.LOOP, SemanticOpcode.WHILE):
+            return GasCost.LOOP_ITERATION.value
+        if opcode in (SemanticOpcode.CREATE, SemanticOpcode.MODIFY, SemanticOpcode.SET):
+            return GasCost.CREATE_OP.value
+        if opcode == SemanticOpcode.EXECUTE:
+            return GasCost.LLM_CALL.value
+        return GasCost.BASE_INSTRUCTION.value
 
-        Args:
-            budget: 执行预算
-            opcode: 指令操作码
-            extra_gas: 额外 Gas（如循环体）
+    def create_tracker(self, limit: int) -> GasTracker:
+        """为新的语义进程创建追踪器"""
+        return GasTracker(limit=limit)
 
-        Returns:
-            (是否成功，消耗的 Gas 量)
-        """
-        base_gas = self.costs.get_cost(opcode)
-        total_gas = base_gas + extra_gas
-
-        if not budget.consume(total_gas):
-            logger.warning(f"Gas 不足：需要 {total_gas}, 剩余 {budget.gas_remaining}")
-            return False, total_gas
-
-        return True, total_gas
-
-    def record_receipt(self, receipt: GasReceipt) -> None:
-        """记录 Gas 收据"""
+    def record_execution(
+        self, 
+        program_name: str, 
+        limit: int, 
+        used: int, 
+        success: bool,
+        metadata: Optional[dict] = None
+    ) -> GasReceipt:
+        """记录执行完成后的 Gas 收据"""
+        receipt = GasReceipt(
+            program_name=program_name,
+            gas_limit=limit,
+            gas_used=used,
+            success=success,
+            metadata=metadata or {}
+        )
         self._receipts.append(receipt)
-
-    def get_receipts(self) -> list[GasReceipt]:
-        """获取所有收据"""
-        return self._receipts.copy()
+        return receipt
 
     def get_statistics(self) -> dict[str, Any]:
-        """获取统计信息"""
+        """获取整个集群或节点的 Gas 消耗统计信息"""
         if not self._receipts:
-            return {
-                "total_executions": 0,
-                "total_gas_used": 0,
-                "average_gas_per_execution": 0,
-                "success_rate": 0.0,
-            }
+            return {"total_executions": 0, "total_gas_used": 0}
 
-        total_gas = sum(r.gas_used for r in self._receipts)
-        success_count = sum(1 for r in self._receipts if r.success)
-
+        total_used = sum(r.gas_used for r in self._receipts)
         return {
             "total_executions": len(self._receipts),
-            "total_gas_used": total_gas,
-            "average_gas_per_execution": total_gas / len(self._receipts),
-            "success_rate": success_count / len(self._receipts),
+            "total_gas_used": total_used,
+            "average_per_execution": total_used / len(self._receipts),
+            "success_rate": sum(1 for r in self._receipts if r.success) / len(self._receipts)
         }
