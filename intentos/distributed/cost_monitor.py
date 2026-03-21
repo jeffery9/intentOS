@@ -8,14 +8,7 @@ operates within its financial means.
 """
 
 import logging
-from typing import Dict, Any, List
-
-# Try to import cloud-specific SDKs
-try:
-    import boto3
-    AWS_SDK_AVAILABLE = True
-except ImportError:
-    AWS_SDK_AVAILABLE = False
+from typing import Any, Dict, List
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -50,7 +43,7 @@ class CostMonitor:
     def load_budget(self, file_path: str = 'config/budget.yml') -> None:
         """
         Loads the budget configuration.
-        
+
         # Example budget.yml:
         # monthly_spend_limit: 50.00 # USD
         """
@@ -74,7 +67,7 @@ class CostMonitor:
                 # Simple cost estimation based on placeholder data
                 resource_type = action.get('type')
                 cost = AWS_PRICING_DATA.get(resource_type, 0.0)
-                
+
                 # A more complex example for an EC2 instance or similar
                 if 'instance_type' in action.get('details', {}):
                     instance_type = action['details']['instance_type']
@@ -95,7 +88,7 @@ class CostMonitor:
     def check_current_spend(self) -> bool:
         """
         Checks the current monthly spend against the budget.
-        
+
         :return: True if spend is within budget, False otherwise.
         """
         if not self.budget:
@@ -105,13 +98,13 @@ class CostMonitor:
         # Placeholder: This would use the AWS Cost Explorer API in a real scenario
         current_spend = 35.00 # Dummy value
         limit = self.budget['monthly_spend_limit']
-        
+
         logging.info(f"Current monthly spend: ${current_spend} (Budget: ${limit})")
 
         if current_spend > limit:
             logging.error(f"Budget exceeded! Spend: ${current_spend}, Limit: ${limit}")
             return False
-        
+
         logging.info("Current spend is within budget.")
         return True
 
@@ -126,12 +119,12 @@ class CostMonitor:
 
         # Placeholder for optimization logic.
         # In a real system, this would fetch metrics from a service like CloudWatch.
-        
+
         # Rule 1: Check for underutilized ECS services during off-peak hours.
         # Simulating low CPU usage at night.
         avg_cpu_last_4_hours = 15.0 # Simulating 15% average CPU
         num_of_instances = 2
-        
+
         if avg_cpu_last_4_hours < 20.0 and num_of_instances > 1:
             estimated_savings = AWS_PRICING_DATA.get('t3.micro', 0.0) * 24 * 30 * (num_of_instances - 1)
             suggestion = {
@@ -150,5 +143,5 @@ class CostMonitor:
 
         if not suggestions:
             logging.info("No immediate cost optimization opportunities found.")
-            
+
         return suggestions

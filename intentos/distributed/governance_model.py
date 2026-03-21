@@ -8,10 +8,10 @@ Autonomous Organization (DAO) for IntentOS.
 """
 
 import logging
+import random  # Import random for simulating initial voters
 import uuid
-from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
-import random # Import random for simulating initial voters
+from typing import Any, Dict, List, Optional
 
 from intentos.agent.reward_system import RewardSystem
 
@@ -105,7 +105,7 @@ class GovernanceModel:
         if voter_id in proposal.voters:
             logging.warning(f"Entity {voter_id} has already voted on proposal {proposal_id}.")
             return False
-        
+
         voting_power = self.reward_system.get_balance(voter_id) # Voting power == credit balance
         if voting_power <= 0:
             logging.warning(f"Entity {voter_id} has no voting power (0 credits).")
@@ -117,7 +117,7 @@ class GovernanceModel:
         else:
             proposal.votes_against += voting_power
             logging.info(f"Entity {voter_id} voted AGAINST proposal '{proposal.title}' with {voting_power} power.")
-        
+
         proposal.voters[voter_id] = True
         return True
 
@@ -135,7 +135,7 @@ class GovernanceModel:
         # Close the vote if duration has passed
         if proposal.is_active() and datetime.now() >= proposal.ends_at:
             proposal.close_vote()
-            
+
         return {
             "id": proposal.id,
             "title": proposal.title,

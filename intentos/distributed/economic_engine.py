@@ -8,14 +8,16 @@ and self-reproduction based on predefined economic rules.
 """
 
 import logging
-from typing import Dict, Any, List
-import asyncio
-import yaml
 import os
+from typing import Any, Dict
 
-from intentos.distributed.cost_monitor import CostMonitor
+import yaml
+
 from intentos.agent.payment_integration import PaymentIntegration
-from intentos.bootstrap.self_reproduction import SelfReproduction, ReproductionPlan, ReproductionType
+from intentos.bootstrap.self_reproduction import (
+    SelfReproduction,
+)
+from intentos.distributed.cost_monitor import CostMonitor
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 

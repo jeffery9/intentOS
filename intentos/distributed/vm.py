@@ -38,17 +38,19 @@ from intentos.semantic_vm import LLMProcessor, SemanticInstruction, SemanticMemo
 class VMNode:
     """
     VM 节点
-
-    分布式语义 VM 集群中的单个节点
     """
-
     node_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     host: str = "localhost"
     port: int = 8000
-    status: str = "active"  # active/inactive/loading
-    load: float = 0.0  # 0.0-1.0
-    capabilities: list[str] = field(default_factory=list)  # 支持的指令类型
+    status: str = "active"
+    load: float = 0.0
+    capabilities: list[str] = field(default_factory=list)
+    last_heartbeat: datetime = field(default_factory=datetime.now)
     created_at: datetime = field(default_factory=datetime.now)
+
+    def is_alive(self, timeout: int = 60) -> bool:
+        """检查节点是否存活"""
+        return (datetime.now() - self.last_heartbeat).total_seconds() < timeout
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -58,6 +60,7 @@ class VMNode:
             "status": self.status,
             "load": self.load,
             "capabilities": self.capabilities,
+            "last_heartbeat": self.last_heartbeat.isoformat(),
             "created_at": self.created_at.isoformat(),
         }
 
@@ -165,36 +168,39 @@ class DistributedSemanticMemory:
         return self.local_storage.log_audit(action, details)
 
     def add_node(self, node: VMNode) -> None:
-        """添加节点"""
+        """添加或更新节点"""
+        # 查找是否存在同 ID 节点
+        for i, n in enumerate(self.nodes):
+            if n.node_id == node.node_id:
+                self.nodes[i] = node
+                self._rebuild_ring()
+                return
         self.nodes.append(node)
         self._rebuild_ring()
 
-    def remove_node(self, node_id: str) -> None:
-        """移除节点"""
-        self.nodes = [n for n in self.nodes if n.node_id != node_id]
-        self._rebuild_ring()
-
-    def get_nodes(self) -> list[VMNode]:
-        """获取所有节点"""
-        return self.nodes.copy()
-
-    def get_active_nodes(self) -> list[VMNode]:
-        """获取活跃节点"""
-        return [n for n in self.nodes if n.status == "active"]
+    def cleanup_dead_nodes(self, timeout: int = 60) -> list[str]:
+        """清理失效节点"""
+        dead_ids = [n.node_id for n in self.nodes if not n.is_alive(timeout)]
+        if dead_ids:
+            self.nodes = [n for n in self.nodes if n.node_id not in dead_ids]
+            self._rebuild_ring()
+            print(f"Removed dead nodes: {dead_ids}")
+        return dead_ids
 
     def _rebuild_ring(self) -> None:
-        """重建一致性哈希环"""
-        self.ring = {}
+        """重建一致性哈希环 (带锁和存活检查)"""
+        new_ring = {}
         for node in self.nodes:
-            if node.status == "active":
-                # 为每个节点创建多个虚拟节点 (虚拟节点提高均衡性)
-                for i in range(100):  # 100 个虚拟节点
+            # 只有活跃且在线的节点进入哈希环
+            if node.status == "active" and node.is_alive():
+                # 虚拟节点
+                for i in range(160):  # 增加到 160 个以提高分布均匀度
                     key = f"{node.node_id}:{i}"
                     hash_key = self._hash_key(key)
-                    self.ring[hash_key] = node
+                    new_ring[hash_key] = node
 
-        # 排序哈希环
-        self.ring = dict(sorted(self.ring.items()))
+        # 原子替换哈希环
+        self.ring = dict(sorted(new_ring.items()))
 
     def _hash_key(self, key: str) -> int:
         """计算一致性哈希"""
@@ -321,23 +327,24 @@ class DistributedCoordinator:
     ) -> str:
         """
         生成/分发新进程 (Equivalent to fork + exec)
-
-        Args:
-            program: 语义程序
-            context: 执行上下文
-            parent_pid: 父进程 PID
-
-        Returns:
-            PID
+        支持从程序元数据中提取所需的物理 IO 能力要求。
         """
         pid = str(uuid.uuid4())
 
-        # 1. 选择最佳节点 (调度策略)
-        node = await self._select_best_node()
+        # 1. 提取能力要求 (Capability Affinity)
+        # 假设程序在 metadata 中声明了能力，如 ["GPU", "FileSystem"]
+        required_caps = program.to_dict().get("metadata", {}).get("required_capabilities", [])
+
+        # 2. 选择最佳节点 (调度策略)
+        node = await self._select_best_node(required_caps)
+
         if not node:
+            # 调度失败逻辑：如果是因为没有满足能力的节点，则报错
+            if required_caps:
+                return self._create_error_result(pid, f"调度失败：无节点具备所需能力 {required_caps}")
             return self._create_error_result(pid, "调度失败：没有可用节点")
 
-        # 2. 创建 PCB
+        # 3. 创建 PCB
         pcb = SemanticProcess(
             pid=pid,
             program_name=program.name,
@@ -348,7 +355,7 @@ class DistributedCoordinator:
         )
         self.processes[pid] = pcb
 
-        # 3. 跨节点执行
+        # 4. 跨节点执行
         if node.host == "localhost" and self.local_vm:
             # 本地直接执行
             pcb.state = ProcessState.RUNNING
@@ -412,15 +419,31 @@ class DistributedCoordinator:
             active_processes.append(pcb)
         return active_processes
 
-    async def _select_best_node(self) -> Optional[VMNode]:
-        """选择最佳节点"""
-        active_nodes = self.memory.get_active_nodes()
+    async def _select_best_node(self, required_capabilities: Optional[list[str]] = None) -> Optional[VMNode]:
+        """
+        基于能力与负载选择最佳节点 (Capability-Aware Scheduling)
 
+        第一性原理：计算应尽可能靠近其所需的 IO 能力。
+        """
+        active_nodes = self.memory.get_active_nodes()
         if not active_nodes:
             return None
 
-        # 选择负载最低的节点
-        return min(active_nodes, key=lambda n: n.load)
+        # 1. 过滤具备所需能力的节点
+        candidate_nodes = active_nodes
+        if required_capabilities:
+            candidate_nodes = [
+                n for n in active_nodes
+                if all(cap in n.capabilities for cap in required_capabilities)
+            ]
+
+        # 如果没有节点完全满足，退而求其次（或报错）
+        if not candidate_nodes:
+            # 这里选择返回 None，让调用者决定是否降级
+            return None
+
+        # 2. 在候选节点中选择负载最低的
+        return min(candidate_nodes, key=lambda n: n.load)
 
     async def _execute_on_node(
         self,
@@ -457,22 +480,114 @@ class DistributedCoordinator:
         }
         return exec_id
 
-    async def get_result(self, exec_id: str) -> Optional[dict]:
+    async def wait_at_barrier(self, barrier_id: str, count: int, pid: str) -> bool:
+        """
+        在屏障点等待 (Distributed Barrier)
+
+        第一性原理：屏障是分布式时钟同步的替代品，确保逻辑上的“同时”。
+        """
+        key = f"barrier:{barrier_id}"
+
+        # 1. 在分布式内存中原子增加到达计数 (使用分布式内存作为协调中心)
+        barrier_state = await self.memory.get("VARIABLE", key) or {"reached": [], "count": count}
+
+        if pid not in barrier_state["reached"]:
+            barrier_state["reached"].append(pid)
+            await self.memory.set("VARIABLE", key, barrier_state)
+
+        # 2. 检查是否所有人都到了
+        if len(barrier_state["reached"]) >= count:
+            # 释放所有人：将所有参与进程状态设为 RUNNING
+            for p_id in barrier_state["reached"]:
+                if p_id in self.processes:
+                    self.processes[p_id].state = ProcessState.RUNNING
+
+            # 清理屏障状态以备复用
+            await self.memory.delete("VARIABLE", key)
+            return True # 屏障已释放
+        else:
+            # 挂起当前进程
+            if pid in self.processes:
+                self.processes[pid].state = ProcessState.SUSPENDED
+            return False # 进程已挂起，等待中
+
+    async def get_status(self, exec_id: str) -> Optional[dict]:
+
         """获取执行结果"""
         return self.results.get(exec_id)
 
-    async def get_status(self, exec_id: str) -> Optional[dict]:
-        """获取执行状态"""
-        # 使用 processes 而不是 program_counters
-        process = self.processes.get(exec_id)
-        if not process:
-            return None
+    async def map_reduce(
+        self,
+        sub_programs: list[Any],  # list[SemanticProgram]
+        context: Optional[dict] = None,
+        aggregator_prompt: Optional[str] = None,
+        max_concurrency: int = 10,
+        max_retries: int = 2
+    ) -> dict[str, Any]:
+        """
+        大规模语义 Map-Reduce (Large-scale Semantic Map-Reduce)
+        支持并发控制和重试机制。
+        """
+        semaphore = asyncio.Semaphore(max_concurrency)
+        pids_to_tasks = {} # PID -> (Program, AttemptCount)
+        results = []
+        failed_tasks = []
+
+        async def run_task(prog, attempt=0):
+            async with semaphore:
+                pid = await self.fork_process(prog, context)
+                pids_to_tasks[pid] = (prog, attempt)
+                return pid
+
+        # 1. Map 阶段：分批分发
+        initial_tasks = [run_task(p) for p in sub_programs]
+        pending_pids = await asyncio.gather(*initial_tasks)
+
+        # 2. 动态结果收集与重试
+        timeout = 600  # 10分钟
+        start_time = datetime.now()
+
+        while pending_pids:
+            if (datetime.now() - start_time).total_seconds() > timeout:
+                break
+
+            for pid in list(pending_pids):
+                if pid in self.results:
+                    res = self.results[pid]
+                    if res.get("success"):
+                        results.append(res)
+                        pending_pids.remove(pid)
+                    else:
+                        # 失败重试逻辑
+                        prog, attempt = pids_to_tasks[pid]
+                        if attempt < max_retries:
+                            print(f"Task {pid} failed, retrying (attempt {attempt+1})...")
+                            new_pid = await run_task(prog, attempt + 1)
+                            pending_pids.append(new_pid)
+                            pending_pids.remove(pid)
+                        else:
+                            failed_tasks.append(res)
+                            pending_pids.remove(pid)
+
+            await asyncio.sleep(1)
+
+        # 3. Reduce 阶段
+        if not self.local_vm or not self.local_vm.processor:
+            return {"success": True, "map_results": results, "failed": failed_tasks}
+
+        summary_prompt = aggregator_prompt or "请对以下大规模子任务的执行结果进行汇总报告："
+        full_context = f"{summary_prompt}\n\n" + "\n---\n".join([str(r.get('final_state', r)) for r in results])
+
+        final_summary = await self.local_vm.processor.execute_llm(full_context, self.memory)
 
         return {
-            "pid": process.pid,
-            "state": process.state.value,
-            "program_name": process.program_name,
-            "node_id": process.node_id,
+            "success": len(failed_tasks) == 0,
+            "final_result": final_summary,
+            "stats": {
+                "total": len(sub_programs),
+                "success": len(results),
+                "failed": len(failed_tasks)
+            }
         }
 
 
@@ -601,6 +716,7 @@ class DistributedOpcode(Enum):
     SHARD = "shard"  # 分片数据
     MIGRATE = "migrate"  # 迁移数据到另一个节点
     BROADCAST = "broadcast"  # 广播到所有节点
+    PARALLEL = "parallel"  # 智能分片并行执行 (Map-Reduce)
 
     # 分布式控制流
     SPAWN = "spawn"  # 在新节点上生成子程序
@@ -612,7 +728,7 @@ class DistributedProcessor(LLMProcessor):
     """
     分布式 LLM 处理器
 
-    支持分布式语义指令 (REPLICATE, SPAWN, BROADCAST...)
+    支持分布式语义指令 (REPLICATE, SPAWN, BROADCAST, PARALLEL...)
     """
 
     def __init__(self, llm_executor: Any, cluster: DistributedSemanticVM):
@@ -632,51 +748,225 @@ class DistributedProcessor(LLMProcessor):
         if isinstance(opcode, DistributedOpcode):
             return await self._execute_distributed(instruction, memory)
 
-        # 处理基础操作码 (如果被标记为分布式)
-        # 例如：BROADCAST CREATE ...
+        # 兼容性处理
+        if isinstance(opcode, str) and opcode.lower() == "parallel":
+            return await self._execute_distributed(instruction, memory)
 
         return await super().execute(instruction, memory)
 
     async def _execute_distributed(self, instruction, memory) -> dict[str, Any]:
         opcode = instruction.opcode
 
-        if opcode == DistributedOpcode.REPLICATE:
-            # 复制数据到远程节点
+        # 字符串兼容性
+        if isinstance(opcode, str):
+            try:
+                opcode = DistributedOpcode(opcode.lower())
+            except ValueError:
+                return {"success": False, "error": f"Unknown distributed opcode: {opcode}"}
+
+        if opcode == DistributedOpcode.PARALLEL:
+            # 1. 语义拆分意图 (Intelligent Split)
+            intent = instruction.parameters.get("intent", "")
+            if not intent:
+                return {"success": False, "error": "PARALLEL instruction requires an 'intent' parameter"}
+
+            # 获取集群支持的所有能力，辅助分解
+            all_caps = []
+            for node in self.cluster.memory.get_active_nodes():
+                all_caps.extend(node.capabilities)
+            all_caps = list(set(all_caps))
+
+            sub_tasks = await self.decompose_intent(intent, all_caps)
+
+            # 2. 构造子程序列表
+            from intentos.semantic_vm import SemanticInstruction, SemanticOpcode, SemanticProgram
+            sub_programs = []
+            for task in sub_tasks:
+                prog = SemanticProgram(name=task["name"], description=task["description"])
+                # 为子任务添加执行指令
+                prog.add_instruction(SemanticInstruction(
+                    opcode=SemanticOpcode.EXECUTE,
+                    parameters={"intent": task["description"]}
+                ))
+                # 注入所需能力到元数据，供调度器使用
+                prog.variables["_required_capabilities"] = task.get("required_capabilities", [])
+                sub_programs.append(prog)
+
+            # 3. 触发 Map-Reduce
+            result = await self.cluster.coordinator.map_reduce(
+                sub_programs,
+                context=instruction.parameters.get("context"),
+                aggregator_prompt=f"意图：{intent}\n请汇总子任务结果以回答原始意图："
+            )
+            return result
+
+        elif opcode == DistributedOpcode.SHARD:
+            # 语义分片 (Semantic Sharding)
             target = instruction.target
             name = instruction.target_name
-            node_id = instruction.parameters.get("node")
+            num_shards = instruction.parameters.get("num_shards", 2)
 
-            value = memory.get(target, name)
+            data = await self.cluster.memory.get(target, name)
+            if not data:
+                return {"success": False, "error": f"Data not found for sharding: {target}:{name}"}
+
+            shards = []
+            if isinstance(data, list):
+                shard_size = max(1, len(data) // num_shards)
+                for i in range(0, len(data), shard_size):
+                    shards.append(data[i : i + shard_size])
+            elif isinstance(data, str):
+                lines = data.splitlines()
+                if len(lines) >= num_shards:
+                    shard_size = max(1, len(lines) // num_shards)
+                    for i in range(0, len(lines), shard_size):
+                        shards.append("\n".join(lines[i : i + shard_size]))
+                else:
+                    shard_size = max(1, len(data) // num_shards)
+                    for i in range(0, len(data), shard_size):
+                        shards.append(data[i : i + shard_size])
+            else:
+                return {"success": False, "error": f"Unsupported data type for sharding: {type(data)}"}
+
+            shard_keys = []
+            for i, shard_data in enumerate(shards):
+                shard_key = f"{name}_shard_{i}"
+                await self.cluster.memory.set(target, shard_key, shard_data)
+                shard_keys.append(shard_key)
+
+            return {
+                "success": True,
+                "shard_keys": shard_keys,
+                "target": target
+            }
+
+        elif opcode == DistributedOpcode.REPLICATE:
+            # 复制数据
+            target = instruction.target
+            name = instruction.target_name
+            value = await self.cluster.memory.get(target, name)
             if value:
-                # 实际应该找到特定节点并设置
-                # 简化为全局设置 (会自动哈希到对应节点)
+                # 设置到全局（会自动分布）
                 await self.cluster.memory.set(target, name, value)
                 return {"success": True, "message": f"Replicated {target}:{name}"}
-
-        elif opcode == DistributedOpcode.SPAWN:
-            # 在新节点上生成程序
-            target_name = instruction.target_name
-            program = memory.get("PROGRAM", target_name)
-            if program:
-                exec_id = await self.cluster.execute_program(
-                    program, instruction.parameters.get("context")
-                )
-                return {"success": True, "exec_id": exec_id}
+            return {"success": False, "error": f"Data not found: {target}:{name}"}
 
         elif opcode == DistributedOpcode.BROADCAST:
-            # 广播修改到所有节点
+            # 广播修改
             target = instruction.target
             name = instruction.target_name
             value = instruction.parameters.get("value")
-
             nodes = self.cluster.memory.get_active_nodes()
             for node in nodes:
-                # 这里简化为直接调用远程设置
                 await self.cluster.memory._remote_set(node, target, name, value)
-
             return {"success": True, "message": f"Broadcasted {target}:{name}"}
 
-        return {"success": False, "error": f"Unsupported distributed opcode: {opcode}"}
+        elif opcode == DistributedOpcode.SPAWN:
+            # 生成新进程
+            target_name = instruction.target_name
+            program = await self.cluster.memory.get("PROGRAM", target_name)
+            if program:
+                from intentos.semantic_vm import SemanticProgram
+                if isinstance(program, dict):
+                    program = SemanticProgram.from_dict(program)
+                pid = await self.cluster.execute_program(program, instruction.parameters.get("context"))
+                return {"success": True, "pid": pid}
+            return {"success": False, "error": f"Program not found: {target_name}"}
+
+        elif opcode == DistributedOpcode.MIGRATE:
+            # 语义迁移 (Semantic Migration)
+            # 参数: target (DATA/PROCESS), name/pid, destination_node
+            migrate_type = instruction.target # "DATA" or "PROCESS"
+            target_id = instruction.target_name
+            dest_node_id = instruction.parameters.get("destination_node")
+
+            # 找到目标节点
+            dest_node = next((n for n in self.cluster.memory.get_active_nodes() if n.node_id == dest_node_id), None)
+            if not dest_node:
+                return {"success": False, "error": f"Destination node {dest_node_id} not found or inactive"}
+
+            if migrate_type == "PROCESS":
+                # --- 进程热迁移 (Live Process Migration) ---
+                pid = target_id
+                process = self.cluster.coordinator.processes.get(pid)
+                if not process:
+                    return {"success": False, "error": f"Process {pid} not found"}
+
+                # 1. 挂起当前执行 (在本地或通知远程)
+                process.state = ProcessState.SUSPENDED
+
+                # 2. 捕获状态 (PC + Context)
+                state_bundle = {
+                    "program_name": process.program_name,
+                    "pc": process.pc,
+                    "context": process.context,
+                    "parent_pid": process.parent_pid
+                }
+
+                # 3. 在目标节点恢复执行 (RPC 调用)
+                url = f"http://{dest_node.host}:{dest_node.port}/execute"
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        # 构造恢复执行的程序包
+                        program = await self.cluster.memory.get("PROGRAM", process.program_name)
+                        async with session.post(
+                            url,
+                            json={
+                                "program": program.to_dict() if hasattr(program, "to_dict") else program,
+                                "context": process.context,
+                                "resume_pc": process.pc,
+                                "pid": pid # 保持原 PID
+                            },
+                            timeout=10
+                        ) as resp:
+                            if resp.status == 200:
+                                # 4. 更新全局进程表信息
+                                process.node_id = dest_node.node_id
+                                process.state = ProcessState.RUNNING
+                                process.update_time = datetime.now()
+                                return {"success": True, "message": f"Process {pid} migrated to {dest_node_id}"}
+                            else:
+                                process.state = ProcessState.FAILED
+                                return {"success": False, "error": f"Migration failed on destination node: {resp.status}"}
+                except Exception as e:
+                    process.state = ProcessState.FAILED
+                    return {"success": False, "error": f"Migration RPC error: {e}"}
+
+            else:
+                # --- 数据迁移 (Data Migration) ---
+                # 例如将 VARIABLE:user_data 从本地迁移到指定节点
+                store = migrate_type # 如 "VARIABLE", "PROGRAM"
+                data = await self.cluster.memory.get(store, target_id)
+                if data:
+                    # 1. 在目标节点设置数据
+                    await self.cluster.memory._remote_set(dest_node, store, target_id, data)
+                    # 2. (可选) 从原位置删除，如果不是本地存储则忽略
+                    # self.cluster.memory.local_storage.delete(store, target_id)
+                    return {"success": True, "message": f"Data {store}:{target_id} migrated to {dest_node_id}"}
+                return {"success": False, "error": f"Data not found: {store}:{target_id}"}
+
+        elif opcode == DistributedOpcode.BARRIER:
+            # 语义屏障 (Semantic Barrier)
+            barrier_id = instruction.target_name or "global_barrier"
+            count = instruction.parameters.get("count", 2)
+            pid = instruction.parameters.get("pid") # 需要上下文提供当前进程 PID
+
+            if not pid:
+                return {"success": False, "error": "BARRIER instruction requires a 'pid' parameter"}
+
+            released = await self.cluster.coordinator.wait_at_barrier(barrier_id, count, pid)
+            return {"success": True, "status": "released" if released else "suspended"}
+
+        elif opcode == DistributedOpcode.SYNC:
+            # 数据同步 (Force Consistency Sync)
+            # 通过读取分布式内存中的最新值并刷新本地缓存
+            target = instruction.target
+            name = instruction.target_name
+            # 在 DistributedSemanticMemory 中 get 已经处理了从远程哈希节点读取
+            value = await self.cluster.memory.get(target, name)
+            return {"success": True, "value": value}
+
+        return {"success": False, "error": f"Opcode {opcode} not fully implemented in this version"}
 
 
 # =============================================================================
