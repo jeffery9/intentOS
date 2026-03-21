@@ -8,7 +8,6 @@ interact to simulate community building, engagement, and governance.
 
 import asyncio
 import logging
-from datetime import datetime, timedelta
 import random
 
 from intentos.agent.reward_system import RewardSystem
@@ -18,8 +17,7 @@ from intentos.distributed.governance_model import GovernanceModel
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 async def simulate_community_cycle():
-    logging.info("
-========================================================")
+    logging.info("========================================================")
     logging.info("SIMULATING INTENTOS COMMUNITY INTERACTION CYCLE")
     logging.info("========================================================")
 
@@ -35,8 +33,7 @@ async def simulate_community_cycle():
         logging.info(f"Initial credits for {user_id}: {reward_system.get_balance(user_id)}")
 
     # 2. Social Agent announces a new feature and incentivizes engagement
-    logging.info("
---- Social Agent: Announcing New Feature and Incentivizing Engagement ---")
+    logging.info("--- Social Agent: Announcing New Feature and Incentivizing Engagement ---")
     new_feature_announcement = "IntentOS now supports self-reproduction! Help us test and earn credits!"
     await social_agent.post_to_twitter(new_feature_announcement, {"feature": "self_reproduction"})
     await social_agent.post_to_discord("general-chat", new_feature_announcement, {"feature": "self_reproduction"})
@@ -48,8 +45,7 @@ async def simulate_community_cycle():
         logging.info(f"User {user_id} engaged and earned credits. Balance: {reward_system.get_balance(user_id)}")
 
     # 3. A user proposes a new governance initiative
-    logging.info("
---- User Proposal: New Governance Initiative ---")
+    logging.info("--- User Proposal: New Governance Initiative ---")
     proposer_id = initial_users[0] # One of our initial, credited users
     proposal_title = "Allocate 1000 credits to community-led documentation efforts"
     proposal_description = "This proposal aims to fund community members who create high-quality tutorials and documentation for IntentOS. Credits will be awarded upon approval by core contributors."
@@ -66,8 +62,7 @@ async def simulate_community_cycle():
         governance_model.vote_on_proposal(voter_id, new_proposal.id, random.choice([True, False, True])) # Bias towards 'True'
 
     # 4. Check proposal status after some time (simulated)
-    logging.info("
---- Checking Proposal Status After Voting Period ---")
+    logging.info("--- Checking Proposal Status After Voting Period ---")
     # Advance time to ensure vote closes for simulation purposes
     await asyncio.sleep(1) # Simulate passage of time
     final_status = governance_model.get_proposal_status(new_proposal.id)
@@ -78,16 +73,14 @@ async def simulate_community_cycle():
             logging.info("🎉 Proposal PASSED! Community-led documentation efforts will be funded.")
         else:
             logging.info("💔 Proposal FAILED or still open.")
-    
+
     # 5. Display some user balances to show impact of rewards
-    logging.info("
---- Final User Credit Balances ---")
+    logging.info("--- Final User Credit Balances ---")
     all_entity_ids = list(set(reward_system.ledger.keys()))
     for entity_id in all_entity_ids:
         logging.info(f"Balance for {entity_id}: {reward_system.get_balance(entity_id)} credits.")
 
-    logging.info("
-========================================================")
+    logging.info("========================================================")
     logging.info("COMMUNITY SIMULATION ENDED")
     logging.info("========================================================")
 

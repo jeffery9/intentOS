@@ -19,11 +19,10 @@ from ..core import (
     IntentStatus,
     IntentType,
 )
+from ..kernel.core import PrivilegeLevel
 from ..llm import LLMExecutor
 from ..registry import IntentRegistry
 
-
-from ..kernel.core import PrivilegeLevel
 
 class ExecutionEngine:
     """
@@ -105,7 +104,7 @@ class ExecutionEngine:
             except Exception as e:
                 # 处理错误并检查是否应重试
                 agent_error = ErrorHandler.handle_error(e)
-                
+
                 if attempt < max_retries and ErrorHandler.should_retry(agent_error):
                     # 指数退避
                     delay = retry_delay * (2 ** attempt)
