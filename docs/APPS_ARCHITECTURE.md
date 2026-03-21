@@ -574,6 +574,17 @@ result = await agent.execute("意图", context)
 
 ## 参考文档
 
+### AI Native App 文档体系
+
+| 文档 | 说明 |
+|------|------|
+| [AI Native App 概述](./AI_NATIVE_APP.md) | ⭐ 核心概念、架构概览 |
+| [即时生成架构](./JIT_GENERATION_ARCHITECTURE.md) | App 即时生成、身份感知 |
+| [租户架构](./TENANT_ARCHITECTURE.md) | 多租户隔离、资源配置 |
+| [应用开发指南](./APP_DEVELOPMENT_GUIDE.md) | 开发流程、最佳实践 |
+
+### 其他相关文档
+
 - [Self-Bootstrap 机制](./SELF_BOOTSTRAP.md)
 - [IntentOS vs OpenClaw](./INTENTOS_VS_OPENCLAW.md)
 - [架构集成说明](./ARCHITECTURE_INTEGRATION.md)

@@ -8,6 +8,19 @@
 
 ## 📚 文档导航
 
+### 🌟 AI Native App 核心文档 (新)
+
+| 文档 | 说明 |
+|------|------|
+| [AI Native App 概述](./AI_NATIVE_APP.md) | ⭐ 总入口：核心概念、架构概览 |
+| [即时生成架构](./JIT_GENERATION_ARCHITECTURE.md) | App 即时生成、身份感知、版本管理 |
+| [租户架构](./TENANT_ARCHITECTURE.md) | 多租户隔离、资源配置、能力绑定 |
+| [计费与收益](./BILLING_AND_REVENUE.md) | 计费模式、收益分成、账单管理 |
+| [意图包格式规范](./INTENT_PACKAGE_SPEC.md) | manifest.yaml Schema、意图模板 |
+| [安全与权限](./SECURITY_AND_PERMISSIONS.md) | 权限模型、安全策略、沙箱执行 |
+| [性能优化策略](./PERFORMANCE_OPTIMIZATION.md) | 缓存策略、并行执行、性能监控 |
+| [测试与调试指南](./TESTING_AND_DEBUGGING.md) | 单元测试、集成测试、调试工具 |
+
 ### 第一部分：入门 (Introduction) ✅
 
 | 文档 | 说明 |

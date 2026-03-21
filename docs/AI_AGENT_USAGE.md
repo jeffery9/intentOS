@@ -691,3 +691,22 @@ AI Agent 通过以下服务提供服务：
 | **Tool Registry** | 工具调用 | 计算器、天气、搜索 |
 
 **开始使用 AI Agent 吧！** 🤖✨
+
+---
+
+## 参考文档
+
+### AI Native App 文档体系
+
+| 文档 | 说明 |
+|------|------|
+| [AI Native App 概述](./AI_NATIVE_APP.md) | ⭐ 核心概念、架构概览 |
+| [即时生成架构](./JIT_GENERATION_ARCHITECTURE.md) | App 即时生成、身份感知 |
+| [租户架构](./TENANT_ARCHITECTURE.md) | 多租户隔离、资源配置 |
+| [应用开发指南](./APP_DEVELOPMENT_GUIDE.md) | 开发流程、最佳实践 |
+
+### 其他相关文档
+
+- [应用层架构](./APPS_ARCHITECTURE.md)
+- [Skill 规范](./SKILL_SPECIFICATION.md)
+- [Self-Bootstrap](./SELF_BOOTSTRAP.md)
