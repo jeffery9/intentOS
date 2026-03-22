@@ -419,6 +419,107 @@ async def _incremental_sync(self, since: float) -> list[MemoryEntry]:
 
 ---
 
-**下一篇**: [记忆检索](03-memory-retrieval.md)
+## 附录 A: 混合同步模式
 
-**上一篇**: [记忆分层架构](01-memory-layers.md)
+### A.1 混合模式架构
+
+```python
+class HybridSyncManager(MemorySyncManager):
+    """混合同步管理器：Pub/Sub + 定期拉取"""
+
+    def __init__(self, node_id: str, redis_url: str, pull_interval: int = 60):
+        super().__init__(node_id, redis_url)
+        self.pull_interval = pull_interval
+
+    async def start(self):
+        """启动混合同步"""
+        # 1. 启动发布/订阅
+        asyncio.create_task(self.subscribe_updates())
+
+        # 2. 启动定期拉取
+        asyncio.create_task(self.periodic_pull())
+
+    async def periodic_pull(self):
+        """定期从中心拉取记忆"""
+        while True:
+            try:
+                # 从 Redis 拉取所有记忆
+                all_memories = await self.redis.hgetall("intentos:memory:all")
+
+                # 更新本地记忆
+                for key, value in all_memories.items():
+                    await self.update_local_memory(key, json.loads(value))
+
+                logger.info(f"定期拉取完成：{len(all_memories)} 条记忆")
+
+            except Exception as e:
+                logger.error(f"定期拉取失败：{e}")
+
+            await asyncio.sleep(self.pull_interval)
+```
+
+### A.2 适用场景
+
+| 同步模式 | 适用场景 | 优点 | 缺点 |
+|---------|---------|------|------|
+| **Pub/Sub** | 短期记忆、实时更新 | 低延迟、即时同步 | 可能丢失消息 |
+| **定期拉取** | 长期记忆、批量同步 | 可靠、不丢数据 | 延迟较高 |
+| **混合模式** | 生产环境 | 兼顾实时性和可靠性 | 实现复杂 |
+
+---
+
+## 附录 B: 多区域部署
+
+### B.1 区域架构
+
+```python
+regions = {
+    "us-east": ["node1.us", "node2.us", "node3.us"],
+    "eu-west": ["node1.eu", "node2.eu", "node3.eu"],
+    "ap-east": ["node1.ap", "node2.ap", "node3.ap"],
+}
+
+# 数据本地化：每个区域的数据存储在本区域
+for region, nodes in regions.items():
+    await deploy_nodes(nodes, region=region)
+
+# 跨区域同步：使用混合同步模式
+sync_manager = HybridSyncManager(
+    node_id="node1.us",
+    redis_url="redis://redis.us:6379",
+    pull_interval=300,  # 5 分钟拉取一次
+)
+await sync_manager.start()
+```
+
+### B.2 GDPR 合规
+
+```python
+class GDPRCompliantSync(MemorySyncManager):
+    """GDPR 合规的同步管理器"""
+
+    async def _apply_sync(self, msg: SyncMessage) -> None:
+        """应用同步（检查数据出境限制）"""
+        # 检查是否是跨境数据
+        if self.is_cross_border(msg):
+            # GDPR 数据不得出境
+            if msg.value and "eu_user" in msg.value.get("tags", []):
+                logger.warning(f"阻止 GDPR 数据出境：{msg.key}")
+                return
+
+        # 正常应用同步
+        await super()._apply_sync(msg)
+
+    def is_cross_border(self, msg: SyncMessage) -> bool:
+        """检查是否跨境"""
+        return msg.node_id.split(".")[-1] != self.node_id.split(".")[-1]
+```
+
+---
+
+## 参考文档
+
+- [分布式架构](../02-architecture/04-distributed-architecture.md)
+- [记忆分层架构](01-memory-layers.md)
+- [记忆检索](03-memory-retrieval.md)
+- [性能优化策略](../PERFORMANCE_OPTIMIZATION.md)

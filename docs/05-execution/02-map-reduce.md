@@ -597,6 +597,88 @@ Map/Reduce 的核心价值：
 
 ---
 
-**下一篇**: [内存优化](03-memory-optimization.md)
+## 附录 A: 分布式 Map/Reduce
 
-**上一篇**: [DAG 执行引擎](01-dag-engine.md)
+### A.1 分布式执行器
+
+```python
+class DistributedMapReduceExecutor(MapReduceExecutor):
+    """分布式 Map/Reduce 执行器"""
+
+    async def run_mappers(self, task: MapReduceTask) -> list:
+        """在多个节点上并行运行 Map 任务"""
+        # 分割输入数据
+        splits = self.split_input(task.input_data, task.input_splits)
+
+        # 选择节点
+        nodes = await self.select_nodes(len(splits))
+
+        # 分布式执行
+        tasks = [
+            self.run_mapper_on_node(node, task.map_function, split, task.map_params)
+            for node, split in zip(nodes, splits)
+        ]
+        results = await asyncio.gather(*tasks)
+
+        return results
+
+    async def run_mapper_on_node(
+        self,
+        node_id: str,
+        map_function: str,
+        data: list,
+        params: dict,
+    ) -> list:
+        """在指定节点上运行单个 Map 任务"""
+        url = f"http://{node_id}:8080/map"
+        payload = {
+            "function": map_function,
+            "data": data,
+            "params": params,
+        }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload) as resp:
+                return await resp.json()
+```
+
+### A.2 应用场景
+
+**场景 1: 大规模数据处理**
+```python
+# 分析 1TB 销售数据
+task = MapReduceTask(
+    name="sales_analysis",
+    map_function="analyze_sales_map",
+    reduce_function="aggregate_sales_reduce",
+    input_data=load_data_from_s3("s3://bucket/sales-2025"),
+    input_splits=1000,  # 分成 1000 个分片
+    num_mappers=100,
+    num_reducers=20,
+)
+result = await distributed_executor.execute(task)
+```
+
+**场景 2: 日志分析**
+```python
+# 分析 1 亿条日志
+log_lines = load_logs("s3://logs/2025-*.gz")  # 1 亿条
+
+task = MapReduceTask(
+    name="log_analysis",
+    map_func=lambda line: (extract_level(line), 1),
+    reduce_func=lambda k, v: {"count": sum(v)},
+    input_data=log_lines,
+    num_mappers=500,
+    num_reducers=50,
+)
+result = await distributed_executor.execute(task)
+```
+
+---
+
+## 参考文档
+
+- [分布式架构](../02-architecture/04-distributed-architecture.md)
+- [DAG 执行引擎](01-dag-engine.md)
+- [内存优化](03-memory-optimization.md)

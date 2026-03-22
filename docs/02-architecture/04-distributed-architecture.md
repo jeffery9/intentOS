@@ -1,6 +1,24 @@
 # 分布式架构
 
-> IntentOS 本质是 Cloud-Native 的，支持分布式执行和记忆同步。
+> **分布式语义 VM · 运行时 Agent · 集群自愈**
+
+**文档版本**: 2.0 (增强版)  
+**最后更新**: 2026-03-22
+
+---
+
+## 目录
+
+1. [为什么需要分布式](#1-为什么需要分布式)
+2. [分布式内核架构](#2-分布式内核架构)
+3. [运行时 Agent](#3-运行时-agent)
+4. [语义进程管理](#4-语义进程管理)
+5. [分布式执行](#5-分布式执行)
+6. [Map/Reduce 模式](#6-mapreduce 模式)
+7. [分布式记忆同步](#7-分布式记忆同步)
+8. [多 LLM 后端路由](#8-多-llm 后端路由)
+9. [部署与运维](#9-部署与运维)
+10. [总结](#10-总结)
 
 ---
 
@@ -14,19 +32,62 @@
 | **成本** | 多模型路由优化成本 | 简单任务用小模型 |
 | **容错** | 单点故障影响可用性 | 某模型宕机 |
 | **合规** | 数据本地化要求 | GDPR 数据不出境 |
+| **扩展** | 弹性扩缩容 | 自动添加节点 |
 
 ### 1.2 Cloud-Native 类比
 
-| Cloud-Native | IntentGarden |
-|-------------|-------------|
-| Kubernetes Pod | Prompt Executable |
+| Cloud-Native | IntentOS |
+|-------------|----------|
+| Kubernetes Pod | Prompt Executable (PEF) |
 | YAML Manifest | PEF (YAML/JSON) |
-| kubectl apply | garden.execute() |
+| kubectl apply | `executor.execute()` |
 | Controller Manager | Planning Layer |
 | Scheduler | Execution Layer |
 | Admission Controller | Safety Ring |
 | HPA | Ops Model (自修复) |
 | Service Mesh | Capability Binding |
+| Node.js Worker | Runtime Agent |
+
+### 1.3 分布式架构全景
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    用户/应用层                                   │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐            │
+│  │  REST API   │  │  Chat UI    │  │  SDK        │            │
+│  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘            │
+└─────────┼────────────────┼────────────────┼────────────────────┘
+          │                │                │
+          └────────────────┼────────────────┘
+                           │
+          ┌────────────────▼────────────────┐
+          │     Load Balancer / API Gateway │
+          └────────────────┬────────────────┘
+                           │
+         ┌─────────────────┼─────────────────┐
+         │                 │                 │
+┌────────▼────────┐ ┌──────▼──────┐ ┌────────▼────────┐
+│  Runtime Agent  │ │  Runtime    │ │  Runtime        │
+│  Node 1         │ │  Agent      │ │  Agent          │
+│  ┌───────────┐  │ │  Node 2     │ │  Node 3         │
+│  │Semantic VM│  │ │  ┌───────┐  │ │  ┌───────────┐  │
+│  └───────────┘  │ │  │SVM    │  │ │  │Semantic VM│  │
+│  ┌───────────┐  │ │  └───────┘  │ │  └───────────┘  │
+│  │  Memory   │  │ │  ┌───────┐  │ │  ┌───────────┐  │
+│  │  Manager  │  │ │  │Memory │  │ │  │  Memory   │  │
+│  └───────────┘  │ │  │Manager│  │ │  │  Manager  │  │
+│                 │ │  └───────┘  │ │  └───────────┘  │
+└────────┬────────┘ └──────┬──────┘ └────────┬────────┘
+         │                 │                 │
+         └─────────────────┼─────────────────┘
+                           │
+         ┌─────────────────┼─────────────────┐
+         │                 │                 │
+┌────────▼────────┐ ┌──────▼──────┐ ┌────────▼────────┐
+│  Redis Cluster  │ │  PostgreSQL │ │  LLM Gateway    │
+│  (记忆同步)      │ │  (持久化)    │ │  (多模型路由)    │
+└─────────────────┘ └─────────────┘ └─────────────────┘
+```
 
 ---
 
@@ -412,7 +473,7 @@ response = await router.generate(messages)
 
 ---
 
-## 7. 总结
+## 10. 总结
 
 IntentOS 的分布式架构特征：
 
@@ -424,6 +485,392 @@ IntentOS 的分布式架构特征：
 
 ---
 
-**下一篇**: [意图编译器架构](../03-compiler/01-compiler-architecture.md)
+## 附录 A: 运行时 Agent 完整职责
 
-**上一篇**: [Self-Bootstrap](03-self-bootstrap.md)
+### A.1 为什么需要运行时 Agent
+
+**问题**: IntentOS 是分布式 OS，语义 VM 运行在多个节点（容器/主机）上，跨网络组成整体 OS。如何管理每个节点的本地资源和能力？
+
+**基于第一性原理的分析**:
+
+**第一性原理 1：分布式语义 VM**
+- 语义 VM 在每个节点上运行
+- 多个语义 VM 跨网络通信，组成整体 OS
+- 运行时 Agent 在每个节点上，为本地语义 VM 提供能力
+- ✅ **结论**：运行时 Agent 是分布式 OS 的节点基础设施，为本地语义 VM 提供服务
+
+**第一性原理 2：能力与执行分离**
+- 语义 VM：定义能力（语义描述），执行 PEF
+- 运行时 Agent：提供能力的具体实现（本地 shell、文件系统等）
+- ✅ **结论**：运行时 Agent 是能力的提供者，语义 VM 是能力的使用者
+
+**第一性原理 3：按需加载**
+- 语义 VM：PEF 包含能力引用
+- 运行时 Agent：按需下载/缓存 Skill，提供能力实现
+- ✅ **结论**：运行时 Agent 管理能力的生命周期（下载、缓存、供应）
+
+### A.2 Runtime Agent 的 6 大职责
+
+**职责 1：为本地语义 VM 提供能力**
+```python
+class RuntimeAgent:
+    def __init__(self, node_id, semantic_vm):
+        self.node_id = node_id
+        self.semantic_vm = semantic_vm
+        self.local_capabilities = {
+            "shell": ShellCapability(),
+            "filesystem": FileSystemCapability(),
+            "network": NetworkCapability(),
+        }
+        self.register_capabilities()
+
+    def register_capabilities(self):
+        for cap_id, cap in self.local_capabilities.items():
+            self.semantic_vm.registry.register(
+                id=cap_id,
+                description=cap.description,
+                handler=cap.execute,
+            )
+```
+
+**职责 2：App 分发和缓存**
+```python
+class RuntimeAgent:
+    def __init__(self, node_id, app_cache_dir):
+        self.node_id = node_id
+        self.app_cache_dir = app_cache_dir
+        self.app_instances = {}
+
+    async def on_startup(self):
+        # 节点启动时预加载常用 App
+        await self.download_apps(["data_analyst", "code_generator"])
+
+    async def get_app(self, app_id, version=None):
+        cache_key = f"{app_id}:{version or 'latest'}"
+        if cache_key not in self.app_instances:
+            app_package = await self.download_app(app_id, version)
+            app_instance = await self.compile_app(app_package)
+            self.app_instances[cache_key] = app_instance
+        return self.app_instances[cache_key]
+```
+
+**职责 3：分布式执行（Map-Reduce）**
+```python
+class RuntimeAgent:
+    async def map_reduce(self, pef, data_partitions):
+        # Map 阶段：分发任务
+        tasks = []
+        for node_id, partition in data_partitions.items():
+            task = self.send_to_node(node_id, pef, partition)
+            tasks.append(task)
+
+        # 等待所有任务完成
+        results = await asyncio.gather(*tasks)
+
+        # Reduce 阶段：汇总结果（使用 LLM 生成自然语言摘要）
+        summary = await self.llm.summarize(results)
+        return summary
+```
+
+**职责 4：Skill 缓存和下载**
+```python
+class RuntimeAgent:
+    async def load_skill(self, skill_id):
+        cache_path = self.skill_cache_dir / f"{skill_id}.skill"
+
+        # 检查缓存
+        if not cache_path.exists():
+            await self.download_skill(skill_id, cache_path)
+
+        # 加载 Skill
+        skill = await self.parse_skill(cache_path)
+        return skill
+```
+
+**职责 5：结果汇总（LLM 汇总）**
+```python
+class RuntimeAgent:
+    async def aggregate_results(self, results: list[dict]) -> dict:
+        prompt = f"""
+        请汇总以下分布式节点的执行结果：
+        {json.dumps(results, indent=2, ensure_ascii=False)}
+        请提供：
+        1. 总体执行状态
+        2. 各节点结果摘要
+        3. 关键发现和洞察
+        4. 建议的后续操作
+        """
+        response = await self.llm.generate(prompt)
+        return {
+            "summary": response,
+            "detailed_results": results,
+        }
+```
+
+**职责 6：跨节点通信**
+```python
+class RuntimeAgent:
+    async def send_to_node(self, node_id: str, pef: dict, data: dict) -> dict:
+        url = f"http://{node_id}:8080/execute"
+        payload = {"pef": pef, "data": data}
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload) as resp:
+                return await resp.json()
+
+    async def broadcast(self, message: dict, nodes: list[str]):
+        tasks = [self.send_to_node(node, message, {}) for node in nodes]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        return results
+```
+
+### A.3 Runtime Agent 部署配置
+
+**Docker Compose 部署**:
+```yaml
+version: '3.8'
+services:
+  runtime-agent-1:
+    build: .
+    environment:
+      - NODE_ID=node1
+      - CLUSTER_NODES=node2,node3
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./app_cache:/app/cache
+      - ./skills:/app/skills
+
+  runtime-agent-2:
+    build: .
+    environment:
+      - NODE_ID=node2
+      - CLUSTER_NODES=node1,node3
+      - REDIS_URL=redis://redis:6379
+    ports:
+      - "8082:8080"
+    volumes:
+      - ./app_cache:/app/cache
+      - ./skills:/app/skills
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+```
+
+**Kubernetes 部署**:
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: runtime-agent
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: runtime-agent
+  template:
+    metadata:
+      labels:
+        app: runtime-agent
+    spec:
+      containers:
+      - name: runtime-agent
+        image: intentos/runtime-agent:latest
+        env:
+        - name: NODE_ID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: CLUSTER_NODES
+          value: "runtime-agent-0,runtime-agent-1,runtime-agent-2"
+        - name: REDIS_URL
+          value: "redis://redis-master:6379"
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+```
+
+---
+
+## 附录 B: 语义进程管理 (PCB)
+
+### B.1 语义进程控制块
+
+```python
+@dataclass
+class SemanticProcess:
+    """语义进程控制块 (PCB)"""
+    # 进程标识
+    pid: str = field(default_factory=lambda: str(uuid.uuid4()))
+    ppid: Optional[str] = None  # 父进程 ID
+    name: str = ""
+
+    # 进程状态
+    state: ProcessState = ProcessState.NEW
+    # NEW, RUNNING, SUSPENDED, COMPLETED, FAILED, ZOMBIE
+
+    # 执行信息
+    pc: int = 0  # 程序计数器 (指令行号)
+    node_id: Optional[str] = None  # 执行节点
+    pef: Optional[dict] = None  # 程序镜像
+
+    # 上下文
+    context: dict = field(default_factory=dict)  # 变量空间
+    stack: list = field(default_factory=list)  # 执行堆栈
+
+    # 资源
+    memory_usage: int = 0  # 内存使用 (字节)
+    cpu_time: float = 0.0  # CPU 时间 (秒)
+    start_time: float = field(default_factory=time.time)
+    end_time: Optional[float] = None
+
+    # 结果
+    result: Optional[dict] = None
+    error: Optional[str] = None
+```
+
+### B.2 进程状态机
+
+```
+                    ┌─────────┐
+                    │   NEW   │
+                    └────┬────┘
+                         │ fork()
+                         ▼
+                    ┌─────────┐
+         ┌─────────│ RUNNING │─────────┐
+         │         └────┬────┘         │
+         │              │              │
+    suspend()       complete()     fail()
+         │              │              │
+         ▼              ▼              ▼
+    ┌─────────┐   ┌───────────┐  ┌────────┐
+    │SUSPENDED│   │ COMPLETED │  │ FAILED │
+    └────┬────┘   └─────┬─────┘  └───┬────┘
+         │             │            │
+    resume()      reap()       reap()
+         │             │            │
+         └─────────────┴────────────┘
+                       │
+                       ▼
+                    ┌────────┐
+                    │ ZOMBIE │
+                    └───┬────┘
+                        │ cleanup()
+                        ▼
+                    (销毁)
+```
+
+### B.3 进程生命周期 (Fork/Exec)
+
+**步骤 1: Fork - 创建进程**
+```python
+async def fork_process(self, pef: dict, parent_pid: Optional[str] = None) -> str:
+    pcb = SemanticProcess(ppid=parent_pid, name=pef.get("name", "anonymous"), pef=pef)
+    self.process_table[pcb.pid] = pcb
+    return pcb.pid
+```
+
+**步骤 2: Schedule - 调度节点**
+```python
+async def schedule_node(self, pcb: SemanticProcess) -> str:
+    node_loads = await self.get_node_loads()
+    best_node = min(node_loads, key=node_loads.get)
+    pcb.node_id = best_node
+    return best_node
+```
+
+**步骤 3: Dispatch - 分发程序**
+```python
+async def dispatch_program(self, pcb: SemanticProcess, node_id: str):
+    url = f"http://{node_id}:8080/execute"
+    payload = {"pid": pcb.pid, "pef": pcb.pef, "context": pcb.context}
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, json=payload) as resp:
+            return await resp.json()
+```
+
+**步骤 4: Track - 跟踪进度**
+```python
+async def track_progress(self, pid: str):
+    while True:
+        pcb = self.process_table.get(pid)
+        if not pcb: break
+        pc = await self.get_process_pc(pid)
+        pcb.pc = pc
+        if pc >= len(pcb.pef.get("instructions", [])):
+            pcb.state = ProcessState.COMPLETED
+            break
+        await asyncio.sleep(0.1)
+```
+
+**步骤 5: Reap - 回收资源**
+```python
+async def reap_process(self, pid: str):
+    pcb = self.process_table.get(pid)
+    if not pcb: return
+    while pcb.state not in [ProcessState.COMPLETED, ProcessState.FAILED]:
+        await asyncio.sleep(0.1)
+    pcb.state = ProcessState.ZOMBIE
+    pcb.end_time = time.time()
+    await self.cleanup_process(pid)
+```
+
+---
+
+## 附录 C: 故障转移与自动扩缩容
+
+### C.1 故障转移
+
+```python
+class DistributedExecutor:
+    async def execute_with_failover(self, dag: dict, max_retries: int = 3):
+        for attempt in range(max_retries):
+            try:
+                primary_node = await self.select_primary_node()
+                result = await self.execute_on_node(primary_node, dag)
+                return result
+            except NodeUnavailableError as e:
+                await self.mark_node_unavailable(e.node_id)
+                backup_node = await self.select_backup_node()
+                if attempt < max_retries - 1:
+                    logger.warning(f"节点 {e.node_id} 故障，切换到 {backup_node}")
+                    continue
+                else:
+                    raise
+        raise ExecutionError("所有重试失败")
+```
+
+### C.2 自动扩缩容
+
+```python
+class AutoScaler:
+    async def scale_based_on_load(self):
+        while True:
+            avg_load = await self.get_average_cluster_load()
+            if avg_load > 80:
+                await self.scale_up()
+                logger.info(f"集群负载 {avg_load}%，已扩容")
+            elif avg_load < 30:
+                await self.scale_down()
+                logger.info(f"集群负载 {avg_load}%，已缩容")
+            await asyncio.sleep(60)
+```
+
+---
+
+## 参考文档
+
+- [Map/Reduce 数据处理](../05-execution/02-map-reduce.md)
+- [分布式记忆同步](../04-memory/02-distributed-sync.md)
+- [Self-Bootstrap 完整架构](../SELF_BOOTSTRAP_COMPLETE.md)
+- [部署指南](../DEPLOYMENT_GUIDE.md)
+- [性能优化策略](../PERFORMANCE_OPTIMIZATION.md)
