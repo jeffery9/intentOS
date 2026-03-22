@@ -37,7 +37,7 @@ class CheckpointMetadata:
         default_factory=lambda: str(hashlib.md5(str(datetime.now()).encode()).hexdigest()[:8])
     )
     type: CheckpointType = CheckpointType.FULL
-    timestamp: datetime = field(default_factory=datetime.now)
+    timestamp: Optional[datetime] = None
 
     process_id: str = ""
     program_name: str = ""
@@ -46,6 +46,11 @@ class CheckpointMetadata:
     size_bytes: int = 0
     compressed: bool = False
     checksum: str = ""
+
+    def __post_init__(self):
+        """初始化后处理"""
+        if self.timestamp is None:
+            self.timestamp = datetime.now()
 
     def to_dict(self) -> dict:
         return {
@@ -195,12 +200,14 @@ class CheckpointManager:
         variables: dict,
         context: dict,
         program_name: str = "",
+        timestamp: Optional[datetime] = None,
     ) -> ProcessCheckpoint:
         """创建检查点"""
         metadata = CheckpointMetadata(
             type=CheckpointType.FULL,
             process_id=pid,
             program_name=program_name,
+            timestamp=timestamp,
         )
 
         checkpoint = ProcessCheckpoint(
