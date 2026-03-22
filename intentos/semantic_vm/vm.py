@@ -270,39 +270,25 @@ class SemanticMemory:
         }
         return maps.get(store, {})
 
-    def delete(self, store: str, key: str) -> bool:
+    def delete(self, store: str, key: str, context: Optional[dict] = None) -> bool:
         """删除数据"""
-        store_map = {
-            "TEMPLATE": self.templates,
-            "CAPABILITY": self.capabilities,
-            "POLICY": self.policies,
-            "PROMPT": self.prompts,
-            "CONFIG": self.configs,
-            "PROGRAM": self.programs,
-            "VARIABLE": self.variables,
-        }
-        if store in store_map and key in store_map[store]:
-            del store_map[store][key]
+        ns_key = self._get_ns_key(key, context)
+        store_map = self._get_store_map(store)
+        if store_map is not None and ns_key in store_map:
+            del store_map[ns_key]
             return True
         return False
 
-    def query(self, store: str, condition: Optional[str] = None) -> list[dict]:
+    def query(self, store: str, condition: Optional[str] = None, context: Optional[dict] = None) -> list[dict]:
         """查询数据"""
-        store_map = {
-            "TEMPLATE": self.templates,
-            "CAPABILITY": self.capabilities,
-            "POLICY": self.policies,
-            "PROMPT": self.prompts,
-            "CONFIG": self.configs,
-            "PROGRAM": self.programs,
-            "VARIABLE": self.variables,
-        }
-
-        if store not in store_map:
+        store_map = self._get_store_map(store)
+        if store_map is None:
             return []
 
         results = []
-        for key, value in store_map[store].items():
+        for ns_key, value in store_map.items():
+            # 提取原始 key (去除命名空间前缀)
+            key = ns_key.split(':')[-1] if ':' in ns_key else ns_key
             if condition is None:
                 results.append({"key": key, "value": value})
             else:

@@ -187,6 +187,25 @@ class DistributedSemanticMemory:
             print(f"Removed dead nodes: {dead_ids}")
         return dead_ids
 
+    def remove_node(self, node_id: str) -> bool:
+        """移除节点"""
+        for i, n in enumerate(self.nodes):
+            if n.node_id == node_id:
+                self.nodes.pop(i)
+                self._rebuild_ring()
+                print(f"Removed node: {node_id}")
+                return True
+        print(f"Node not found: {node_id}")
+        return False
+
+    def get_nodes(self) -> list[VMNode]:
+        """获取所有节点"""
+        return self.nodes.copy()
+
+    def get_active_nodes(self) -> list[VMNode]:
+        """获取活跃节点"""
+        return [n for n in self.nodes if n.status == "active" and n.is_alive()]
+
     def _rebuild_ring(self) -> None:
         """重建一致性哈希环 (带锁和存活检查)"""
         new_ring = {}

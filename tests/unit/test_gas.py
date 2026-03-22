@@ -21,15 +21,15 @@ class TestSemanticGas:
     def test_gas_tracker_consumption(self):
         """测试基础指令消耗"""
         tracker = GasTracker(limit=100)
-        
+
         # 消耗基础指令成本
         tracker.consume(GasCost.BASE_INSTRUCTION.value)
         assert tracker.used == 1
         assert tracker.remaining == 99
 
-        # 消耗 LLM 调用成本
-        tracker.consume(GasCost.LLM_CALL.value)
-        assert tracker.used == 101 # 允许刚好超过或检查熔断
+        # 消耗 LLM 调用成本 - 会触发 OutOfGasError
+        with pytest.raises(OutOfGasError):
+            tracker.consume(GasCost.LLM_CALL.value)  # 1 + 100 > 100
         
     def test_gas_exhaustion_circuit_breaker(self):
         """测试语义执行熔断机制"""
