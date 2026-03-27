@@ -1,12 +1,12 @@
-# IntentOS 完整文档索引 (v3.5)
+# IntentOS 完整文档索引 (v3.6)
 
 > **整理原则**: 不损失任何内容，只进行分类组织和导航优化
 > **增强原则**: 在原有文档基础上增强，不创建新文档
 > **去重原则**: 删除合并版 *_COMPLETE.md 文档，增强原始文档
 
-**总文档数**: 66 篇 (去重后)  
-**总字数**: ~70,000 字  
-**最后更新**: 2026-03-22
+**总文档数**: 67 篇 (去重后)
+**总字数**: ~75,000 字
+**最后更新**: 2026-03-27
 
 ---
 
@@ -20,6 +20,7 @@
 | [05-execution/02-map-reduce.md](./05-execution/02-map-reduce.md) | 新增分布式 Map/Reduce、应用场景 | ✅ 已增强 |
 | [04-memory/02-distributed-sync.md](./04-memory/02-distributed-sync.md) | 新增混合同步模式、多区域部署、GDPR 合规 | ✅ 已增强 |
 | [SELF_BOOTSTRAP.md](./SELF_BOOTSTRAP.md) | 新增 Self-Bootstrap 层级、架构实现、演示示例、验证与安全 | ✅ 已增强 |
+| [02-architecture/vm-community-single-homing.md](./02-architecture/vm-community-single-homing.md) | 新增 VM 社区单归属约束架构设计 | ✅ 新增 |
 
 ### 已删除的重复文档
 
