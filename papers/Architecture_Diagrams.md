@@ -117,37 +117,34 @@ sequenceDiagram
     participant Monitor as 监控器
     participant Executor as 自举执行器
     participant Node1 as 节点 1
-    participant Node2 as 节点 2 (新)
-    participant Redis as Redis Pub/Sub
-    
+    participant Node2 as 节点 2
+    participant Redis as Redis
+
     User->>Monitor: 提交意图
     Monitor->>Monitor: 检测负载 > 阈值
-    
+
     alt 需要扩容
         Monitor->>Executor: 触发扩容元意图
-        Executor->>Executor: 生成 Meta-Intent<br/>(type: extend_layer)
-        
+        Executor->>Executor: 生成 Meta-Intent
+
         Executor->>Node1: REPLICATE PROGRAM self
         Node1->>Node1: 打包内核逻辑
         Node1->>Node2: 发送 PEF + 能力定义
-        
+
         Executor->>Node2: SPAWN NODE
         Node2->>Node2: 加载 PEF
         Node2->>Node2: 注册服务
         Node2->>Node2: 初始化记忆系统
-        
-        Executor->>Redis: BROADCAST CONFIG TO ALL
+
+        Executor->>Redis: BROADCAST CONFIG
         Redis->>Node1: 同步配置
         Redis->>Node2: 同步配置
-        
+
         Node2->>Executor: 就绪确认
         Executor->>User: 返回扩容完成
     else 无需扩容
         Monitor->>User: 直接执行意图
     end
-
-    style Executor fill:#ffcc80
-    style Node2 fill:#c8e6c9
 ```
 
 ---
