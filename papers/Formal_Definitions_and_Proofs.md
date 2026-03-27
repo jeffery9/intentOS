@@ -4,95 +4,103 @@
 
 ### A.1 语义 CPU 形式化模型
 
-**定义 A.1**（语义 CPU）：语义 CPU 是一个五元组 $\mathcal{S} = (\mathcal{P}, \mathcal{T}, \Sigma, \delta, \omega)$，其中：
+**定义 A.1**（语义 CPU）：语义 CPU 是一个五元组 S = (P, T, Σ, δ, ω)，其中：
 
-- $\mathcal{P}$：Prompt 空间，所有可能的 Prompt 指令集合
-- $\mathcal{T}$：Token 空间，所有可能的输出 Token 序列集合
-- $\Sigma$：上下文空间，包含工作记忆、短期记忆、长期记忆
-- $\delta: \mathcal{P} \times \Sigma \rightarrow \mathcal{T}$：语义转移函数，由 LLM 实现
-- $\omega: \mathcal{T} \rightarrow \{0, 1\}$：结果验证函数
+- **P**：Prompt 空间，所有可能的 Prompt 指令集合
+- **T**：Token 空间，所有可能的输出 Token 序列集合
+- **Σ**：上下文空间，包含工作记忆、短期记忆、长期记忆
+- **δ**: P × Σ → T（语义转移函数，由 LLM 实现）
+- **ω**: T → {0, 1}（结果验证函数）
 
-**公理 A.1**（幂等性）：对于任意 $p \in \mathcal{P}$ 和 $\sigma \in \Sigma$，存在 $\epsilon > 0$ 使得：
+**公理 A.1**（幂等性）：对于任意 p ∈ P 和 σ ∈ Σ，存在 ε > 0 使得：
 
-$$\forall \sigma_1, \sigma_2 \in \Sigma, \|\sigma_1 - \sigma_2\| < \epsilon \Rightarrow \delta(p, \sigma_1) = \delta(p, \sigma_2)$$
+```
+∀ σ₁, σ₂ ∈ Σ, ||σ₁ - σ₂|| < ε  ⇒  δ(p, σ₁) = δ(p, σ₂)
+```
 
-当系统参数设置为 $\text{temperature} = 0$ 且固定随机种子时，$\delta$ 退化为确定性函数。
+当系统参数设置为 `temperature = 0` 且固定随机种子时，δ 退化为确定性函数。
 
 ---
 
 ### A.2 PEF 文件格式形式化
 
-**定义 A.2**（PEF 文件）：PEF 文件是一个四元组 $\mathcal{F} = (\mathcal{H}, \mathcal{S}, \mathcal{I}, \mathcal{B})$，其中：
+**定义 A.2**（PEF 文件）：PEF 文件是一个四元组 F = (H, S, I, B)，其中：
 
-- $\mathcal{H}$：文件头部，包含魔数、版本号、入口点偏移
-- $\mathcal{S}$：段表，$\mathcal{S} = \{s_1, s_2, ..., s_n\}$，每个段 $s_i = (\text{name}_i, \text{offset}_i, \text{size}_i)$
-- $\mathcal{I}$：指令代码段，$\mathcal{I} \subset \mathcal{P}$
-- $\mathcal{B}$：能力绑定表，$\mathcal{B} = \{(c_j, \text{sig}_j) | c_j \in \mathcal{C}\}$，$\mathcal{C}$ 为能力注册表
+- **H**：文件头部，包含魔数、版本号、入口点偏移
+- **S**：段表，S = {s₁, s₂, ..., sₙ}，每个段 sᵢ = (nameᵢ, offsetᵢ, sizeᵢ)
+- **I**：指令代码段，I ⊂ P
+- **B**：能力绑定表，B = {(cⱼ, sigⱼ) | cⱼ ∈ C}，C 为能力注册表
 
-**定义 A.3**（PEF 加载）：PEF 加载函数 $\Lambda: \mathcal{F} \rightarrow \mathcal{E}$，其中 $\mathcal{E}$ 为可执行状态空间：
+**定义 A.3**（PEF 加载）：PEF 加载函数 Λ: F → E，其中 E 为可执行状态空间：
 
-$$\Lambda(\mathcal{F}) = (\mathcal{I}', \mathcal{B}', \text{pc}_0)$$
+```
+Λ(F) = (I', B', pc₀)
+```
 
-其中 $\mathcal{I}'$ 为加载后的指令集，$\mathcal{B}'$ 为运行时能力绑定，$\text{pc}_0$ 为初始程序计数器。
+其中 I' 为加载后的指令集，B' 为运行时能力绑定，pc₀ 为初始程序计数器。
 
 ---
 
 ### A.3 套娃分层架构形式化
 
-**定义 A.4**（套娃分层编译器）：编译器是一个七元组 $\mathcal{C} = (L_1, L_2, ..., L_7, \circ, \text{PEF})$，其中：
+**定义 A.4**（套娃分层编译器）：编译器是一个七元组 C = (L₁, L₂, ..., L₇, ∘, PEF)，其中：
 
-- $L_i: \mathcal{X}_i \rightarrow \mathcal{X}_{i+1}$ 为第 $i$ 层的转换函数
-- $\circ$ 为函数复合运算符
-- $\text{PEF}$ 为最终输出格式
+- **Lᵢ**: Xᵢ → Xᵢ₊₁ 为第 i 层的转换函数
+- **∘**：为函数复合运算符
+- **PEF**：为最终输出格式
 
 编译过程定义为：
 
-$$\text{PEF} = L_7(L_6(L_5(L_4(L_3(L_2(L_1(\text{Intent})))))))$$
+```
+PEF = L₇(L₆(L₅(L₄(L₃(L₂(L₁(Intent)))))))
+```
 
-其中 $\text{Intent} \in \mathcal{X}_1$ 为自然语言意图。
+其中 Intent ∈ X₁ 为自然语言意图。
 
 **各层定义**：
 
 | 层级 | 输入空间 | 输出空间 | 转换函数 |
 |------|----------|----------|----------|
-| $L_1$ | $\mathcal{X}_1$ (自然语言) | $\mathcal{X}_2$ (结构化意图) | 意图解析 |
-| $L_2$ | $\mathcal{X}_2$ | $\mathcal{X}_3$ (任务 DAG) | 任务规划 |
-| $L_3$ | $\mathcal{X}_3$ | $\mathcal{X}_4$ (上下文增强) | 记忆注入 |
-| $L_4$ | $\mathcal{X}_4$ | $\mathcal{X}_5$ (安全验证) | 权限校验 |
-| $L_5$ | $\mathcal{X}_5$ | $\mathcal{X}_6$ (能力绑定) | 符号链接 |
-| $L_6$ | $\mathcal{X}_6$ | $\mathcal{X}_7$ (执行计划) | 分布式调度 |
-| $L_7$ | $\mathcal{X}_7$ | $\text{PEF}$ | 改进优化 |
+| L₁ | X₁ (自然语言) | X₂ (结构化意图) | 意图解析 |
+| L₂ | X₂ | X₃ (任务 DAG) | 任务规划 |
+| L₃ | X₃ | X₄ (上下文增强) | 记忆注入 |
+| L₄ | X₄ | X₅ (安全验证) | 权限校验 |
+| L₅ | X₅ | X₆ (能力绑定) | 符号链接 |
+| L₆ | X₆ | X₇ (执行计划) | 分布式调度 |
+| L₇ | X₇ | PEF | 改进优化 |
 
 ---
 
 ### A.4 意图漂移形式化
 
-**定义 A.5**（意图漂移）：设 $I_0$ 为原始意图，$E_t$ 为时刻 $t$ 的执行轨迹，$R_t$ 为时刻 $t$ 的运行结果。意图漂移函数定义为：
+**定义 A.5**（意图漂移）：设 I₀ 为原始意图，Eₜ 为时刻 t 的执行轨迹，Rₜ 为时刻 t 的运行结果。意图漂移函数定义为：
 
-$$\Delta(I_0, E_t, R_t) = 1 - \frac{\text{sim}(I_0, \text{decode}(R_t))}{\max(\text{sim})}$$
+```
+Δ(I₀, Eₜ, Rₜ) = 1 - sim(I₀, decode(Rₜ)) / max(sim)
+```
 
-其中 $\text{sim}: \mathcal{X} \times \mathcal{X} \rightarrow \mathbb{R}$ 为语义相似度函数，$\text{decode}: \mathcal{T} \rightarrow \mathcal{X}$ 为结果解码函数。
+其中 sim: X × X → R 为语义相似度函数，decode: T → X 为结果解码函数。
 
-**定义 A.6**（漂移检测阈值）：当 $\Delta > \theta$ 时，系统判定发生意图漂移，其中 $\theta \in [0, 1]$ 为预设阈值。
+**定义 A.6**（漂移检测阈值）：当 Δ > θ 时，系统判定发生意图漂移，其中 θ ∈ [0, 1] 为预设阈值。
 
 ---
 
 ### A.5 元意图形式化
 
-**定义 A.7**（元意图）：元意图是一个高阶函数 $\mathcal{M}: \mathcal{I} \rightarrow \mathcal{I}$，其中 $\mathcal{I}$ 为意图空间。元意图作用于普通意图，改变其语义或执行方式。
+**定义 A.7**（元意图）：元意图是一个高阶函数 M: I → I，其中 I 为意图空间。元意图作用于普通意图，改变其语义或执行方式。
 
 **元意图层级**：
 
-- $L_0$ 意图：$I \in \mathcal{I}$，处理具体任务
-- $L_1$ 元意图：$M_1 \in \mathcal{M}_1$，$M_1: \mathcal{I} \rightarrow \mathcal{I}$
-- $L_2$ 元元意图：$M_2 \in \mathcal{M}_2$，$M_2: \mathcal{M}_1 \rightarrow \mathcal{M}_1$
+- **L₀ 意图**：I ∈ I，处理具体任务
+- **L₁ 元意图**：M₁ ∈ M₁，M₁: I → I
+- **L₂ 元元意图**：M₂ ∈ M₂，M₂: M₁ → M₁
 
 **元意图操作**：
 
-1. $\text{create\_template}(I)$：创建新意图模板
-2. $\text{register\_capability}(c)$：注册新能力
-3. $\text{modify\_protocol}(p)$：修改系统协议
-4. $\text{generate\_refinement}(I, E)$：生成修复意图
+1. `create_template(I)`：创建新意图模板
+2. `register_capability(c)`：注册新能力
+3. `modify_protocol(p)`：修改系统协议
+4. `generate_refinement(I, E)`：生成修复意图
 
 ---
 
@@ -108,13 +116,17 @@ $$\Delta(I_0, E_t, R_t) = 1 - \frac{\text{sim}(I_0, \text{decode}(R_t))}{\max(\t
 
 1. **读写能力**：SVM 的记忆系统支持任意语义对象的读写，对应 UTM 的纸带读写头。
 
-2. **状态转移**：SVM 的执行模型包含状态寄存器（PC 计数器）和状态转移函数 $\delta$，对应 UTM 的状态转移表。
+2. **状态转移**：SVM 的执行模型包含状态寄存器（PC 计数器）和状态转移函数 δ，对应 UTM 的状态转移表。
 
 3. **条件分支**：SVM 支持 IF/ELSE/ENDIF 指令，实现基于条件的执行路径选择：
-   $$\text{IF } cond \text{ THEN } S_1 \text{ ELSE } S_2$$
+   ```
+   IF cond THEN S₁ ELSE S₂
+   ```
 
 4. **无限迭代**：SVM 支持 WHILE 循环：
-   $$\text{WHILE } cond \text{ DO } S$$
+   ```
+   WHILE cond DO S
+   ```
    在无限存储假设下，循环次数无上界。
 
 5. **数据操纵**：SVM 支持 CREATE/MODIFY/DELETE 等数据操作原语。
@@ -131,17 +143,19 @@ $$\Delta(I_0, E_t, R_t) = 1 - \frac{\text{sim}(I_0, \text{decode}(R_t))}{\max(\t
 
 **必要性**：
 
-1. **意图可自省**：假设系统无法自省，即不存在函数 $\text{introspect}: \mathcal{S} \rightarrow \mathcal{S}$ 使得系统能表示自身状态。则系统无法识别自身能力边界，无法判断是否需要自举。矛盾。
+1. **意图可自省**：假设系统无法自省，即不存在函数 introspect: S → S 使得系统能表示自身状态。则系统无法识别自身能力边界，无法判断是否需要自举。矛盾。
 
-2. **意图可生成**：假设系统无法生成新意图，即 $\text{generate}: \mathcal{X} \rightarrow \mathcal{I}$ 不存在。则系统无法响应新需求，自举失去意义。矛盾。
+2. **意图可生成**：假设系统无法生成新意图，即 generate: X → I 不存在。则系统无法响应新需求，自举失去意义。矛盾。
 
-3. **语义可演化**：假设系统无法修改自身规则，即 $\text{evolve}: \mathcal{R} \times \Delta\mathcal{R} \rightarrow \mathcal{R}$ 不存在（$\mathcal{R}$ 为规则空间）。则系统无法实现自举，与假设矛盾。
+3. **语义可演化**：假设系统无法修改自身规则，即 evolve: R × ΔR → R 不存在（R 为规则空间）。则系统无法实现自举，与假设矛盾。
 
 **充分性**：
 
 若系统满足三定理，则存在以下闭环：
 
-$$\text{检测} \xrightarrow{\text{introspect}} \text{分析} \xrightarrow{\text{generate}} \text{规划} \xrightarrow{\text{evolve}} \text{执行} \xrightarrow{\text{反馈}} \text{检测}$$
+```
+检测 →[introspect] 分析 →[generate] 规划 →[evolve] 执行 →[反馈] 检测
+```
 
 该闭环实现了完整的自举流程。□
 
@@ -153,22 +167,24 @@ $$\text{检测} \xrightarrow{\text{introspect}} \text{分析} \xrightarrow{\text
 
 **证明**：
 
-设集群有 $n$ 个节点 $N_1, N_2, ..., N_n$，每个节点的状态为 $S_i \in \mathcal{E}$。
+设集群有 n 个节点 N₁, N₂, ..., Nₙ，每个节点的状态为 Sᵢ ∈ E。
 
 **前提条件**：
-1. $\forall i, j: S_i^{(0)} = S_j^{(0)}$（初始状态一致）
-2. $\forall i, j, t: \delta(P_t, S_i^{(t)}) = \delta(P_t, S_j^{(t)})$（LLM 幂等性）
+1. ∀i, j: Sᵢ⁽⁰⁾ = Sⱼ⁽⁰⁾（初始状态一致）
+2. ∀i, j, t: δ(Pₜ, Sᵢ⁽ᵗ⁾) = δ(Pₜ, Sⱼ⁽ᵗ⁾)（LLM 幂等性）
 
 **归纳证明**：
 
-**基础步骤**：$t=0$ 时，$\forall i, j: S_i^{(0)} = S_j^{(0)}$，成立。
+**基础步骤**：t=0 时，∀i, j: Sᵢ⁽⁰⁾ = Sⱼ⁽⁰⁾，成立。
 
-**归纳步骤**：假设 $t=k$ 时 $\forall i, j: S_i^{(k)} = S_j^{(k)}$。
+**归纳步骤**：假设 t=k 时 ∀i, j: Sᵢ⁽ᵏ⁾ = Sⱼ⁽ᵏ⁾。
 
-当 $t=k+1$ 时：
-$$S_i^{(k+1)} = \delta(P_k, S_i^{(k)}) = \delta(P_k, S_j^{(k)}) = S_j^{(k+1)}$$
+当 t=k+1 时：
+```
+Sᵢ⁽ᵏ⁺¹⁾ = δ(Pₖ, Sᵢ⁽ᵏ⁾) = δ(Pₖ, Sⱼ⁽ᵏ⁾) = Sⱼ⁽ᵏ⁺¹⁾
+```
 
-由数学归纳法，$\forall t, \forall i, j: S_i^{(t)} = S_j^{(t)}$。□
+由数学归纳法，∀t, ∀i, j: Sᵢ⁽ᵗ⁾ = Sⱼ⁽ᵗ⁾。□
 
 ---
 
@@ -179,20 +195,26 @@ $$S_i^{(k+1)} = \delta(P_k, S_i^{(k)}) = \delta(P_k, S_j^{(k)}) = S_j^{(k+1)}$$
 **证明**：
 
 设：
-- $G_0$ 为初始分配的 Gas 总量
-- $g_i > 0$ 为第 $i$ 条指令的 Gas 成本
-- $n$ 为执行步数
+- G₀ 为初始分配的 Gas 总量
+- gᵢ > 0 为第 i 条指令的 Gas 成本
+- n 为执行步数
 
 Gas 约束条件：
-$$\sum_{i=1}^{n} g_i \leq G_0$$
+```
+∑(i=1 to n) gᵢ ≤ G₀
+```
 
-由于 $\forall i: g_i \geq g_{\min} > 0$（最小 Gas 成本），则：
-$$n \cdot g_{\min} \leq \sum_{i=1}^{n} g_i \leq G_0$$
+由于 ∀i: gᵢ ≥ g_min > 0（最小 Gas 成本），则：
+```
+n · g_min ≤ ∑(i=1 to n) gᵢ ≤ G₀
+```
 
 因此：
-$$n \leq \frac{G_0}{g_{\min}}$$
+```
+n ≤ G₀ / g_min
+```
 
-即执行步数 $n$ 有明确上界 $G_0/g_{\min}$。□
+即执行步数 n 有明确上界 G₀/g_min。□
 
 ---
 
@@ -202,20 +224,22 @@ $$n \leq \frac{G_0}{g_{\min}}$$
 
 **证明**：
 
-设任务 DAG 为 $G = (V, E)$，其中 $V$ 为任务节点集合，$E$ 为依赖边集合。
+设任务 DAG 为 G = (V, E)，其中 V 为任务节点集合，E 为依赖边集合。
 
-**DAG 性质**：$G$ 无环，即不存在路径 $v_1 \rightarrow v_2 \rightarrow ... \rightarrow v_k \rightarrow v_1$。
+**DAG 性质**：G 无环，即不存在路径 v₁ → v₂ → ... → vₖ → v₁。
 
-**拓扑排序**：对 $G$ 进行拓扑排序，得到节点序列 $v_1, v_2, ..., v_m$，满足：
-$$\forall (v_i, v_j) \in E: i < j$$
+**拓扑排序**：对 G 进行拓扑排序，得到节点序列 v₁, v₂, ..., vₘ，满足：
+```
+∀(vᵢ, vⱼ) ∈ E: i < j
+```
 
 **执行过程**：
-1. 执行 $v_1$（无前置依赖）
-2. 执行 $v_2$（依赖已完成的节点）
+1. 执行 v₁（无前置依赖）
+2. 执行 v₂（依赖已完成的节点）
 3. ...
-4. 执行 $v_m$（所有依赖已完成）
+4. 执行 vₘ（所有依赖已完成）
 
-由于 $|V| = m$ 有限，且每个节点执行时间有限，总执行步数为 $m$，必然终止。□
+由于 |V| = m 有限，且每个节点执行时间有限，总执行步数为 m，必然终止。□
 
 ---
 
@@ -226,18 +250,18 @@ $$\forall (v_i, v_j) \in E: i < j$$
 **证明**：
 
 设：
-- $k_{\max}$ 为最大重试次数
-- $\Delta_t$ 为时刻 $t$ 的漂移度
-- $\theta$ 为检测阈值
+- k_max 为最大重试次数
+- Δₜ 为时刻 t 的漂移度
+- θ 为检测阈值
 
 **自愈流程**：
-1. 若 $\Delta_t \leq \theta$，执行成功，终止。
-2. 若 $\Delta_t > \theta$ 且 $k < k_{\max}$，生成修复意图，$k \leftarrow k+1$，返回步骤 1。
-3. 若 $\Delta_t > \theta$ 且 $k = k_{\max}$，升级至人工干预，终止。
+1. 若 Δₜ ≤ θ，执行成功，终止。
+2. 若 Δₜ > θ 且 k < k_max，生成修复意图，k ← k+1，返回步骤 1。
+3. 若 Δₜ > θ 且 k = k_max，升级至人工干预，终止。
 
 **收敛性**：
-- 情况 1：存在 $t$ 使得 $\Delta_t \leq \theta$，自愈成功。
-- 情况 2：$\forall t: \Delta_t > \theta$，当 $k = k_{\max}$ 时升级，终止。
+- 情况 1：存在 t 使得 Δₜ ≤ θ，自愈成功。
+- 情况 2：∀t: Δₜ > θ，当 k = k_max 时升级，终止。
 
 两种情况均在有限步内终止。□
 
@@ -250,22 +274,28 @@ $$\forall (v_i, v_j) \in E: i < j$$
 **证明**：
 
 设：
-- $D$ 为总数据量
-- $n$ 为节点数
-- $d_i$ 为节点 $i$ 本地数据量，$\sum d_i = D$
-- $c_{\text{local}}$ 为本地访问成本
-- $c_{\text{remote}}$ 为远程访问成本，$c_{\text{remote}} \gg c_{\text{local}}$
+- D 为总数据量
+- n 为节点数
+- dᵢ 为节点 i 本地数据量，∑dᵢ = D
+- c_local 为本地访问成本
+- c_remote 为远程访问成本，c_remote ≫ c_local
 
-**策略 A（无优化）**：随机分配任务，期望跨节点 I/O 比例为 $(n-1)/n$。
-$$\text{Cost}_A = D \cdot \left(\frac{1}{n} c_{\text{local}} + \frac{n-1}{n} c_{\text{remote}}\right)$$
+**策略 A（无优化）**：随机分配任务，期望跨节点 I/O 比例为 (n-1)/n。
+```
+Cost_A = D · (1/n · c_local + (n-1)/n · c_remote)
+```
 
 **策略 B（数据局部性优化）**：任务分配至数据所在节点，跨节点 I/O 比例为 0。
-$$\text{Cost}_B = D \cdot c_{\text{local}}$$
+```
+Cost_B = D · c_local
+```
 
 **优化比**：
-$$\frac{\text{Cost}_A}{\text{Cost}_B} = \frac{1}{n} + \frac{n-1}{n} \cdot \frac{c_{\text{remote}}}{c_{\text{local}}} \approx \frac{n-1}{n} \cdot \frac{c_{\text{remote}}}{c_{\text{local}}}$$
+```
+Cost_A / Cost_B = 1/n + (n-1)/n · (c_remote / c_local) ≈ (n-1)/n · (c_remote / c_local)
+```
 
-由于 $c_{\text{remote}} \gg c_{\text{local}}$，优化比远大于 1，策略 B 显著优于策略 A。□
+由于 c_remote ≫ c_local，优化比远大于 1，策略 B 显著优于策略 A。□
 
 ---
 
@@ -273,18 +303,18 @@ $$\frac{\text{Cost}_A}{\text{Cost}_B} = \frac{1}{n} + \frac{n-1}{n} \cdot \frac{
 
 | 符号 | 含义 | 定义位置 |
 |------|------|----------|
-| $\mathcal{S}$ | 语义 CPU | A.1 |
-| $\mathcal{P}$ | Prompt 空间 | A.1 |
-| $\mathcal{T}$ | Token 空间 | A.1 |
-| $\Sigma$ | 上下文空间 | A.1 |
-| $\delta$ | 语义转移函数 | A.1 |
-| $\mathcal{F}$ | PEF 文件 | A.2 |
-| $\mathcal{C}$ | 套娃编译器 | A.3 |
-| $L_i$ | 第 $i$ 层转换函数 | A.3 |
-| $\Delta$ | 意图漂移函数 | A.4 |
-| $\mathcal{M}$ | 元意图空间 | A.5 |
-| $G_0$ | 初始 Gas 总量 | B.4 |
-| $G = (V, E)$ | 任务 DAG | B.5 |
+| S | 语义 CPU | A.1 |
+| P | Prompt 空间 | A.1 |
+| T | Token 空间 | A.1 |
+| Σ | 上下文空间 | A.1 |
+| δ | 语义转移函数 | A.1 |
+| F | PEF 文件 | A.2 |
+| C | 套娃编译器 | A.3 |
+| Lᵢ | 第 i 层转换函数 | A.3 |
+| Δ | 意图漂移函数 | A.4 |
+| M | 元意图空间 | A.5 |
+| G₀ | 初始 Gas 总量 | B.4 |
+| G = (V, E) | 任务 DAG | B.5 |
 
 ---
 
@@ -294,22 +324,24 @@ $$\frac{\text{Cost}_A}{\text{Cost}_B} = \frac{1}{n} + \frac{n-1}{n} \cdot \frac{
 
 | 助记符 | 操作码 | 语义 |
 |--------|--------|------|
-| `QUERY` | $0 \times 01$ | $\text{query}(q) \rightarrow r$ |
-| `CREATE` | $0 \times 02$ | $\text{create}(t, d) \rightarrow o$ |
-| `MODIFY` | $0 \times 03$ | $\text{modify}(o, \Delta) \rightarrow o'$ |
-| `IF` | $0 \times 10$ | $\text{branch}(cond, S_1, S_2)$ |
-| `LOOP` | $0 \times 13$ | $\text{loop}(n, S)$ |
-| `REPLICATE` | $0 \times 20$ | $\text{replicate}(p, \text{dst})$ |
-| `SPAWN` | $0 \times 21$ | $\text{spawn}(\text{node})$ |
+| `QUERY` | 0x01 | query(q) → r |
+| `CREATE` | 0x02 | create(t, d) → o |
+| `MODIFY` | 0x03 | modify(o, Δ) → o' |
+| `IF` | 0x10 | branch(cond, S₁, S₂) |
+| `LOOP` | 0x13 | loop(n, S) |
+| `REPLICATE` | 0x20 | replicate(p, dst) |
+| `SPAWN` | 0x21 | spawn(node) |
 
 ### D.2 指称语义
 
-**定义 D.1**（指令语义）：每条指令 $I$ 的指称语义定义为状态转移函数 $[\![I]\!]: \mathcal{E} \rightarrow \mathcal{E}$。
+**定义 D.1**（指令语义）：每条指令 I 的指称语义定义为状态转移函数 [[I]]: E → E。
 
 例如：
-$$[\![\text{CREATE}(t, d)]\!](\sigma) = \sigma[o/t]$$
+```
+[[CREATE(t, d)]](σ) = σ[o/t]
+```
 
-其中 $\sigma[o/t]$ 表示在状态 $\sigma$ 中添加类型为 $t$、数据为 $d$ 的新对象 $o$。
+其中 σ[o/t] 表示在状态 σ 中添加类型为 t、数据为 d 的新对象 o。
 
 ---
 
