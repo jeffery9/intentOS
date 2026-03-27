@@ -10,15 +10,15 @@ AI Native 应用体系结构划分为三个层次：
 
 | 层/级 | 名称 | 职责 | 类比传统计算 |
 |------|------|------|-------------|
-| **Layer 1** | **Application Layer** (应用层) | 领域意图包、业务能力、用户交互 | 应用程序 |
+| **Layer 3** | **Application Layer** (应用层) | 领域意图包、业务能力、用户交互 | 应用程序 |
 | **Layer 2** | **IntentOS Layer** (意图操作系统层) | 意图编译、调度、执行、记忆 | 操作系统 |
-| **Layer 3** | **LLM Layer** (大语言模型层) | 语义理解、推理、生成 | CPU |
+| **Layer 1** | **LLM Layer** (大语言模型层) | 语义理解、推理、生成 | CPU |
 
 ### 架构图
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    Layer 1: Application Layer                │
+│                    Layer 3: Application Layer                │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
 │  │  Sales App  │  │  CRM App    │  │  BI App     │  ...    │
 │  │  (意图包)    │  │  (意图包)    │  │  (意图包)    │         │
@@ -28,18 +28,18 @@ AI Native 应用体系结构划分为三个层次：
 ┌────────────────────────────▼────────────────────────────────┐
 │                    Layer 2: IntentOS (7 Level)                  │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │ [Level 1] 意图层 → 解析功能意图 + 操作意图                  │  │
-│  │ [Level 2] 规划层 → 生成任务 DAG + Ops Model                 │  │
-│  │ [Level 3] 上下文层 → 多模态事件图                           │  │
+│  │ [Level 7] 意图层 → 解析功能意图 + 操作意图                  │  │
+│  │ [Level 6] 规划层 → 生成任务 DAG + Ops Model                 │  │
+│  │ [Level 5] 上下文层 → 多模态事件图                           │  │
 │  │ [Level 4] 安全环 → 权限校验 + Human-in-the-loop            │  │
-│  │ [Level 5] 工具层 → 绑定能力调用                             │  │
-│  │ [Level 6] 执行层 → 分布式调度执行                           │  │
-│  │ [Level 7] 改进层 → 意图漂移检测 + 自动修复                  │  │
+│  │ [Level 3] 工具层 → 绑定能力调用                             │  │
+│  │ [Level 2] 执行层 → 分布式调度执行                           │  │
+│  │ [Level 1] 改进层 → 意图漂移检测 + 自动修复                  │  │
 │  └───────────────────────────────────────────────────────┘  │
 └────────────────────────────┬────────────────────────────────┘
                              │ Prompt 执行
 ┌────────────────────────────▼────────────────────────────────┐
-│                    Layer 3: LLM Layer                        │
+│                    Layer 1: LLM Layer                        │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐         │
 │  │   OpenAI    │  │  Anthropic  │  │   Ollama    │  ...    │
 │  │  (语义 CPU)  │  │  (语义 CPU)  │  │  (语义 CPU)  │         │
@@ -49,7 +49,7 @@ AI Native 应用体系结构划分为三个层次：
 
 ---
 
-## 2. Layer 1: 应用层
+## 2. Layer 3: 应用层
 
 ### 2.1 职责
 
@@ -101,7 +101,7 @@ crm_app = create_app(
 
 ## 3. Layer 2: IntentOS (7 Level)
 
-### 3.1 Level 1: 意图层 (Intent Level)
+### 3.1 Level 7: 意图层 (Intent Level)
 
 **职责**: 解析自然语言为结构化意图
 
@@ -130,7 +130,7 @@ crm_app = create_app(
 }
 ```
 
-### 3.2 Level 2: 规划层 (Planning Level)
+### 3.2 Level 6: 规划层 (Planning Level)
 
 **职责**: 生成任务 DAG 和运维模型
 
@@ -149,7 +149,7 @@ crm_app = create_app(
 }
 ```
 
-### 3.3 Level 3: 上下文层 (Context Level)
+### 3.3 Level 5: 上下文层 (Context Level)
 
 **职责**: 收集和管理多模态上下文
 
@@ -191,7 +191,7 @@ if operation in ["delete_data", "export_all"]:
     approval = await request_approval(user_id, operation)
 ```
 
-### 3.5 Level 5: 工具层 (Tool Level)
+### 3.5 Level 3: 工具层 (Tool Level)
 
 **职责**: 能力绑定和协议适配
 
@@ -213,7 +213,7 @@ if operation in ["delete_data", "export_all"]:
 }
 ```
 
-### 3.6 Level 6: 执行层 (Execution Level)
+### 3.6 Level 2: 执行层 (Execution Level)
 
 **职责**: 分布式调度执行
 
@@ -228,7 +228,7 @@ results = await execute_dag(
 )
 ```
 
-### 3.7 Level 7: 改进层 (Improvement Level)
+### 3.7 Level 1: 改进层 (Improvement Level)
 
 **职责**: 意图漂移检测和自动修复
 
@@ -247,7 +247,7 @@ if actual_result != expected_outcome:
 
 ---
 
-## 4. Layer 3: LLM 层
+## 4. Layer 1: LLM 层
 
 ### 4.1 职责
 
@@ -282,13 +282,13 @@ LLM 层是**语义 CPU**，负责：
                 ↓ Intent Call
 ┌───────────────▼─────────────────────┐
 │ IntentOS (7 Level)                     │
-│ L1: 解析 → {action: analyze, ...}   │
-│ L2: 规划 → DAG + Ops Model          │
-│ L3: 上下文 → enriched DAG           │
+│ L7: 解析 → {action: analyze, ...}   │
+│ L6: 规划 → DAG + Ops Model          │
+│ L5: 上下文 → enriched DAG           │
 │ L4: 安全 → cleared DAG              │
-│ L5: 绑定 → bound DAG                │
-│ L6: 执行 → results                  │
-│ L7: 改进 → feedback                 │
+│ L3: 绑定 → bound DAG                │
+│ L2: 执行 → results                  │
+│ L1: 改进 → feedback                 │
 └───────────────┬─────────────────────┘
                 ↓ Prompt
 ┌───────────────▼─────────────────────┐
