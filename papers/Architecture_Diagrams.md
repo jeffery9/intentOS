@@ -40,7 +40,7 @@ flowchart TB
     L2 -->|执行 Prompt| L1
     L1 -->|Token Stream| L2
     L2 --> INFRA
-    
+
     style L3 fill:#e1f5fe
     style L2 fill:#fff3e0
     style L1 fill:#f3e5f5
@@ -101,8 +101,8 @@ flowchart TB
         T5 --> CAP[能力注册表引用]
         CAP --> API[外部 API/工具]
     end
-    
-    style PEF fill:#ffe0b2,stroke:#e65100,stroke-width:3px
+
+    style PEF fill:#ffe0b2
     style H fill:#ffcc80
     style ST fill:#ffcc80
 ```
@@ -145,7 +145,7 @@ sequenceDiagram
     else 无需扩容
         Monitor->>User: 直接执行意图
     end
-    
+
     style Executor fill:#ffcc80
     style Node2 fill:#c8e6c9
 ```
@@ -178,7 +178,7 @@ flowchart TD
     Recompile --> Execute
     
     Execute --> Result([返回结果])
-    
+
     style Detect fill:#ffcc80
     style Approve fill:#ffcc80
     style MetaIntent fill:#c8e6c9
@@ -215,10 +215,10 @@ flowchart TB
     L1 -->|管理 | L0
     L0 -->|执行结果反馈 | L1
     L1 -->|演化记录 | L2
-    
-    style L2 fill:#f3e5f5,stroke:#7b1fa2
-    style L1 fill:#e1f5fe,stroke:#0288d1
-    style L0 fill:#e8f5e9,stroke:#388e3c
+
+    style L2 fill:#f3e5f5
+    style L1 fill:#e1f5fe
+    style L0 fill:#e8f5e9
 ```
 
 ---
@@ -254,7 +254,7 @@ flowchart TD
     
     Log --> End([执行完成])
     Escalate --> End
-    
+
     style Detect fill:#ffcc80
     style GenIntent fill:#c8e6c9
     style Verify fill:#ffcc80
@@ -267,31 +267,31 @@ flowchart TD
 ```mermaid
 flowchart TB
     User[用户意图] --> LB[负载均衡器]
-    
+
     LB -->|分发 | Map1[Map 节点 1]
     LB -->|分发 | Map2[Map 节点 2]
     LB -->|分发 | Map3[Map 节点 3]
-    
+
     subgraph Map["Map 阶段：数据局部性优化"]
         Map1 --> Mem1[(本地记忆 1)]
         Map2 --> Mem2[(本地记忆 2)]
         Map3 --> Mem3[(本地记忆 3)]
-        
+
         Map1 --> LLM1[LLM 推理 1]
         Map2 --> LLM2[LLM 推理 2]
         Map3 --> LLM3[LLM 推理 3]
     end
-    
-    LLM1 --> Reduce
-    LLM2 --> Reduce
-    LLM3 --> Reduce
-    
+
+    LLM1 --> ReduceNode[汇总节点]
+    LLM2 --> ReduceNode
+    LLM3 --> ReduceNode
+
     subgraph Reduce["Reduce 阶段：结果汇总"]
-        Reduce[汇总节点] --> LLM_Sum[LLM 智能汇总]
+        ReduceNode --> LLM_Sum[LLM 智能汇总]
     end
-    
+
     LLM_Sum --> Result[返回用户]
-    
+
     style Map fill:#e3f2fd
     style Reduce fill:#fff3e0
     style LLM_Sum fill:#f3e5f5
@@ -327,10 +327,10 @@ flowchart LR
     Memory --> Inject
     Execute --> Model
     Model --> Writeback
-    
-    style SVM fill:#ffe0b2,stroke:#e65100
-    style Memory fill:#e8f5e9,stroke:#2e7d32
-    style LLM fill:#e1f5fe,stroke:#0277bd
+
+    style SVM fill:#ffe0b2
+    style Memory fill:#e8f5e9
+    style LLM fill:#e1f5fe
 ```
 
 ---
@@ -344,27 +344,27 @@ flowchart TB
         Schema[输入/输出 Schema]
         Impl[实现：HTTP API/Python 函数]
     end
-    
+
     subgraph Registry["能力注册中心"]
         Cap1[能力 1: query_sales]
         Cap2[能力 2: compare_regions]
         Cap3[能力 3: render_chart]
     end
-    
+
     subgraph Compiler["意图编译器"]
         Parse[意图解析]
         Linker[链接器 Linker]
     end
-    
+
     subgraph Runtime["运行时"]
         PEF[PEF 文件]
         VM[语义 VM]
     end
-    
+
     Def --> Registry
     Schema --> Registry
     Impl --> Registry
-    
+
     Parse --> Linker
     Linker -->|符号绑定 | Registry
     Linker --> PEF
@@ -372,9 +372,9 @@ flowchart TB
     VM -->|调用 | Cap1
     VM -->|调用 | Cap2
     VM -->|调用 | Cap3
-    
-    style Registry fill:#c8e6c9,stroke:#2e7d32
-    style Linker fill:#ffcc80,stroke:#e65100
+
+    style Registry fill:#c8e6c9
+    style Linker fill:#ffcc80
 ```
 
 ---
@@ -417,7 +417,7 @@ flowchart TB
     Sub2 -->|更新 | LocalMem2
     Sub3 -->|更新 | LocalMem3
     
-    style Redis fill:#ffcc80,stroke:#e65100,stroke-width:3px
+    style Redis fill:#ffcc80
     style Channel fill:#ffe0b2
 ```
 
@@ -432,36 +432,36 @@ flowchart TB
         D2[自动扩缩容]
         D3[跨节点同步]
     end
-    
+
     subgraph Level2["Level 2: 指令集扩展"]
         I1[扩展指令集]
         I2[修改系统策略]
         I3[注册新能力]
     end
-    
+
     subgraph Level1["Level 1: 规则修改"]
         R1[修改解析 Prompt]
         R2[修改执行规则]
         R3[更新意图模板]
     end
-    
+
     subgraph Level0["Level 0: 基础执行"]
         E1[加载 PEF]
         E2[驱动 LLM]
         E3[返回结果]
     end
-    
+
     Level3 -->|编排 | Level2
     Level2 -->|定义 | Level1
     Level1 -->|控制 | Level0
     Level0 -->|执行反馈 | Level1
     Level1 -->|演化记录 | Level2
     Level2 -->|自举历史 | Level3
-    
-    style Level3 fill:#f3e5f5,stroke:#7b1fa2
-    style Level2 fill:#e1f5fe,stroke:#0288d1
-    style Level1 fill:#fff3e0,stroke:#f57c00
-    style Level0 fill:#e8f5e9,stroke:#388e3c
+
+    style Level3 fill:#f3e5f5
+    style Level2 fill:#e1f5fe
+    style Level1 fill:#fff3e0
+    style Level0 fill:#e8f5e9
 ```
 
 ---
@@ -513,7 +513,7 @@ stateDiagram-v2
     
     Completed --> Result: 返回结果
     Result --> [*]
-    
+
     style Parsing fill:#e1f5fe
     style Planning fill:#e1f5fe
     style Context fill:#fff3e0
@@ -548,8 +548,8 @@ flowchart TB
     IO3 -->|使用 | H2
     IO1 -->|依赖 | H3
     
-    style IntentOS fill:#e1f5fe,stroke:#0288d1,stroke-width:3px
-    style Harness fill:#f3e5f5,stroke:#7b1fa2
+    style IntentOS fill:#e1f5fe
+    style Harness fill:#f3e5f5
 ```
 
 ---
@@ -563,25 +563,25 @@ flowchart LR
         TC2[无限迭代]
         TC3[数据操纵]
     end
-    
+
     subgraph Balance["平衡机制"]
         B1[Gas 燃料机制]
         B2[DAG 无环约束]
         B3[有界递归]
         B4[外部监控]
     end
-    
+
     subgraph Halt["合理停机"]
         H1[正常完成]
         H2[资源耗尽]
         H3[外部干预]
         H4[异常捕获]
     end
-    
+
     TC --> Balance
     Balance --> Halt
-    
-    style TC fill:#ffcc80,stroke:#e65100
-    style Balance fill:#c8e6c9,stroke:#2e7d32
-    style Halt fill:#e1f5fe,stroke:#0288d1
+
+    style TC fill:#ffcc80
+    style Balance fill:#c8e6c9
+    style Halt fill:#e1f5fe
 ```
