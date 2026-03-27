@@ -1,0 +1,257 @@
+# =============================================================================
+# IntentOS 意图包配置文件
+# =============================================================================
+# 应用：销售数据分析助手
+# 版本：1.0.0
+# 作者：IntentOS Team
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# 1. 基础元数据 (Header Metadata)
+# -----------------------------------------------------------------------------
+app_id: "sales_analyst"
+name: "销售数据分析助手"
+version: "1.0.0"
+description: "分析销售数据并生成可视化报表"
+author: "IntentOS Team"
+license: "MIT"
+homepage: "https://github.com/intentos/intent-packages/tree/main/sales_analyst"
+
+# -----------------------------------------------------------------------------
+# 2. 意图定义 (Intents)
+# -----------------------------------------------------------------------------
+intents:
+  # 意图 1: 查询销售数据
+  - name: "query_sales"
+    description: "查询指定区域和时间的销售数据"
+    patterns:
+      - "查询 {region} {period} 的销售数据"
+      - "{region} {period} 卖得怎么样"
+      - "看看{region}的{period}业绩"
+      - "{region} {period} 销售额是多少"
+    parameters:
+      - name: "region"
+        type: "string"
+        description: "销售区域（如：华东、华南）"
+        required: true
+        enum: ["华东", "华南", "华北", "华西"]
+      - name: "period"
+        type: "string"
+        description: "时间周期（如：Q1、上月）"
+        required: true
+        examples: ["Q1", "Q2", "Q3", "Q4", "上月", "本周", "本年"]
+  
+  # 意图 2: 分析销售趋势
+  - name: "analyze_trend"
+    description: "分析销售数据的趋势和模式"
+    patterns:
+      - "分析 {region} 的销售趋势"
+      - "{region} 的销售走势如何"
+      - "{region} 的业绩是增长还是下降"
+    parameters:
+      - name: "region"
+        type: "string"
+        description: "销售区域"
+        required: true
+      - name: "metrics"
+        type: "array"
+        description: "分析指标"
+        required: false
+        default: ["销售额", "订单量", "客单价"]
+        items:
+          enum: ["销售额", "订单量", "客单价", "利润率"]
+  
+  # 意图 3: 对比分析
+  - name: "compare_regions"
+    description: "对比不同区域的销售数据"
+    patterns:
+      - "对比 {region1} 和 {region2} 的{period}销售数据"
+      - "{region1} 和 {region2} 哪个卖得更好"
+      - "{region1} 比 {region2} 多多少销售额"
+    parameters:
+      - name: "region1"
+        type: "string"
+        description: "第一个区域"
+        required: true
+      - name: "region2"
+        type: "string"
+        description: "第二个区域"
+        required: true
+      - name: "period"
+        type: "string"
+        description: "时间周期"
+        required: true
+  
+  # 意图 4: 生成报表
+  - name: "generate_report"
+    description: "生成销售数据可视化报表"
+    patterns:
+      - "生成 {region} 的报表"
+      - "给我看{region}的销售图表"
+      - "做个{region}的{period}销售报表"
+    parameters:
+      - name: "region"
+        type: "string"
+        description: "销售区域"
+        required: true
+      - name: "period"
+        type: "string"
+        description: "时间周期"
+        required: false
+        default: "本月"
+      - name: "chart_type"
+        type: "string"
+        description: "图表类型"
+        required: false
+        default: "bar"
+        enum: ["bar", "line", "pie", "table"]
+
+# -----------------------------------------------------------------------------
+# 3. 能力需求 (Capabilities)
+# -----------------------------------------------------------------------------
+capabilities:
+  # IO 能力需求
+  - name: "data_loader"
+    description: "从数据库加载销售数据"
+    type: "io"
+    interface:
+      input:
+        type: "object"
+        properties:
+          region: { type: "string" }
+          period: { type: "string" }
+        required: ["region", "period"]
+      output:
+        type: "array"
+        items:
+          type: "object"
+          properties:
+            date: { type: "string" }
+            sales: { type: "number" }
+            orders: { type: "number" }
+  
+  - name: "data_analyzer"
+    description: "分析销售数据并计算指标"
+    type: "io"
+    interface:
+      input:
+        type: "object"
+        properties:
+          data: { type: "array" }
+          metrics: { type: "array" }
+      output:
+        type: "object"
+        properties:
+          total_sales: { type: "number" }
+          total_orders: { type: "number" }
+          avg_order_value: { type: "number" }
+          trend: { type: "string" }
+  
+  - name: "chart_renderer"
+    description: "渲染可视化图表"
+    type: "io"
+    interface:
+      input:
+        type: "object"
+        properties:
+          data: { type: "array" }
+          chart_type: { type: "string" }
+          title: { type: "string" }
+      output:
+        type: "string"  # 图表 URL 或 Base64
+  
+  # 系统能力需求
+  - name: "shell"
+    description: "执行 Shell 命令"
+    type: "system"
+    required: false
+  
+  - name: "filesystem"
+    description: "访问文件系统"
+    type: "system"
+    required: false
+    paths:
+      - "/tmp/reports"
+
+# -----------------------------------------------------------------------------
+# 4. 配置与策略 (Configuration & Policy)
+# -----------------------------------------------------------------------------
+config:
+  # 资源配额
+  resources:
+    max_memory: "512MB"
+    max_execution_time: 60
+    max_concurrent_requests: 10
+    max_token_usage: 10000
+  
+  # 权限策略
+  permissions:
+    allow_network_access: true
+    allow_file_write: false
+    allowed_domains:
+      - "api.sales.internal"
+      - "charts.internal"
+  
+  # 应用特定配置
+  app_settings:
+    default_region: "华东"
+    default_period: "本月"
+    cache_ttl: 300
+    report_format: "pdf"
+
+# -----------------------------------------------------------------------------
+# 5. 依赖管理 (Dependencies)
+# -----------------------------------------------------------------------------
+dependencies:
+  - app_id: "data_connector"
+    version: ">=1.0.0"
+    optional: false
+  
+  - app_id: "chart_library"
+    version: "^2.0.0"
+    optional: true
+
+# -----------------------------------------------------------------------------
+# 6. 分布式执行配置 (Distributed Execution)
+# -----------------------------------------------------------------------------
+distributed:
+  enabled: true
+  map_reduce: true
+  data_partitions: ["region"]
+  reduce_strategy: "llm_summary"
+
+# -----------------------------------------------------------------------------
+# 7. 监控与日志 (Monitoring & Logging)
+# -----------------------------------------------------------------------------
+monitoring:
+  metrics:
+    - name: "query_count"
+      type: "counter"
+      description: "查询次数"
+    - name: "execution_time"
+      type: "histogram"
+      description: "执行时间分布"
+    - name: "cache_hit_rate"
+      type: "gauge"
+      description: "缓存命中率"
+  
+  logging:
+    level: "INFO"
+    format: "json"
+    outputs:
+      - "stdout"
+
+# -----------------------------------------------------------------------------
+# 8. 发布与分发 (Publishing & Distribution)
+# -----------------------------------------------------------------------------
+publishing:
+  registry: "https://marketplace.intentos.io"
+  visibility: "public"
+  categories:
+    - "数据分析"
+    - "销售工具"
+  tags:
+    - "销售"
+    - "分析"
+    - "报表"
+    - "数据可视化"
