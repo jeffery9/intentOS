@@ -117,10 +117,11 @@ class IntentPatternMiner:
         )
         self.history.append(entry)
     
-    def analyze_patterns(
+    async def analyze_patterns(
         self,
         time_range: str = "7d",
         min_frequency: int = 3,
+        use_llm: bool = True,
     ) -> list[IntentPattern]:
         """
         分析意图模式
@@ -137,13 +138,13 @@ class IntentPatternMiner:
         recent_history = [h for h in self.history if h.timestamp > cutoff]
         
         # 2. 聚类相似的意图
-        clusters = self._cluster_intents(recent_history)
+        clusters = await self._cluster_intents(recent_history, use_llm=use_llm)
         
         # 3. 从每个聚类中提取模式
         patterns = []
         for cluster_id, entries in clusters.items():
             if len(entries) >= min_frequency:
-                pattern = self._extract_pattern(cluster_id, entries)
+                pattern = await self._extract_pattern(cluster_id, entries, use_llm=use_llm)
                 if pattern:
                     patterns.append(pattern)
                     self.patterns[pattern.pattern_id] = pattern
