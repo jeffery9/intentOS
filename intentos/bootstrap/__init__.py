@@ -46,6 +46,16 @@ from .dual_memory_os import (
     create_dual_memory_os,
 )
 
+from .self_reproduction import (
+    SelfReproduction,
+    ReproductionType,
+    ReproductionStatus,
+    ReproductionPlan,
+    IntentOSInstance,
+    AuditLog,
+    SecurityError,
+)
+
 __all__ = [
     # Self-Bootstrap 执行器
     "SelfBootstrapExecutor",
@@ -77,4 +87,12 @@ __all__ = [
     "MemoryBank",
     "MemoryBankStatus",
     "create_dual_memory_os",
+    # 自我繁殖
+    "SelfReproduction",
+    "ReproductionType",
+    "ReproductionStatus",
+    "ReproductionPlan",
+    "IntentOSInstance",
+    "AuditLog",
+    "SecurityError",
 ]
