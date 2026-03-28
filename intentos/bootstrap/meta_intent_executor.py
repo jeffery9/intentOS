@@ -45,6 +45,12 @@ class MetaIntentType(str, Enum):
     # 系统自举
     REPLICATE_TO_NODE = "replicate_to_node"
     EXPAND_CLUSTER = "expand_cluster"
+    
+    # OS 本体修改（真正的 Self-Bootstrap）
+    DEFINE_INSTRUCTION = "define_instruction"  # 定义新指令
+    MODIFY_COMPILER_RULE = "modify_compiler_rule"  # 修改编译器规则
+    MODIFY_EXECUTOR_RULE = "modify_executor_rule"  # 修改执行器规则
+    MODIFY_OS_COMPONENT = "modify_os_component"  # 修改 OS 组件
 
 
 @dataclass

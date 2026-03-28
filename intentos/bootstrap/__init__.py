@@ -33,6 +33,12 @@ from .template_grower import (
     IntentPattern,
 )
 
+from .self_modifying_os import (
+    SelfModifyingOS,
+    OSComponent,
+    create_self_modifying_os,
+)
+
 __all__ = [
     # Self-Bootstrap 执行器
     "SelfBootstrapExecutor",
@@ -55,4 +61,8 @@ __all__ = [
     "IntentTemplateSelfGrower",
     "IntentPatternMiner",
     "IntentPattern",
+    # 自修改 OS
+    "SelfModifyingOS",
+    "OSComponent",
+    "create_self_modifying_os",
 ]
