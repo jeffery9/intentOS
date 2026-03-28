@@ -1,0 +1,33 @@
+# Pyright/Pylance 类型检查配置
+# 用于消除 IDE 中的误报警告
+
+{
+  "include": [
+    "intentos"
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    ".git",
+    "deprecated",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache"
+  ],
+  "defineConstant": {
+    "DEBUG": true
+  },
+  "venv": "",
+  "reportMissingImports": "warning",
+  "reportMissingTypeStubs": false,
+  "reportGeneralTypeIssues": "warning",
+  "reportOptionalMemberAccess": "warning",
+  "reportOptionalSubscript": "warning",
+  "reportPrivateImportUsage": "none",
+  "reportUnboundVariable": "warning",
+  "reportAttributeAccessIssue": "warning",
+  "reportIncompatibleMethodOverride": "warning",
+  "pythonVersion": "3.9",
+  "typeCheckingMode": "basic",
+  "useLibraryCodeForTypes": true
+}
