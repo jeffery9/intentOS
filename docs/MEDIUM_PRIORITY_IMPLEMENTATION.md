@@ -97,22 +97,32 @@ verb_categories = {
 
 ---
 
-### 2. 完善 executor 实现 ⚠️
+### 2. 完善 executor 实现 ✅
 
-**当前状态**: 框架已完整，需要添加实际修改逻辑
+**当前状态**: 完整实现
 
 **已有功能**:
 - ✅ `execute_modification()` - 执行修改框架
-- ✅ `_apply_modification()` - 应用修改
+- ✅ `_apply_modification()` - 应用修改（支持 5 种类型）
+- ✅ `_add_instruction()` - 动态添加指令
+- ✅ `_verify_modification()` - 验证修改
+- ✅ `_sanity_check()` - 健全性检查
 - ✅ `_replicate_modification()` - 复制修改
 - ✅ `_get_current_value()` - 获取当前值
 - ✅ 审批机制
 - ✅ 速率限制
 
-**待实现**:
-- ⚠️ 实际的指令集动态扩展逻辑
-- ⚠️ 编译器规则修改实现
-- ⚠️ 执行器规则修改实现
+**支持的修改类型**:
+1. **CONFIG.xxx** - 系统配置修改
+2. **COMPILER_RULE.xxx** - 编译器规则修改
+3. **EXECUTOR_RULE.xxx** - 执行器规则修改
+4. **INSTRUCTION.xxx** - 指令集动态扩展
+5. **POLICY.xxx** - 自举策略修改
+
+**指令扩展支持**:
+- 可调用对象 → 直接包装为处理器方法
+- 字典定义 → 基于 LLM 的指令处理器
+- Prompt 模板 → 自动格式化执行
 
 **建议实现方案**:
 ```python
@@ -150,7 +160,7 @@ async def _apply_modification(self, target: str, new_value: Any):
 | 任务 | 完成度 | 代码行数 | 测试覆盖 | 状态 |
 |------|--------|---------|---------|------|
 | LLM 语义分析集成 | 100% | +200 | 待添加 | ✅ |
-| executor 完善 | 70% | - | 待添加 | ⚠️ |
+| executor 完善 | 100% | +150 | 待添加 | ✅ |
 
 ---
 
