@@ -1,30 +1,58 @@
 """
-Self-Bootstrap 模块
+IntentOS Bootstrap 模块
 
-自举能力：
-- Level 1: 修改 Prompt (解析/执行规则)
-- Level 2: 扩展指令集/修改策略
-- Level 3: 自我复制/自动扩缩容
+Self-Bootstrap 自举机制：系统可以修改自身的规则
 """
 
 from .executor import (
-    BootstrapPolicy,
-    BootstrapPrograms,
-    BootstrapRecord,
-    BootstrapValidator,
     SelfBootstrapExecutor,
+    BootstrapRecord,
+    BootstrapPolicy,
     create_bootstrap_executor,
     create_bootstrap_policy,
-    create_bootstrap_validator,
+)
+
+from .meta_intent_executor import (
+    MetaIntentExecutor,
+    MetaIntent,
+    MetaIntentType,
+    BootstrapPolicy as MetaPolicy,
+    create_meta_intent_executor,
+    create_meta_intent,
+)
+
+from .protocol_extender import (
+    ProtocolSelfExtender,
+    CapabilityGap,
+    ExtensionSuggestion,
+)
+
+from .template_grower import (
+    IntentTemplateSelfGrower,
+    IntentPatternMiner,
+    IntentPattern,
 )
 
 __all__ = [
+    # Self-Bootstrap 执行器
     "SelfBootstrapExecutor",
-    "BootstrapPolicy",
-    "BootstrapPrograms",
-    "BootstrapValidator",
     "BootstrapRecord",
+    "BootstrapPolicy",
     "create_bootstrap_executor",
     "create_bootstrap_policy",
-    "create_bootstrap_validator",
+    # 元意图执行器
+    "MetaIntentExecutor",
+    "MetaIntent",
+    "MetaIntentType",
+    "MetaPolicy",
+    "create_meta_intent_executor",
+    "create_meta_intent",
+    # 协议自扩展
+    "ProtocolSelfExtender",
+    "CapabilityGap",
+    "ExtensionSuggestion",
+    # 模板自生长
+    "IntentTemplateSelfGrower",
+    "IntentPatternMiner",
+    "IntentPattern",
 ]
