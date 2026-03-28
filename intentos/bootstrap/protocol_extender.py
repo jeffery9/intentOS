@@ -79,6 +79,7 @@ class ProtocolSelfExtender:
         intent_text: str,
         available_capabilities: list[str],
         execution_context: Optional[dict] = None,
+        use_llm: bool = True,
     ) -> Optional[CapabilityGap]:
         """
         检测能力缺口
@@ -87,35 +88,51 @@ class ProtocolSelfExtender:
             intent_text: 用户意图文本
             available_capabilities: 当前可用能力列表
             execution_context: 执行上下文
-            
+            use_llm: 是否使用 LLM 语义分析（默认 True）
+
         Returns:
             检测到的能力缺口，如果没有则返回 None
         """
-        # 1. 分析意图，识别需要的能力
-        required_capabilities = self._extract_required_capabilities(intent_text)
+        import asyncio
+        
+        # 1. 分析意图，识别需要的能力（使用 LLM 或关键词）
+        if use_llm:
+            # LLM 需要异步调用
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            required_capabilities = loop.run_until_complete(
+                self._extract_required_capabilities(intent_text, use_llm=True)
+            )
+        else:
+            required_capabilities = self._keyword_extract_capabilities(intent_text)
         
         # 2. 检查是否有缺失的能力
         missing_caps = []
         for cap in required_capabilities:
             if cap not in available_capabilities:
                 missing_caps.append(cap)
-        
+
         if not missing_caps:
             return None
-        
+
         # 3. 创建能力缺口
         gap = CapabilityGap(
             capability_name=missing_caps[0],
             description=f"Required by intent: {intent_text}",
             required_by=intent_text,
+            detected_at=datetime.now(),
             confidence=0.9,
             suggested_interface=self._infer_interface(missing_caps[0], intent_text),
         )
-        
+
         self.detected_gaps[gap.capability_name] = gap
-        
+
         return gap
-    
+
     def generate_extension_suggestion(
         self,
         gap: CapabilityGap,
@@ -164,36 +181,133 @@ class ProtocolSelfExtender:
         
         return suggestion
     
-    def _extract_required_capabilities(self, intent_text: str) -> list[str]:
+    async def _extract_required_capabilities(self, intent_text: str, use_llm: bool = True) -> list[str]:
         """
         从意图文本中提取需要的能力
         
-        在实际系统中，这里会使用 LLM 进行语义分析
+        Args:
+            intent_text: 意图文本
+            use_llm: 是否使用 LLM 语义分析（默认 True）
+            
+        Returns:
+            需要的能力列表
         """
-        # 简化的关键词匹配（实际应该用 LLM）
+        if use_llm:
+            try:
+                return await self._llm_extract_capabilities(intent_text)
+            except Exception as e:
+                # LLM 失败时降级到关键词匹配
+                logging.warning(f"LLM 提取失败，降级到关键词匹配：{e}")
+        
+        # 降级：关键词匹配
+        return self._keyword_extract_capabilities(intent_text)
+    
+    async def _llm_extract_capabilities(self, intent_text: str) -> list[str]:
+        """
+        使用 LLM 进行语义分析提取能力
+        
+        优势:
+        - 理解语义，不只是关键词
+        - 支持同义词和隐含意图
+        - 更准确的意图识别
+        """
+        # 构建 Prompt
+        prompt = f"""
+你是一个能力识别专家。请分析用户意图，识别需要的系统能力。
+
+用户意图：{intent_text}
+
+可用能力类型:
+- renderer: 渲染类 (AR, VR, 3D, chart, graph, plot, visualize 等)
+- connector: 连接类 (database, api, http, network 等)
+- handler: 处理类 (file, save, load, fetch, data 等)
+- analyzer: 分析类 (analyze, process, compute, calculate 等)
+
+请识别需要的能力，返回 JSON 格式:
+{{
+    "capabilities": ["capability_name1", "capability_name2"],
+    "confidence": 0.95,
+    "reasoning": "识别理由"
+}}
+
+只返回 JSON，不要其他内容。
+"""
+        
+        # 调用 LLM (使用 IntentOS 的 LLM 后端)
+        try:
+            from intentos.llm import create_executor
+            
+            llm = create_executor(provider="mock")  # 实际使用配置中的 provider
+            response = await llm.execute(prompt)
+            
+            # 解析响应
+            import json
+            result = json.loads(response.strip())
+            
+            capabilities = result.get("capabilities", [])
+            confidence = result.get("confidence", 0.0)
+            
+            # 只返回高置信度的能力
+            if confidence >= 0.7:
+                logging.info(f"LLM 识别能力：{capabilities} (confidence: {confidence})")
+                return capabilities
+            else:
+                logging.warning(f"LLM 置信度过低：{confidence}")
+                return []
+                
+        except Exception as e:
+            logging.error(f"LLM 能力提取失败：{e}")
+            raise
+    
+    def _keyword_extract_capabilities(self, intent_text: str) -> list[str]:
+        """
+        关键词匹配（降级方案）
+        """
         capability_keywords = {
+            # 渲染类
             "ar": "ar_renderer",
             "vr": "vr_renderer",
             "3d": "3d_renderer",
             "chart": "chart_renderer",
             "graph": "chart_renderer",
             "plot": "chart_renderer",
+            "visualize": "chart_renderer",
+            "可视化": "chart_renderer",
+            "渲染": "chart_renderer",
+            
+            # 连接类
             "database": "database_connector",
+            "db": "database_connector",
             "api": "api_client",
             "http": "http_client",
+            "network": "network_client",
+            "数据库": "database_connector",
+            
+            # 处理类
             "file": "file_handler",
             "save": "file_handler",
             "load": "data_loader",
             "fetch": "data_loader",
+            "下载": "data_loader",
+            "保存": "file_handler",
+            
+            # 分析类
+            "analyze": "data_analyzer",
+            "process": "data_processor",
+            "compute": "data_processor",
+            "calculate": "data_processor",
+            "分析": "data_analyzer",
+            "计算": "data_processor",
         }
-        
+
         required = []
         intent_lower = intent_text.lower()
-        
+
         for keyword, capability in capability_keywords.items():
             if keyword in intent_lower:
-                required.append(capability)
-        
+                if capability not in required:  # 避免重复
+                    required.append(capability)
+
         return required
     
     def _infer_interface(
