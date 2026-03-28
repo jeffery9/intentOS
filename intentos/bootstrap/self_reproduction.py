@@ -209,10 +209,13 @@ class SelfReproduction:
         self._reproduction_plans: list[ReproductionPlan] = []
         self._audit_logs: list[AuditLog] = []
         
-        # 并发控制
-        self._reproduction_lock = asyncio.Lock()
+        # 并发控制 (lazy initialization)
+        self._reproduction_lock: Optional[asyncio.Lock] = None
         self._active_reproductions: Set[str] = set()
         self._max_concurrent = SecurityConfig.MAX_CONCURRENT_REPRODUCTIONS
+        
+        # 日志
+        self.logger = logging.getLogger(f"SelfReproduction.{self.instance_id}")
         
         # 伦理和配置
         self.soul_manifest: Dict[str, Any] = {}
@@ -222,8 +225,14 @@ class SelfReproduction:
         self._audit_log_path = audit_log_path
         self._setup_logging()
         
-        self._log_audit("module_init", "SelfReproduction module initialized")
+        # self._log_audit 在 initialize 中调用
 
+    async def initialize(self) -> None:
+        """异步初始化"""
+        if self._reproduction_lock is None:
+            self._reproduction_lock = asyncio.Lock()
+        self.logger.info(f"SelfReproduction initialized for instance {self.instance_id}")
+    
     def _setup_logging(self) -> None:
         """设置日志"""
         # 统一使用 logging
@@ -443,6 +452,9 @@ class SelfReproduction:
     # =========================================================================
 
     async def _acquire_reproduction_slot(self) -> bool:
+        """获取繁殖槽位"""
+        if self._reproduction_lock is None:
+            await self.initialize()
         """获取繁殖槽位"""
         async with self._reproduction_lock:
             if len(self._active_reproductions) >= self._max_concurrent:

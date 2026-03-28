@@ -5,6 +5,7 @@ IntentOS 云资源 Self-Bootstrap 模块
 """
 
 from __future__ import annotations
+import logging
 
 import asyncio
 import os

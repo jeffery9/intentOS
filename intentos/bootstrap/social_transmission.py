@@ -5,6 +5,7 @@ IntentOS 社会传播模块
 """
 
 from __future__ import annotations
+import logging
 
 import asyncio
 import json

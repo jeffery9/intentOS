@@ -9,6 +9,7 @@
 """
 
 from __future__ import annotations
+import logging
 
 import importlib
 import inspect
@@ -32,6 +33,7 @@ class OSComponent:
     class_name: str
     code: str
     version: str = "1.0.0"
+    description: str = ""
     modified_at: Optional[datetime] = None
     modified_by: str = "system"
     
@@ -97,6 +99,14 @@ class SelfModifyingOS:
         """
         定义新指令
         
+        Args:
+            name: 指令名称
+            handler: 指令处理函数
+            description: 指令描述
+        """
+        """
+        定义新指令
+        
         动态添加新指令到语义 VM
         
         Args:
@@ -116,7 +126,7 @@ class SelfModifyingOS:
             component_type="instruction",
             module=handler.__module__,
             class_name=handler.__qualname__,
-            code=inspect.getsource(handler) if hasattr(handler, '__code__') else str(handler),
+            code=str(handler),
             description=description,
             modified_at=datetime.now(),
             modified_by="system",

@@ -4,6 +4,8 @@ IntentOS Bootstrap 模块
 Self-Bootstrap 自举机制：系统可以修改自身的规则
 """
 
+import logging
+
 from .executor import (
     SelfBootstrapExecutor,
     BootstrapRecord,
