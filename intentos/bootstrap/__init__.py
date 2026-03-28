@@ -39,6 +39,13 @@ from .self_modifying_os import (
     create_self_modifying_os,
 )
 
+from .dual_memory_os import (
+    DualMemoryOS,
+    MemoryBank,
+    MemoryBankStatus,
+    create_dual_memory_os,
+)
+
 __all__ = [
     # Self-Bootstrap 执行器
     "SelfBootstrapExecutor",
@@ -65,4 +72,9 @@ __all__ = [
     "SelfModifyingOS",
     "OSComponent",
     "create_self_modifying_os",
+    # 双内存 OS
+    "DualMemoryOS",
+    "MemoryBank",
+    "MemoryBankStatus",
+    "create_dual_memory_os",
 ]
