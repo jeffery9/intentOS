@@ -1,7 +1,6 @@
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/jeffery9/intentOS)
+
 ---
-
-
 
 # IntentOS - AI 原生操作系统
 
@@ -13,9 +12,9 @@ IntentOS 是一个 **AI 原生操作系统** 原型，核心是**语义虚拟机
 
 ## 📊 架构蓝图
 
-<embed src="./docs/IntentOS_Architecture_Blueprint.pdf" type="application/pdf" width="100%" height="600px" />
-
-> 💡 如果 PDF 无法显示，请 [点击查看架构蓝图](./docs/IntentOS_Architecture_Blueprint.pdf)
+<object data="./docs/IntentOS_Architecture_Blueprint.pdf" type="application/pdf" width="100%" height="700px">
+  <p>💡 如果 PDF 无法显示，请 <a href="./docs/IntentOS_Architecture_Blueprint.pdf" target="_blank">点击打开</a></p>
+</object>
 
 
 ## 🧠 核心理念：道即 Meta
