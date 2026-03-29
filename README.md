@@ -16,6 +16,10 @@ IntentOS 是一个 **AI 原生操作系统** 原型，核心是**语义虚拟机
   <p>💡 如果 PDF 无法显示，请 <a href="./docs/IntentOS_Architecture_Blueprint.pdf" target="_blank">点击打开</a></p>
 </object>
 
+### 架构总览
+
+![IntentOS 架构图](./docs/images/image.png)
+
 
 ## 🧠 核心理念：道即 Meta
 
