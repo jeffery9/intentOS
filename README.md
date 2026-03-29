@@ -1,3 +1,9 @@
+---
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/jeffery9/intentOS)
+---
+
+
+
 # IntentOS - AI 原生操作系统
 
 > **语言即系统 · Prompt 即可执行文件 · 语义 VM**
@@ -12,9 +18,6 @@ IntentOS 是一个 **AI 原生操作系统** 原型，核心是**语义虚拟机
 
 > 💡 如果 PDF 无法显示，请 [点击查看架构蓝图](./docs/IntentOS_Architecture_Blueprint.pdf)
 
----
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/jeffery9/intentOS)
----
 
 ## 🧠 核心理念：道即 Meta
 
