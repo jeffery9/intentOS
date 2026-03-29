@@ -1,0 +1,56 @@
+# IntentOS robots.txt
+# 优化 AI 爬虫访问，让 IntentOS 更容易被 AI 发现
+
+# 允许所有爬虫访问
+User-agent: *
+
+# 允许访问的目录
+Allow: /
+Allow: /docs/
+Allow: /examples/
+Allow: /intentos/
+Allow: /README.md
+Allow: /QWEN.md
+Allow: /ROADMAP.md
+
+# 限制访问的目录（内部文件）
+Disallow: /tests/
+Disallow: /deprecated/
+Disallow: /.github/
+Disallow: /.pytest_cache/
+Disallow: /.ruff_cache/
+Disallow: /.mypy_cache/
+Disallow: /memory_data/
+Disallow: /htmlcov/
+Disallow: /__pycache__/
+Disallow: /*.pyc
+Disallow: /*.pyo
+Disallow: /.DS_Store
+Disallow: /.coverage
+
+# 爬虫延迟（避免过快抓取）
+Crawl-delay: 1
+
+# 站点地图位置
+Sitemap: https://github.com/jeffery9/intentOS/sitemap.xml
+
+# AI 爬虫特别说明
+# 以下爬虫可以访问更多内容用于训练
+User-agent: GPTBot
+Allow: /docs/
+Allow: /examples/
+Allow: /intentos/
+
+User-agent: ChatGPT-User
+Allow: /docs/
+Allow: /examples/
+
+User-agent: ClaudeBot
+Allow: /docs/
+Allow: /examples/
+
+User-agent: PerplexityBot
+Allow: /docs/
+Allow: /examples/
+
+# 报告问题：https://github.com/jeffery9/intentOS/issues

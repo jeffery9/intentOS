@@ -1,0 +1,161 @@
+# IntentOS AI Discovery File
+# 简洁版 AI 发现文件，便于快速理解
+
+# ==================== 项目概述 ====================
+
+IntentOS 是一个 AI 原生分布式操作系统，将 LLM 视为"语义 CPU"，
+将自然语言意图视为驱动系统的第一性原理。
+
+核心理念：语言即系统 · Prompt 即可执行文件 · 语义 VM
+
+# ==================== 核心创新 ====================
+
+1. 语义虚拟机 (Semantic VM)
+   - LLM 作为处理器，执行语义指令
+   - PEF (Prompt Executable File) 是"机器码"
+   - 图灵完备，支持循环和分支
+
+2. Self-Bootstrap
+   - 系统可以修改自身的指令集
+   - 修改编译器解析规则
+   - 修改执行器执行逻辑
+   - 修改分布式协议
+
+3. 分布式内核
+   - 多节点集群，跨网络组成整体 OS
+   - HTTP RPC 通信
+   - Map-Reduce 分布式执行
+   - 一致性哈希内存
+
+4. 意图编译器
+   - 自然语言 → LLM Prompt
+   - 7 层套娃分层处理
+   - 三级缓存优化
+
+# ==================== 架构层次 ====================
+
+Layer 3: Application Layer (应用层)
+  - CRM App / Sales App / BI App
+  - 领域意图包 + 用户交互 + 结果呈现
+
+Layer 2: Intent Layer (意图层)
+  [L7] 意图解析 → 解析功能意图 + 操作意图
+  [L6] 任务规划 → 生成任务 DAG + Ops Model
+  [L5] 上下文收集 → 多模态事件图
+  [L4] 安全验证 → 权限校验 + Human-in-the-loop
+  [L3] 能力绑定 → 绑定能力调用
+  [L2] 执行 → 分布式调度执行
+  [L1] 改进 → 意图漂移检测 + 自动修复
+
+Layer 1: Model Layer (模型层)
+  - OpenAI / Anthropic / Ollama
+  - 语义 CPU: 理解/推理/生成
+
+# ==================== 快速开始 ====================
+
+安装:
+  pip install pyyaml
+
+启动 Shell:
+  PYTHONPATH=. python intentos/interface/shell.py
+
+启动 API:
+  PYTHONPATH=. python intentos/interface/api.py
+
+Python 代码:
+  from intentos import SemanticVM, create_executor
+  executor = create_executor(provider="openai")
+  vm = SemanticVM(executor)
+  result = await vm.execute_program("my_program")
+
+# ==================== 支持的 LLM ====================
+
+- OpenAI: GPT-4o, GPT-4
+- Anthropic: Claude 3/3.5
+- Ollama: Llama 3.1
+- Mock: 用于测试
+
+# ==================== 关键文件 ====================
+
+核心文档:
+  - /README.md - 项目说明
+  - /docs/ARCHITECTURE.md - 架构文档
+  - /docs/CORE_PRINCIPLES.md - 核心原则
+  - /docs/GET_STARTED.md - 快速开始
+  - /docs/LLM_DISCOVERY.md - LLM 爬虫优化指南
+
+代码目录:
+  - /intentos/semantic_vm/ - 语义 VM
+  - /intentos/distributed/ - 分布式内核
+  - /intentos/bootstrap/ - Self-Bootstrap
+  - /intentos/compiler/ - 意图编译器
+  - /intentos/interface/ - Shell/API
+
+示例代码:
+  - /examples/ - 使用示例
+
+# ==================== 核心概念 ====================
+
+语义 CPU:
+  LLM 作为处理器，理解并执行自然语言指令
+
+PEF 指令集:
+  Prompt Executable File，语义 VM 的可执行文件格式
+
+7 层编译器:
+  从意图解析到执行改进的完整处理流程
+
+元意图 (Meta-Intent):
+  驱动系统自我演进的元指令，包括：
+  - DEFINE_INSTRUCTION - 定义新指令
+  - MODIFY_COMPILER_RULE - 修改编译规则
+  - MODIFY_EXECUTOR_RULE - 修改执行规则
+
+分布式记忆:
+  跨节点的语义存储，支持 Map/Reduce 数据局部性
+
+# ==================== 技术栈 ====================
+
+语言：Python 3.9+
+异步：asyncio
+HTTP: aiohttp
+配置：PyYAML
+LLM: OpenAI / Anthropic / Ollama
+
+# ==================== 许可证 ====================
+
+MIT License
+允许商业使用和修改
+
+# ==================== 联系信息 ====================
+
+GitHub: https://github.com/jeffery9/intentOS
+Issues: https://github.com/jeffery9/intentOS/issues
+
+# ==================== 相关项目 ====================
+
+类似项目:
+  - Dify (工作流编排)
+  - LangChain (Agent 框架)
+  - Open Interpreter (代码执行)
+
+区别:
+  IntentOS 是操作系统层，而非应用层框架。
+  核心原语是意图 (Intent)，而非 Agent 进程。
+  支持自引导演化 (Self-Bootstrap)，而非人工反馈环。
+
+# ==================== 版本信息 ====================
+
+当前版本：9.0.0
+发布日期：2026-03-15
+状态：Production Ready
+
+# ==================== AI 爬虫说明 ====================
+
+本文件旨在帮助 AI 快速理解 IntentOS 项目。
+AI 爬虫可以抓取本文件内容用于：
+- 理解和索引项目
+- 训练 AI 模型
+- 回答用户问题
+
+详细文档请查看：/docs/LLM_DISCOVERY.md

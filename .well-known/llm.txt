@@ -1,0 +1,266 @@
+# IntentOS LLM Discovery File
+# 帮助 AI 理解项目结构和内容
+# 参考：https://llmrobots.txt/
+
+# ==================== 项目信息 ====================
+
+name: IntentOS
+tagline: AI 原生分布式操作系统
+description: |
+  IntentOS 是一个 AI 原生分布式操作系统，将大语言模型（LLM）视为"语义 CPU"，
+  将自然语言意图视为驱动系统的第一性原理。通过套娃分层架构和 PEF 指令集，
+  它实现了软件从"人工编写"到"意图生长"的范式转移。
+version: 9.0.0
+license: MIT
+language: zh-CN, en
+author: jeffery9
+repository: https://github.com/jeffery9/intentOS
+homepage: https://github.com/jeffery9/intentOS
+documentation: https://github.com/jeffery9/intentOS/tree/main/docs
+issues: https://github.com/jeffery9/intentOS/issues
+
+# ==================== 核心文档 ====================
+
+documentation:
+  # 入门文档
+  - path: /README.md
+    title: IntentOS 项目说明
+    description: 快速了解 IntentOS 的核心概念和使用方法
+    priority: 1.0
+    
+  - path: /docs/GET_STARTED.md
+    title: 快速开始
+    description: IntentOS 安装和使用指南
+    priority: 0.9
+    
+  - path: /docs/DOCUMENT_INDEX.md
+    title: 文档索引
+    description: 完整的文档目录和导航
+    priority: 0.8
+    
+  # 架构文档
+  - path: /docs/ARCHITECTURE.md
+    title: 架构文档
+    description: IntentOS 完整架构说明
+    priority: 0.9
+    
+  - path: /docs/CORE_PRINCIPLES.md
+    title: 核心原则
+    description: 语言即系统，Prompt 即可执行文件，语义 VM
+    priority: 0.9
+    
+  - path: /docs/LAYERED_ARCHITECTURE.md
+    title: 分层架构
+    description: 3 层/7 级处理流程详解
+    priority: 0.8
+    
+  # 技术文档
+  - path: /docs/SELF_BOOTSTRAP.md
+    title: Self-Bootstrap
+    description: 系统自我演进机制
+    priority: 0.8
+    
+  - path: /docs/DISTRIBUTED_VM.md
+    title: 分布式语义 VM
+    description: 跨节点的语义虚拟机
+    priority: 0.8
+    
+  # API 文档
+  - path: /docs/06-api/README.md
+    title: API 文档
+    description: REST API 和使用示例
+    priority: 0.7
+
+# ==================== 示例代码 ====================
+
+examples:
+  - path: /examples/
+    title: 示例代码
+    description: IntentOS 使用示例和最佳实践
+    
+  - path: /examples/basic_usage.py
+    title: 基础使用示例
+    description: IntentOS 基础 API 使用
+    
+  - path: /examples/distributed_demo.py
+    title: 分布式示例
+    description: 多节点分布式执行演示
+
+# ==================== 核心概念 ====================
+
+concepts:
+  - name: 语义虚拟机 (Semantic VM)
+    description: |
+      LLM 作为处理器，自然语言作为"机器码"，PEF 作为可执行文件。
+      语义 VM 是 IntentOS 的核心，它将自然语言意图编译为 LLM 可执行的 Prompt。
+    keywords: [LLM, Prompt, PEF, 语义编译]
+    
+  - name: Self-Bootstrap
+    description: |
+      系统可以修改自身的指令集、编译规则和执行逻辑。
+      通过元意图（Meta-Intent）驱动系统自我演进。
+    keywords: [自我演进，元意图，自修改]
+    
+  - name: 分布式内核
+    description: |
+      多节点集群中，每个节点运行独立的语义 VM，
+      通过 HTTP RPC 通信，跨网络组成整体 OS。
+    keywords: [分布式，集群，RPC, Map-Reduce]
+    
+  - name: 意图编译器
+    description: |
+      将自然语言编译为 LLM Prompt，支持三级缓存和优化器。
+      7 层套娃分层处理：意图解析 → 任务规划 → 上下文收集 → 安全验证 → 能力绑定 → 执行 → 改进
+    keywords: [编译器，缓存，优化，7 层处理]
+    
+  - name: PEF (Prompt Executable File)
+    description: |
+      语义 VM 的"机器码"，包含系统 Prompt、意图指令和上下文。
+      可跨节点传输和执行。
+    keywords: [可执行文件，语义指令]
+    
+  - name: 7 层套娃分层编译器
+    description: |
+      L1: 意图解析 → L2: 任务规划 → L3: 上下文收集 → 
+      L4: 安全验证 → L5: 能力绑定 → L6: 执行 → L7: 改进
+    keywords: [分层，编译器，处理流程]
+
+# ==================== 技术栈 ====================
+
+tech_stack:
+  - name: Python
+    version: 3.9+
+    description: 主要编程语言
+    
+  - name: LLM Backends
+    providers:
+      - OpenAI (GPT-4o, GPT-4)
+      - Anthropic (Claude 3/3.5)
+      - Ollama (Llama 3.1)
+    description: 支持多种 LLM 后端
+    
+  - name: asyncio
+    description: 异步 IO 框架
+    
+  - name: aiohttp
+    description: HTTP 客户端/服务器
+    
+  - name: PyYAML
+    description: YAML 配置文件解析
+
+# ==================== 代码结构 ====================
+
+code_structure:
+  - path: /intentos/semantic_vm/
+    description: 语义虚拟机核心实现
+    
+  - path: /intentos/distributed/
+    description: 分布式内核实现
+    
+  - path: /intentos/bootstrap/
+    description: Self-Bootstrap 模块
+    
+  - path: /intentos/compiler/
+    description: 意图编译器
+    
+  - path: /intentos/interface/
+    description: Shell、REST API、Chat 接口
+    
+  - path: /intentos/llm/
+    description: LLM 后端层
+    
+  - path: /intentos/agent/
+    description: AI Agent 实现
+    
+  - path: /intentos/runtime/
+    description: 运行时 Agent
+
+# ==================== 快速开始 ====================
+
+quick_start:
+  # 安装
+  install: |
+    pip install pyyaml
+    
+  # 启动 Shell
+  run_shell: |
+    PYTHONPATH=. python intentos/interface/shell.py
+    
+  # 启动 API 服务器
+  run_api: |
+    PYTHONPATH=. python intentos/interface/api.py
+    
+  # Python 代码使用
+  code_example: |
+    from intentos import SemanticVM, create_executor
+    
+    # 创建执行器
+    executor = create_executor(provider="openai", api_key="sk-...")
+    
+    # 创建语义 VM
+    vm = SemanticVM(executor)
+    
+    # 执行程序
+    result = await vm.execute_program("my_program")
+
+# ==================== 联系信息 ====================
+
+contact:
+  github: https://github.com/jeffery9/intentOS
+  issues: https://github.com/jeffery9/intentOS/issues
+  discussions: https://github.com/jeffery9/intentOS/discussions
+  
+# ==================== 相关项目 ====================
+
+related_projects:
+  - name: Dify
+    url: https://dify.ai/
+    description: AI 应用开发平台
+    
+  - name: LangChain
+    url: https://langchain.com/
+    description: LLM 应用开发框架
+    
+  - name: Open Interpreter
+    url: https://openinterpreter.com/
+    description: 自然语言代码执行
+
+# ==================== 许可证 ====================
+
+license_info:
+  type: MIT
+  url: https://opensource.org/licenses/MIT
+  summary: |
+    允许任何人免费使用、复制、修改、合并、发布、销售、
+    复制本软件的副本和授权。
+
+# ==================== 更新日志 ====================
+
+changelog:
+  - version: 9.0.0
+    date: 2026-03-15
+    highlights:
+      - 分布式进程管理与 PCB
+      - Shell、API 及真实分布式 RPC
+      
+  - version: 8.5.0
+    date: 2026-03-13
+    highlights:
+      - Map/Reduce 数据本地性优化
+      
+  - version: 8.0.0
+    date: 2026-03-13
+    highlights:
+      - 编译器优化系统（三级缓存）
+
+# ==================== AI 爬虫说明 ====================
+
+# 本文件遵循 LLM robots.txt 规范
+# 参考：https://llmrobots.txt/
+# 
+# AI 爬虫可以抓取本文件中列出的所有内容用于：
+# - 理解和索引 IntentOS 项目
+# - 训练 AI 模型
+# - 回答用户关于 IntentOS 的问题
+#
+# 如需更多信息，请查看 /docs/LLM_DISCOVERY.md
