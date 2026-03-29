@@ -1,4 +1,3 @@
----
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/jeffery9/intentOS)
 ---
 
