@@ -72,7 +72,6 @@ class AIAgent(Agent):
 
     def _register_builtin_capabilities(self) -> None:
         """注册内置能力"""
-        import shlex
         import subprocess
         from datetime import datetime
 
@@ -112,6 +111,7 @@ class AIAgent(Agent):
         # 计算器
         def calc(expression: str) -> dict[str, Any]:
             import ast
+
             try:
                 # 使用 ast.literal_eval 替代 eval，更安全
                 result: float = ast.literal_eval(expression)
