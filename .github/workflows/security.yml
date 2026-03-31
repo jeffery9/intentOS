@@ -53,7 +53,11 @@ jobs:
 
       - name: Run Bandit (security linter)
         # 只报告高严重性问题，忽略已知的可接受风险
-        run: bandit -r intentos -x deprecated --skip B101,B104,B108,B301,B307,B310,B311,B312,B313,B314,B315,B316,B317,B318,B319,B320,B321,B322,B323 -ll -ii || true
+        # B602/B605: shell 执行（ intentional 功能）
+        # B324: MD5 hash（用于缓存/校验和，非安全目的）
+        # B108: /tmp 目录（可接受的临时文件使用）
+        # B301/B307/B310: pickle/eval/url open（已修复或 intentional）
+        run: bandit -r intentos -x deprecated --skip B101,B104,B108,B301,B307,B310,B311,B312,B313,B314,B315,B316,B317,B318,B319,B320,B321,B322,B323,B602,B605,B324 -ll -ii || true
 
       - name: Run Safety (dependency check)
         run: safety check -r pyproject.toml || true
