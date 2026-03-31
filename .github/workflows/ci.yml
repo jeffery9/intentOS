@@ -74,7 +74,7 @@ jobs:
           pip install ".[all]" pytest-cov
 
       - name: Run tests with coverage
-        run: pytest --cov=intentos --cov-report=xml --cov-report=term-missing
+        run: pytest --cov=intentos --cov-report=xml --cov-report=term-missing --continue-on-collection-errors
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
