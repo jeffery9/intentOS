@@ -6,12 +6,11 @@ IntentOS IPC/RPC 通信层
 
 import asyncio
 import json
-import socket
+import os
 import struct
 from dataclasses import dataclass, field
-from typing import Any, Optional
 from datetime import datetime
-
+from typing import Any, Optional
 
 # =============================================================================
 # 协议定义
@@ -25,18 +24,22 @@ MAGIC_HEADER = b"INTENTOS"
 @dataclass
 class RPCRequest:
     """RPC 请求"""
+
     method: str
     params: dict = field(default_factory=dict)
     request_id: str = ""
 
     def to_bytes(self) -> bytes:
         """序列化为字节"""
-        data = json.dumps({
-            "version": PROTOCOL_VERSION,
-            "id": self.request_id or datetime.now().isoformat(),
-            "method": self.method,
-            "params": self.params,
-        }, ensure_ascii=False).encode("utf-8")
+        data = json.dumps(
+            {
+                "version": PROTOCOL_VERSION,
+                "id": self.request_id or datetime.now().isoformat(),
+                "method": self.method,
+                "params": self.params,
+            },
+            ensure_ascii=False,
+        ).encode("utf-8")
         # 头部：MAGIC(8) + 长度 (4) + 数据
         header = MAGIC_HEADER + struct.pack(">I", len(data))
         return header + data
@@ -55,6 +58,7 @@ class RPCRequest:
 @dataclass
 class RPCResponse:
     """RPC 响应"""
+
     request_id: str
     result: Any = None
     error: Optional[str] = None
@@ -119,10 +123,7 @@ class RPCServer:
         if os.path.exists(self.socket_path):
             os.unlink(self.socket_path)
 
-        self._server = await asyncio.start_unix_server(
-            self._handle_client,
-            path=self.socket_path
-        )
+        self._server = await asyncio.start_unix_server(self._handle_client, path=self.socket_path)
         self._running = True
         print(f"✅ RPC Server listening on {self.socket_path}")
 
@@ -135,9 +136,11 @@ class RPCServer:
         # 清理 socket 文件
         if os.path.exists(self.socket_path):
             os.unlink(self.socket_path)
-        print(f"✅ RPC Server stopped")
+        print("✅ RPC Server stopped")
 
-    async def _handle_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    async def _handle_client(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ) -> None:
         """处理客户端连接"""
         try:
             while self._running:
@@ -172,10 +175,12 @@ class RPCServer:
             print(f"❌ Client error: {e}")
             # 发送错误响应
             try:
-                response = RPCResponse(request_id=request.request_id if 'request' in locals() else "", error=str(e))
+                response = RPCResponse(
+                    request_id=request.request_id if "request" in locals() else "", error=str(e)
+                )
                 writer.write(response.to_bytes())
                 await writer.drain()
-            except:
+            except Exception:
                 pass
         finally:
             writer.close()
@@ -316,6 +321,7 @@ class RPCClient:
 def check_kernel_running() -> bool:
     """检查内核是否正在运行"""
     import os
+
     socket_path = get_socket_path()
     return os.path.exists(socket_path)
 
@@ -323,6 +329,7 @@ def check_kernel_running() -> bool:
 def wait_for_kernel(timeout: float = 10.0) -> bool:
     """等待内核启动"""
     import time
+
     start = time.time()
     while time.time() - start < timeout:
         if check_kernel_running():
@@ -332,7 +339,4 @@ def wait_for_kernel(timeout: float = 10.0) -> bool:
 
 
 # 延迟导入，避免循环引用
-import os
-
-# Any 类型提示需要
-from typing import Any
+# Any 类型提示已经在文件顶部导入

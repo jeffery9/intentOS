@@ -14,6 +14,7 @@ from typing import Any, Callable, Optional
 @dataclass
 class Capability:
     """能力定义"""
+
     id: str
     name: str
     description: str
@@ -22,7 +23,7 @@ class Capability:
     output_schema: dict[str, Any] = field(default_factory=dict)
     tags: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
-    required_permissions: list[str] = field(default_factory=list) # 所需权限
+    required_permissions: list[str] = field(default_factory=list)  # 所需权限
     source: str = "builtin"  # builtin, mcp, skill
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
@@ -98,32 +99,24 @@ class CapabilityRegistry:
         return self._capabilities.get(capability_id)
 
     def list_capabilities(
-        self,
-        tags: Optional[list[str]] = None,
-        source: Optional[str] = None
+        self, tags: Optional[list[str]] = None, source: Optional[str] = None
     ) -> list[Capability]:
         """列出能力"""
         capabilities: list[Capability] = list(self._capabilities.values())
 
         if tags:
-            capabilities = [
-                cap for cap in capabilities
-                if any(tag in cap.tags for tag in tags)
-            ]
+            capabilities = [cap for cap in capabilities if any(tag in cap.tags for tag in tags)]
 
         if source:
-            capabilities = [
-                cap for cap in capabilities
-                if cap.source == source
-            ]
+            capabilities = [cap for cap in capabilities if cap.source == source]
 
         return capabilities
 
     async def execute_capability(
         self,
         capability_id: str,
-        context: Optional[Any] = None, # 增加上下文注入
-        **kwargs: Any
+        context: Optional[Any] = None,  # 增加上下文注入
+        **kwargs: Any,
     ) -> Any:
         """执行能力 (带语义权限校验)"""
         capability: Optional[Capability] = self.get_capability(capability_id)
@@ -134,16 +127,17 @@ class CapabilityRegistry:
         # 语义权限校验 (Capability Gate)
         if capability.required_permissions and context:
             # 假设 context 有 permissions 列表
-            user_perms = getattr(context, 'permissions', [])
+            user_perms = getattr(context, "permissions", [])
             if not isinstance(user_perms, list):
                 # 兼容字典格式
-                user_perms = context.get('permissions', []) if isinstance(context, dict) else []
+                user_perms = context.get("permissions", []) if isinstance(context, dict) else []
 
             for perm in capability.required_permissions:
                 if perm not in user_perms:
                     raise PermissionError(f"权限不足：需要 {perm} 权限以调用 {capability_id}")
 
         import asyncio
+
         if asyncio.iscoroutinefunction(capability.handler):
             return await capability.handler(**kwargs)
         else:

@@ -21,17 +21,18 @@ class TenantQuota:
     """
     租户配额 (物理+语义融合版)
     """
+
     # --- 物理资源限制 ---
-    cpu_seconds: int = 3600          # CPU 秒数/月
-    memory_mb: int = 512             # 内存 MB
-    storage_mb: int = 1024           # 存储 MB
-    api_calls: int = 10000           # API 调用次数/月
-    bandwidth_mb: int = 1000         # 带宽 MB/月
+    cpu_seconds: int = 3600  # CPU 秒数/月
+    memory_mb: int = 512  # 内存 MB
+    storage_mb: int = 1024  # 存储 MB
+    api_calls: int = 10000  # API 调用次数/月
+    bandwidth_mb: int = 1000  # 带宽 MB/月
 
     # --- 语义/分布式限制 ---
-    total_gas_limit: int = 1000000   # 总 Gas 限制 (跨节点)
-    max_gas_per_intent: int = 5000   # 单次意图执行的最大 Gas
-    concurrent_processes: int = 5    # 集群最大并发进程数
+    total_gas_limit: int = 1000000  # 总 Gas 限制 (跨节点)
+    max_gas_per_intent: int = 5000  # 单次意图执行的最大 Gas
+    concurrent_processes: int = 5  # 集群最大并发进程数
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -49,11 +50,12 @@ class TenantQuota:
 @dataclass
 class TenantResource:
     """租户资源"""
-    id: str                          # 资源 ID
-    name: str                        # 资源名称
-    type: str                        # 资源类型 (database/api/storage 等)
-    config: dict[str, Any]           # 资源配置
-    endpoint: Optional[str] = None   # 资源端点
+
+    id: str  # 资源 ID
+    name: str  # 资源名称
+    type: str  # 资源类型 (database/api/storage 等)
+    config: dict[str, Any]  # 资源配置
+    endpoint: Optional[str] = None  # 资源端点
     credentials: Optional[dict[str, str]] = None  # 访问凭证 (加密存储)
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -72,12 +74,13 @@ class TenantResource:
 @dataclass
 class TenantCapability:
     """租户能力"""
-    id: str                          # 能力 ID
-    name: str                        # 能力名称
-    description: str                 # 能力描述
-    bound_config: dict[str, Any]     # 绑定后的配置
+
+    id: str  # 能力 ID
+    name: str  # 能力名称
+    description: str  # 能力描述
+    bound_config: dict[str, Any]  # 绑定后的配置
     rate_limit: Optional[dict[str, Any]] = None  # 速率限制
-    enabled: bool = True             # 是否启用
+    enabled: bool = True  # 是否启用
 
     def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
@@ -96,6 +99,7 @@ class Tenant:
     """
     租户 (完整功能版)
     """
+
     id: str
     name: str
     status: str = "active"
@@ -158,9 +162,10 @@ class Tenant:
 @dataclass
 class UserContext:
     """用户上下文"""
-    tenant_id: str                   # 所属租户
-    user_id: str                     # 用户 ID
-    email: Optional[str] = None      # 邮箱
+
+    tenant_id: str  # 所属租户
+    user_id: str  # 用户 ID
+    email: Optional[str] = None  # 邮箱
     roles: list[str] = field(default_factory=list)  # 角色列表
     permissions: list[str] = field(default_factory=list)  # 权限列表
     preferences: dict[str, Any] = field(default_factory=dict)  # 个人偏好
@@ -217,7 +222,7 @@ class TenantManager:
         name: str,
         plan: str = "free",
         quota: Optional[TenantQuota] = None,
-        config: Optional[dict[str, Any]] = None
+        config: Optional[dict[str, Any]] = None,
     ) -> Tenant:
         """创建租户"""
         if tenant_id in self.tenants:
@@ -249,11 +254,7 @@ class TenantManager:
         logger.info(f"删除租户：{tenant_id}")
         return True
 
-    def add_resource(
-        self,
-        tenant_id: str,
-        resource: TenantResource
-    ) -> bool:
+    def add_resource(self, tenant_id: str, resource: TenantResource) -> bool:
         """添加租户资源"""
         tenant = self.get_tenant(tenant_id)
         if not tenant:
@@ -277,11 +278,7 @@ class TenantManager:
             return True
         return False
 
-    def add_capability(
-        self,
-        tenant_id: str,
-        capability: TenantCapability
-    ) -> bool:
+    def add_capability(self, tenant_id: str, capability: TenantCapability) -> bool:
         """添加租户能力"""
         tenant = self.get_tenant(tenant_id)
         if not tenant:
@@ -318,11 +315,7 @@ class TenantManager:
             return True
         return False
 
-    def update_config(
-        self,
-        tenant_id: str,
-        config: dict[str, Any]
-    ) -> bool:
+    def update_config(self, tenant_id: str, config: dict[str, Any]) -> bool:
         """更新租户配置"""
         tenant = self.get_tenant(tenant_id)
         if not tenant:
@@ -334,9 +327,7 @@ class TenantManager:
         return True
 
     def list_tenants(
-        self,
-        status: Optional[str] = None,
-        plan: Optional[str] = None
+        self, status: Optional[str] = None, plan: Optional[str] = None
     ) -> list[Tenant]:
         """列出租户"""
         tenants = list(self.tenants.values())
@@ -383,7 +374,9 @@ class TenantManager:
             "quota": tenant.quota.to_dict(),
             "usage_percent": {
                 "gas": round((tenant.cumulative_gas_used / tenant.quota.total_gas_limit) * 100, 2),
-                "cpu": round((tenant.current_cpu_used / tenant.quota.cpu_seconds) * 100, 2) if tenant.quota.cpu_seconds else 0
+                "cpu": round((tenant.current_cpu_used / tenant.quota.cpu_seconds) * 100, 2)
+                if tenant.quota.cpu_seconds
+                else 0,
             },
         }
 
@@ -409,7 +402,13 @@ class RoleManager:
                 "permissions": ["app:read", "app:execute", "data:read_own", "data:write_own"],
             },
             "developer": {
-                "permissions": ["app:read", "app:execute", "app:deploy", "data:read_shared", "capability:register"],
+                "permissions": [
+                    "app:read",
+                    "app:execute",
+                    "app:deploy",
+                    "data:read_shared",
+                    "capability:register",
+                ],
             },
             "admin": {
                 "permissions": ["*"],  # 所有权限
@@ -429,7 +428,7 @@ class RoleManager:
         tenant_id: str,
         user_id: str,
         roles: Optional[list[str]] = None,
-        preferences: Optional[dict[str, Any]] = None
+        preferences: Optional[dict[str, Any]] = None,
     ) -> UserContext:
         """
         创建用户上下文 (带动态私有能力注入)
@@ -445,6 +444,7 @@ class RoleManager:
 
         # 2. 动态注入租户私有能力的权限令牌
         from .capability_binding import get_capability_binder
+
         binder = get_capability_binder()
 
         # 扫描该租户已绑定的所有能力

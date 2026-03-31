@@ -19,12 +19,13 @@ logger: logging.Logger = logging.getLogger(__name__)
 @dataclass
 class CapabilityTemplate:
     """能力模板"""
-    id: str                          # 模板 ID
-    name: str                        # 能力名称
-    description: str                 # 能力描述
-    handler_template: str            # 处理器模板 (包含占位符)
-    input_schema: dict[str, Any]     # 输入 Schema
-    output_schema: dict[str, Any]    # 输出 Schema
+
+    id: str  # 模板 ID
+    name: str  # 能力名称
+    description: str  # 能力描述
+    handler_template: str  # 处理器模板 (包含占位符)
+    input_schema: dict[str, Any]  # 输入 Schema
+    output_schema: dict[str, Any]  # 输出 Schema
     required_resources: list[str] = field(default_factory=list)  # 需要的资源类型
     config_schema: dict[str, Any] = field(default_factory=dict)  # 配置 Schema
     tags: list[str] = field(default_factory=list)
@@ -47,15 +48,16 @@ class CapabilityTemplate:
 @dataclass
 class BoundCapability:
     """已绑定的能力"""
-    id: str                          # 能力 ID (模板 ID + 租户 ID)
-    template_id: str                 # 模板 ID
-    tenant_id: str                   # 租户 ID
-    name: str                        # 能力名称
-    description: str                 # 能力描述
-    handler: Callable[..., Any]      # 实际处理器
-    input_schema: dict[str, Any]     # 输入 Schema
-    output_schema: dict[str, Any]    # 输出 Schema
-    bound_config: dict[str, Any]     # 绑定后的配置
+
+    id: str  # 能力 ID (模板 ID + 租户 ID)
+    template_id: str  # 模板 ID
+    tenant_id: str  # 租户 ID
+    name: str  # 能力名称
+    description: str  # 能力描述
+    handler: Callable[..., Any]  # 实际处理器
+    input_schema: dict[str, Any]  # 输入 Schema
+    output_schema: dict[str, Any]  # 输出 Schema
+    bound_config: dict[str, Any]  # 绑定后的配置
     resources: dict[str, Any] = field(default_factory=dict)  # 绑定的资源
     tags: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -71,7 +73,9 @@ class BoundCapability:
             "input_schema": self.input_schema,
             "output_schema": self.output_schema,
             "bound_config": self.bound_config,
-            "resources": {k: v.to_dict() if hasattr(v, "to_dict") else v for k, v in self.resources.items()},
+            "resources": {
+                k: v.to_dict() if hasattr(v, "to_dict") else v for k, v in self.resources.items()
+            },
             "tags": self.tags,
             "metadata": self.metadata,
         }
@@ -86,7 +90,9 @@ class CapabilityBinder:
 
     def __init__(self) -> None:
         self.templates: dict[str, CapabilityTemplate] = {}
-        self.bound_capabilities: dict[str, dict[str, BoundCapability]] = {}  # template_id -> tenant_id -> capability
+        self.bound_capabilities: dict[
+            str, dict[str, BoundCapability]
+        ] = {}  # template_id -> tenant_id -> capability
         logger.info("能力绑定器初始化完成")
 
     def register_template(self, template: CapabilityTemplate) -> None:
@@ -104,7 +110,7 @@ class CapabilityBinder:
         tenant_id: str,
         resources: dict[str, Any],
         config: Optional[dict[str, Any]] = None,
-        user_context: Optional[Any] = None
+        user_context: Optional[Any] = None,
     ) -> BoundCapability:
         """
         对齐新内核的能力绑定
@@ -143,12 +149,13 @@ class CapabilityBinder:
             tags=template.tags,
             metadata={
                 "created_by": user_context.user_id if user_context else "system",
-                "kernel_permission_required": f"tenant:{tenant_id}:use:{template_id}" # 自动生成内核权限名
+                "kernel_permission_required": f"tenant:{tenant_id}:use:{template_id}",  # 自动生成内核权限名
             },
         )
 
         # 5. 【关键对齐】将绑定后的私有能力同步到 OS 层的注册中心
         from intentos.agent.registry import CapabilityRegistry
+
         registry = CapabilityRegistry()
         registry.register(
             id=capability_id,
@@ -156,7 +163,7 @@ class CapabilityBinder:
             description=capability.description,
             handler=capability.handler,
             required_permissions=[f"tenant:{tenant_id}:use:{template_id}"],
-            source="paas_bound"
+            source="paas_bound",
         )
 
         # 缓存绑定结果
@@ -164,26 +171,19 @@ class CapabilityBinder:
             self.bound_capabilities[template_id] = {}
         self.bound_capabilities[template_id][tenant_id] = capability
 
-        logger.info(f"✅ PaaS -> Kernel Alignment: Bound and registered private capability {capability_id}")
+        logger.info(
+            f"✅ PaaS -> Kernel Alignment: Bound and registered private capability {capability_id}"
+        )
 
         return capability
 
-    def get_bound_capability(
-        self,
-        template_id: str,
-        tenant_id: str
-    ) -> Optional[BoundCapability]:
+    def get_bound_capability(self, template_id: str, tenant_id: str) -> Optional[BoundCapability]:
         """获取已绑定的能力"""
         if template_id not in self.bound_capabilities:
             return None
         return self.bound_capabilities[template_id].get(tenant_id)
 
-    def bind_private_resource(
-        self,
-        tenant_id: str,
-        resource_id: str,
-        capability_id: str
-    ) -> bool:
+    def bind_private_resource(self, tenant_id: str, resource_id: str, capability_id: str) -> bool:
         """
         私有资源嫁接 (Secure Resource Grafting)
 
@@ -202,7 +202,9 @@ class CapabilityBinder:
         bound_cap.metadata["private_resource_link"] = resource_id
         bound_cap.metadata["grafted_at"] = datetime.now().isoformat()
 
-        logger.info(f"✅ Grafted private resource {resource_id} onto {capability_id} for tenant {tenant_id}")
+        logger.info(
+            f"✅ Grafted private resource {resource_id} onto {capability_id} for tenant {tenant_id}"
+        )
         return True
 
     def get_grafted_context(self, tenant_id: str, app_instance_id: str) -> dict[str, Any]:
@@ -214,7 +216,7 @@ class CapabilityBinder:
         grafted_context = {
             "tenant_id": tenant_id,
             "app_instance": app_instance_id,
-            "active_bindings": []
+            "active_bindings": [],
         }
 
         # 遍历所有已绑定的能力，提取其私有资源链接
@@ -222,10 +224,9 @@ class CapabilityBinder:
             if tenant_id in tenants:
                 cap = tenants[tenant_id]
                 if "private_resource_link" in cap.metadata:
-                    grafted_context["active_bindings"].append({
-                        "capability": cap.id,
-                        "resource_id": cap.metadata["private_resource_link"]
-                    })
+                    grafted_context["active_bindings"].append(
+                        {"capability": cap.id, "resource_id": cap.metadata["private_resource_link"]}
+                    )
 
         return grafted_context
 
@@ -241,10 +242,7 @@ class CapabilityBinder:
         return False
 
     def _merge_config(
-        self,
-        schema: dict[str, Any],
-        config: dict[str, Any],
-        resources: dict[str, Any]
+        self, schema: dict[str, Any], config: dict[str, Any], resources: dict[str, Any]
     ) -> dict[str, Any]:
         """合并配置"""
         merged = {}
@@ -265,10 +263,7 @@ class CapabilityBinder:
         return merged
 
     def _create_handler(
-        self,
-        template: CapabilityTemplate,
-        config: dict[str, Any],
-        resources: dict[str, Any]
+        self, template: CapabilityTemplate, config: dict[str, Any], resources: dict[str, Any]
     ) -> Callable[..., Any]:
         """
         创建处理器
@@ -321,10 +316,7 @@ class ResourceInjector:
         logger.info(f"注册资源类型：{resource_type}")
 
     def inject(
-        self,
-        resource_id: str,
-        resource_config: dict[str, Any],
-        target_context: dict[str, Any]
+        self, resource_id: str, resource_config: dict[str, Any], target_context: dict[str, Any]
     ) -> Any:
         """
         注入资源
@@ -455,7 +447,11 @@ async def generate_report(analysis_result, template):
     config_schema={
         "properties": {
             "report_template": {"type": "string", "default": "default"},
-            "format": {"type": "string", "enum": ["markdown", "html", "pdf"], "default": "markdown"},
+            "format": {
+                "type": "string",
+                "enum": ["markdown", "html", "pdf"],
+                "default": "markdown",
+            },
             "include_charts": {"type": "boolean", "default": True},
         }
     },

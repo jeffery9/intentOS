@@ -19,6 +19,7 @@ from ..semantic_vm import SemanticVM
 @dataclass
 class ExecutionRequest:
     """执行请求"""
+
     intent: str
     context: Context
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -27,6 +28,7 @@ class ExecutionRequest:
 @dataclass
 class ExecutionResponse:
     """执行响应"""
+
     success: bool
     result: Any
     message: str
@@ -78,12 +80,14 @@ class KernelEngine:
                 "data": kwargs,
             }
 
-        self.registry.register_capability(Capability(
-            name="schedule",
-            description="安排日程",
-            input_schema={"time": "string", "event": "string"},
-            func=schedule_capability,
-        ))
+        self.registry.register_capability(
+            Capability(
+                name="schedule",
+                description="安排日程",
+                input_schema={"time": "string", "event": "string"},
+                func=schedule_capability,
+            )
+        )
 
         # 数据分析能力
         def analysis_capability(context: Context, **kwargs):
@@ -93,12 +97,14 @@ class KernelEngine:
                 "data": kwargs,
             }
 
-        self.registry.register_capability(Capability(
-            name="analysis",
-            description="数据分析",
-            input_schema={"data": "string", "type": "string"},
-            func=analysis_capability,
-        ))
+        self.registry.register_capability(
+            Capability(
+                name="analysis",
+                description="数据分析",
+                input_schema={"data": "string", "type": "string"},
+                func=analysis_capability,
+            )
+        )
 
         # 内容创作能力
         def writing_capability(context: Context, **kwargs):
@@ -108,17 +114,16 @@ class KernelEngine:
                 "data": kwargs,
             }
 
-        self.registry.register_capability(Capability(
-            name="writing",
-            description="内容创作",
-            input_schema={"topic": "string", "type": "string"},
-            func=writing_capability,
-        ))
+        self.registry.register_capability(
+            Capability(
+                name="writing",
+                description="内容创作",
+                input_schema={"topic": "string", "type": "string"},
+                func=writing_capability,
+            )
+        )
 
-    async def execute(
-        self,
-        request: ExecutionRequest
-    ) -> ExecutionResponse:
+    async def execute(self, request: ExecutionRequest) -> ExecutionResponse:
         """
         执行请求
 

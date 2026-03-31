@@ -162,7 +162,9 @@ class CustomerServiceBotApp:
 
         return builder
 
-    async def handle_query(self, user_message: str, context: Optional[dict[str, Any]] = None) -> dict[str, Any]:
+    async def handle_query(
+        self, user_message: str, context: Optional[dict[str, Any]] = None
+    ) -> dict[str, Any]:
         """
         处理用户询问
 
@@ -216,9 +218,7 @@ class CustomerServiceBotApp:
             return ["常见问题", "订单查询", "转人工客服"]
 
     async def submit_to_intentos(
-        self,
-        intentos_url: str = "http://localhost:8080",
-        api_key: Optional[str] = None
+        self, intentos_url: str = "http://localhost:8080", api_key: Optional[str] = None
     ) -> dict[str, Any]:
         """提交到 IntentOS"""
         connector = IntentOSConnector(intentos_url, api_key)

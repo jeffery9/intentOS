@@ -54,7 +54,7 @@ class AIAgent(Agent):
         self.executor = AgentExecutor(
             self.registry,
             llm_processor=None,  # 可传入 LLM Processor
-            enable_monitoring=True
+            enable_monitoring=True,
         )
         self._monitor = self.executor.get_monitor()
 
@@ -95,7 +95,7 @@ class AIAgent(Agent):
                 raise AgentException(
                     ErrorCode.CAPABILITY_EXECUTION_FAILED,
                     f"Shell 执行失败：{e}",
-                    details={"command": command}
+                    details={"command": command},
                 ) from e
 
         self.registry.register(
@@ -117,7 +117,7 @@ class AIAgent(Agent):
                 raise AgentException(
                     ErrorCode.CAPABILITY_EXECUTION_FAILED,
                     f"计算失败：{e}",
-                    details={"expression": expression}
+                    details={"expression": expression},
                 ) from e
 
         self.registry.register(
@@ -159,9 +159,7 @@ class AIAgent(Agent):
         """执行意图"""
         if not self.executor:
             return AgentResult(
-                success=False,
-                message="Agent 未初始化",
-                error="agent_not_initialized"
+                success=False, message="Agent 未初始化", error="agent_not_initialized"
             )
 
         try:
@@ -201,12 +199,7 @@ class AIAgent(Agent):
             caps.append(f"{cap.name} ({cap.source}): {cap.description}")
         return caps
 
-    async def connect_mcp(
-        self,
-        name: str,
-        command: str,
-        args: Optional[list[str]] = None
-    ) -> bool:
+    async def connect_mcp(self, name: str, command: str, args: Optional[list[str]] = None) -> bool:
         """连接 MCP 服务器"""
         if self.mcp:
             return await self.mcp.connect_server(name, command, args)

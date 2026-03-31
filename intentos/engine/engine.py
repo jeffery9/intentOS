@@ -47,9 +47,7 @@ class ExecutionEngine:
         self._execution_history: list[IntentExecutionResult] = []
 
     async def execute(
-        self,
-        intent: Intent,
-        mode: PrivilegeLevel = PrivilegeLevel.USER
+        self, intent: Intent, mode: PrivilegeLevel = PrivilegeLevel.USER
     ) -> IntentExecutionResult:
         """
         执行意图
@@ -107,14 +105,16 @@ class ExecutionEngine:
 
                 if attempt < max_retries and ErrorHandler.should_retry(agent_error):
                     # 指数退避
-                    delay = retry_delay * (2 ** attempt)
-                    trace.append({
-                        "step": "retry",
-                        "attempt": attempt + 1,
-                        "error": str(agent_error),
-                        "next_retry_delay": delay,
-                        "timestamp": datetime.now().isoformat(),
-                    })
+                    delay = retry_delay * (2**attempt)
+                    trace.append(
+                        {
+                            "step": "retry",
+                            "attempt": attempt + 1,
+                            "error": str(agent_error),
+                            "next_retry_delay": delay,
+                            "timestamp": datetime.now().isoformat(),
+                        }
+                    )
                     await asyncio.sleep(delay)
                     continue
                 else:
@@ -133,7 +133,9 @@ class ExecutionEngine:
                     self._execution_history.append(execution_result)
                     return execution_result
 
-    async def _execute_with_llm(self, intent: Intent, trace: list[dict], mode: PrivilegeLevel) -> Any:
+    async def _execute_with_llm(
+        self, intent: Intent, trace: list[dict], mode: PrivilegeLevel
+    ) -> Any:
         """
         使用 LLM 执行意图
 
@@ -236,7 +238,9 @@ class ExecutionEngine:
         result = capability.execute(intent.context, **intent.params)
         return result
 
-    async def _execute_composite(self, intent: Intent, trace: list[dict], mode: PrivilegeLevel) -> Any:
+    async def _execute_composite(
+        self, intent: Intent, trace: list[dict], mode: PrivilegeLevel
+    ) -> Any:
         """执行复合意图"""
         results: dict[str, Any] = {}
 
@@ -284,7 +288,9 @@ class ExecutionEngine:
 
         return results
 
-    async def _execute_scenario(self, intent: Intent, trace: list[dict], mode: PrivilegeLevel) -> Any:
+    async def _execute_scenario(
+        self, intent: Intent, trace: list[dict], mode: PrivilegeLevel
+    ) -> Any:
         """执行场景意图"""
         # 场景意图本质上是预定义的复合意图
         return await self._execute_composite(intent, trace, mode)

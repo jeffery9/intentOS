@@ -16,8 +16,8 @@
 """
 
 from __future__ import annotations
-import logging
 
+import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -225,23 +225,23 @@ class SelfBootstrapExecutor:
     async def _apply_modification(self, target: str, new_value: Any) -> None:
         """
         应用修改
-        
+
         支持修改类型:
         - CONFIG.xxx: 系统配置
         - COMPILER_RULE.xxx: 编译器规则
         - EXECUTOR_RULE.xxx: 执行器规则
         - INSTRUCTION.xxx: 指令集扩展
         - POLICY.xxx: 自举策略
-        
+
         Args:
             target: 修改目标
             new_value: 新值
         """
         parts = target.split(".")
         category = parts[0]
-        
+
         logging.info(f"Applying modification: {target}")
-        
+
         if category == "CONFIG":
             # 修改系统配置
             if len(parts) > 1:
@@ -249,7 +249,7 @@ class SelfBootstrapExecutor:
                 if hasattr(self.vm, "memory"):
                     await self.vm.memory.set("CONFIG", config_key, new_value)
                     logging.info(f"CONFIG.{config_key} updated")
-        
+
         elif category == "COMPILER_RULE":
             # 修改编译器规则
             if len(parts) > 1:
@@ -263,7 +263,7 @@ class SelfBootstrapExecutor:
                     elif hasattr(compiler, "rules"):
                         compiler.rules[rule_name] = new_value
                         logging.info(f"COMPILER_RULE.{rule_name} added to rules")
-        
+
         elif category == "EXECUTOR_RULE":
             # 修改执行器规则
             if len(parts) > 1:
@@ -277,13 +277,13 @@ class SelfBootstrapExecutor:
                     elif hasattr(engine, "rules"):
                         engine.rules[rule_name] = new_value
                         logging.info(f"EXECUTOR_RULE.{rule_name} added to rules")
-        
+
         elif category == "INSTRUCTION":
             # 动态添加指令
             if len(parts) > 1:
                 instruction_name = parts[1]
                 await self._add_instruction(instruction_name, new_value)
-        
+
         elif category == "POLICY":
             # 修改自举策略
             if len(parts) > 1:
@@ -291,49 +291,49 @@ class SelfBootstrapExecutor:
                 if hasattr(self.policy, policy_attr):
                     setattr(self.policy, policy_attr, new_value)
                     logging.info(f"POLICY.{policy_attr} updated")
-        
+
         else:
             logging.warning(f"Unknown modification category: {category}")
 
     async def _add_instruction(self, instruction_name: str, definition: Any) -> None:
         """
         动态添加指令
-        
+
         Args:
             instruction_name: 指令名称
             definition: 指令定义（可以是函数、Prompt 模板等）
         """
         logging.info(f"Adding new instruction: {instruction_name}")
-        
+
         # 确定要修改的 VM
         vm_to_modify = self.vm.local_vm if hasattr(self.vm, "local_vm") else self.vm
-        
+
         if not hasattr(vm_to_modify, "processor"):
             raise ValueError("VM has no processor")
-        
+
         processor = vm_to_modify.processor
-        
+
         # 根据定义类型添加指令
         if callable(definition):
             # 如果是可调用对象，直接包装为处理器方法
             async def new_instruction(params: dict, memory: Any) -> Any:
                 return await definition(params, memory)
-            
+
             # 添加到处理器的指令分发器
             method_name = f"_handle_{instruction_name.lower()}"
             setattr(processor, method_name, new_instruction)
-            
+
             # 同时添加到指令集注册表（如果有）
             if hasattr(processor, "instruction_set"):
                 processor.instruction_set[instruction_name] = new_instruction
-            
+
             logging.info(f"Instruction {instruction_name} added as callable")
-        
+
         elif isinstance(definition, dict):
             # 如果是指令定义字典
             prompt_template = definition.get("prompt", "")
             handler_type = definition.get("type", "llm")
-            
+
             if handler_type == "llm":
                 # 创建基于 LLM 的指令处理器
                 async def llm_instruction(params: dict, memory: Any) -> Any:
@@ -343,15 +343,15 @@ class SelfBootstrapExecutor:
                         return await processor.execute_llm(prompt, memory)
                     else:
                         raise ValueError("Processor has no execute_llm method")
-                
+
                 method_name = f"_handle_{instruction_name.lower()}"
                 setattr(processor, method_name, llm_instruction)
-                
+
                 if hasattr(processor, "instruction_set"):
                     processor.instruction_set[instruction_name] = llm_instruction
-                
+
                 logging.info(f"Instruction {instruction_name} added as LLM-based")
-        
+
         else:
             raise ValueError(f"Unsupported instruction definition type: {type(definition)}")
 

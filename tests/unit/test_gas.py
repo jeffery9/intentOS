@@ -11,9 +11,11 @@
 """
 
 import pytest
-from intentos.semantic_vm.gas import GasCost, GasTracker, GasReceipt, OutOfGasError
+
+from intentos.semantic_vm.gas import GasCost, GasReceipt, GasTracker, OutOfGasError
 from intentos.semantic_vm.gas_manager import GasManager
 from intentos.semantic_vm.vm import SemanticInstruction, SemanticOpcode
+
 
 class TestSemanticGas:
     """测试语义 Gas 计量与管控"""
@@ -30,29 +32,33 @@ class TestSemanticGas:
         # 消耗 LLM 调用成本 - 会触发 OutOfGasError
         with pytest.raises(OutOfGasError):
             tracker.consume(GasCost.LLM_CALL.value)  # 1 + 100 > 100
-        
+
     def test_gas_exhaustion_circuit_breaker(self):
         """测试语义执行熔断机制"""
         tracker = GasTracker(limit=50)
-        
+
         tracker.consume(10)
         with pytest.raises(OutOfGasError) as excinfo:
-            tracker.consume(100) # 超过限额
-        
+            tracker.consume(100)  # 超过限额
+
         assert "OutOfGas" in str(excinfo.value)
         assert "Limit 50" in str(excinfo.value)
 
     def test_gas_manager_estimation(self):
         """测试 PEF 程序执行前的静态成本估算"""
         manager = GasManager()
-        
+
         # 构造一个简单的语义程序逻辑
         instructions = [
             SemanticInstruction(opcode=SemanticOpcode.CREATE, target_name="user_profile"),
-            SemanticInstruction(opcode=SemanticOpcode.SET, target_name="age", parameters={"value": 25}),
-            SemanticInstruction(opcode=SemanticOpcode.EXECUTE, parameters={"intent": "Hello world"})
+            SemanticInstruction(
+                opcode=SemanticOpcode.SET, target_name="age", parameters={"value": 25}
+            ),
+            SemanticInstruction(
+                opcode=SemanticOpcode.EXECUTE, parameters={"intent": "Hello world"}
+            ),
         ]
-        
+
         # 估算规则: CREATE(10) + SET(10) + EXECUTE(100) = 120
         # 注意：这里的映射由 GasManager._get_base_cost 定义
         estimated = manager.estimate_gas(instructions)
@@ -61,16 +67,14 @@ class TestSemanticGas:
     def test_complex_loop_estimation(self):
         """测试带循环结构的语义程序估算"""
         manager = GasManager()
-        
+
         loop_body = [SemanticInstruction(opcode=SemanticOpcode.SET, target_name="i")]
         instructions = [
             SemanticInstruction(
-                opcode=SemanticOpcode.LOOP, 
-                parameters={"times": 10},
-                body=loop_body
+                opcode=SemanticOpcode.LOOP, parameters={"times": 10}, body=loop_body
             )
         ]
-        
+
         # 估算: LOOP_ITER(5) + 10 * SET(10) = 105
         estimated = manager.estimate_gas(instructions)
         assert estimated == 105
@@ -78,15 +82,15 @@ class TestSemanticGas:
     def test_gas_receipt_generation(self):
         """测试执行收据的生成与审计"""
         manager = GasManager()
-        
+
         receipt = manager.record_execution(
             program_name="data_analysis",
             limit=1000,
             used=450,
             success=True,
-            metadata={"node": "node_01"}
+            metadata={"node": "node_01"},
         )
-        
+
         assert isinstance(receipt, GasReceipt)
         data = receipt.to_dict()
         assert data["gas_used"] == 450
@@ -97,10 +101,10 @@ class TestSemanticGas:
     def test_gas_statistics(self):
         """测试全局/节点级的用量统计"""
         manager = GasManager()
-        
+
         manager.record_execution("app_1", 100, 50, True)
         manager.record_execution("app_2", 100, 80, False)
-        
+
         stats = manager.get_statistics()
         assert stats["total_executions"] == 2
         assert stats["total_gas_used"] == 130

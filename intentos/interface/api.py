@@ -30,11 +30,13 @@ class IntentOSGateway:
         # 延迟导入
         try:
             from aiohttp import web
+
             self.web = web
         except ImportError:
             print("❌ 错误：需要安装 aiohttp")
             print("   运行：pip install aiohttp")
             import sys
+
             sys.exit(1)
 
         self.app = web.Application(middlewares=[self.auth_middleware])
@@ -50,9 +52,9 @@ class IntentOSGateway:
                 {
                     "status": "error",
                     "timestamp": datetime.now().isoformat(),
-                    "error": "Unauthorized: Invalid or missing API Token"
+                    "error": "Unauthorized: Invalid or missing API Token",
                 },
-                status=401
+                status=401,
             )
         return await handler(request)
 
@@ -66,6 +68,7 @@ class IntentOSGateway:
         """获取 RPC 客户端"""
         if self._client is None:
             from intentos.interface.ipc import RPCClient
+
             self._client = RPCClient(socket_path=self.socket_path)
             await self._client.connect()
         return self._client
@@ -85,7 +88,7 @@ class IntentOSGateway:
                 # 客户端模式：通过 RPC
                 client = await self._get_client()
                 result = await client.execute(intent)
-            
+
             return self._success_response({"result": result})
         except Exception as e:
             return self._error_response(str(e))
@@ -100,11 +103,13 @@ class IntentOSGateway:
                 # 客户端模式
                 client = await self._get_client()
                 status = await client.get_kernel_status()
-            
-            return self._success_response({
-                "kernel_version": "16.0.0",
-                "data": status,
-            })
+
+            return self._success_response(
+                {
+                    "kernel_version": "16.0.0",
+                    "data": status,
+                }
+            )
         except Exception as e:
             return self._error_response(str(e))
 
@@ -118,7 +123,7 @@ class IntentOSGateway:
                 # 客户端模式
                 client = await self._get_client()
                 result = await client.ping()
-            
+
             return self._success_response(result)
         except Exception as e:
             return self._error_response(str(e), 503)
@@ -135,24 +140,21 @@ class IntentOSGateway:
                 client = await self._get_client()
                 status = await client.get_kernel_status()
                 nodes = status.get("cluster", {}).get("nodes", [])
-            
+
             return self._success_response({"nodes": nodes})
         except Exception as e:
             return self._error_response(str(e))
 
     def _success_response(self, data):
-        return self.web.json_response({
-            "status": "success",
-            "timestamp": datetime.now().isoformat(),
-            **data
-        })
+        return self.web.json_response(
+            {"status": "success", "timestamp": datetime.now().isoformat(), **data}
+        )
 
     def _error_response(self, message, status=500):
-        return self.web.json_response({
-            "status": "error",
-            "timestamp": datetime.now().isoformat(),
-            "error": message
-        }, status=status)
+        return self.web.json_response(
+            {"status": "error", "timestamp": datetime.now().isoformat(), "error": message},
+            status=status,
+        )
 
     async def cleanup(self):
         """清理资源"""
@@ -177,9 +179,10 @@ class IntentOSGateway:
 
 def start_api(args=None):
     """启动 REST API 服务器（独立运行，客户端模式）"""
-    from intentos.interface.ipc import check_kernel_running, wait_for_kernel
     import subprocess
     import sys
+
+    from intentos.interface.ipc import check_kernel_running, wait_for_kernel
 
     console_print = print
 
@@ -206,12 +209,15 @@ def start_api(args=None):
         console_print("✅ 内核已启动", flush=True)
 
     # 客户端模式：创建网关（不传 os_instance）
-    gateway = IntentOSGateway(host=args.host if args else "localhost", port=args.port if args else 8080)
+    gateway = IntentOSGateway(
+        host=args.host if args else "localhost", port=args.port if args else 8080
+    )
     gateway.run()
 
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(description="IntentOS API Gateway")
     parser.add_argument("--host", default="localhost", help="监听地址")
     parser.add_argument("--port", type=int, default=8080, help="监听端口")

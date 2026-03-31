@@ -279,7 +279,9 @@ class SemanticMemory:
             return True
         return False
 
-    def query(self, store: str, condition: Optional[str] = None, context: Optional[dict] = None) -> list[dict]:
+    def query(
+        self, store: str, condition: Optional[str] = None, context: Optional[dict] = None
+    ) -> list[dict]:
         """查询数据"""
         store_map = self._get_store_map(store)
         if store_map is None:
@@ -288,7 +290,7 @@ class SemanticMemory:
         results = []
         for ns_key, value in store_map.items():
             # 提取原始 key (去除命名空间前缀)
-            key = ns_key.split(':')[-1] if ':' in ns_key else ns_key
+            key = ns_key.split(":")[-1] if ":" in ns_key else ns_key
             if condition is None:
                 results.append({"key": key, "value": value})
             else:
@@ -415,12 +417,10 @@ class LLMProcessor:
         """
         智能意图分解 (Semantic Decomposition)
         """
-        prompt = self.DECOMPOSE_PROMPT.format(
-            intent=intent,
-            capabilities=", ".join(capabilities)
-        )
+        prompt = self.DECOMPOSE_PROMPT.format(intent=intent, capabilities=", ".join(capabilities))
 
         from intentos.llm.backends.base import Message
+
         messages = [
             Message.system("你是一个专业的任务分解引擎。"),
             Message.user(prompt),
@@ -430,6 +430,7 @@ class LLMProcessor:
         try:
             # 解析 JSON 结果
             import json
+
             content = response.content.strip()
             if "```json" in content:
                 content = content.split("```json")[1].split("```")[0]
@@ -468,6 +469,7 @@ class LLMProcessor:
 
         # LLM 执行
         from intentos.llm.backends.base import Message
+
         messages = [
             Message.system("你是语义 VM 处理器。"),
             Message.user(exec_prompt),
@@ -530,6 +532,7 @@ class LLMProcessor:
     async def execute_llm(self, prompt: str, memory: SemanticMemory) -> dict[str, Any]:
         """执行原始 LLM 提示"""
         from intentos.llm.backends.base import Message
+
         messages = [
             Message.system("你是语义 VM 处理器。"),
             Message.user(f"当前内存状态: {json.dumps(memory.get_state())}\n\n指令: {prompt}"),
@@ -554,7 +557,9 @@ class SemanticVM:
     执行语义程序的完整虚拟机
     """
 
-    def __init__(self, llm_executor: Optional[Any] = None, mode: PrivilegeLevel = PrivilegeLevel.USER):
+    def __init__(
+        self, llm_executor: Optional[Any] = None, mode: PrivilegeLevel = PrivilegeLevel.USER
+    ):
         """
         初始化 VM
 
@@ -576,6 +581,7 @@ class SemanticVM:
         elif not self.processor:
             # 如果没有提供执行器，使用默认 Mock
             from intentos.llm import LLMExecutor
+
             self._llm_executor = LLMExecutor(provider="mock")
             self.processor = LLMProcessor(self._llm_executor)
 
@@ -655,7 +661,7 @@ class SemanticVM:
             "gas_usage": {
                 "limit": gas_limit,
                 "used": gas_tracker.used,
-                "remaining": gas_tracker.remaining
+                "remaining": gas_tracker.remaining,
             },
             "final_state": self.memory.get_state(),
         }
@@ -688,15 +694,24 @@ class SemanticVM:
         # 1. 特权操作检查
         if self.mode == PrivilegeLevel.USER:
             # 拒绝元指令 (Self-Bootstrap)
-            if instruction.opcode in (SemanticOpcode.DEFINE_INSTRUCTION, SemanticOpcode.MODIFY_PROCESSOR):
+            if instruction.opcode in (
+                SemanticOpcode.DEFINE_INSTRUCTION,
+                SemanticOpcode.MODIFY_PROCESSOR,
+            ):
                 raise PermissionError(f"用户态禁止执行特权指令：{instruction.opcode.value}")
 
             # 拒绝修改系统配置和策略
-            if instruction.opcode == SemanticOpcode.MODIFY and instruction.target in ("CONFIG", "POLICY"):
+            if instruction.opcode == SemanticOpcode.MODIFY and instruction.target in (
+                "CONFIG",
+                "POLICY",
+            ):
                 raise PermissionError(f"用户态禁止修改系统配置：{instruction.target}")
 
             # 拒绝删除系统配置和策略
-            if instruction.opcode == SemanticOpcode.DELETE and instruction.target in ("CONFIG", "POLICY"):
+            if instruction.opcode == SemanticOpcode.DELETE and instruction.target in (
+                "CONFIG",
+                "POLICY",
+            ):
                 raise PermissionError(f"用户态禁止删除系统配置：{instruction.target}")
 
         # 处理标签

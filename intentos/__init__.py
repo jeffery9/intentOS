@@ -10,19 +10,11 @@ IntentOS - 分布式语义 VM + Self-Bootstrap
 # 核心层
 # Self-Bootstrap 层
 from .bootstrap import (
+    BootstrapPolicy,
     # 原有
     SelfBootstrapExecutor,
-    BootstrapPolicy,
     create_bootstrap_executor,
     create_bootstrap_policy,
-    # 新增
-    MetaIntentExecutor,
-    MetaIntent,
-    MetaIntentType,
-    ProtocolSelfExtender,
-    IntentTemplateSelfGrower,
-    create_meta_intent_executor,
-    create_meta_intent,
 )
 from .core import (
     Capability,

@@ -10,10 +10,11 @@ from __future__ import annotations
 import logging
 from typing import Any, Optional
 
-from .gas import GasCost, GasTracker, GasReceipt, OutOfGasError
+from .gas import GasCost, GasReceipt, GasTracker
 from .vm import SemanticInstruction, SemanticOpcode
 
 logger = logging.getLogger(__name__)
+
 
 class GasManager:
     """
@@ -34,14 +35,14 @@ class GasManager:
             total_gas += cost
 
             # 递归处理复合指令 (LOOP/WHILE)
-            if hasattr(instr, 'body') and instr.body:
+            if hasattr(instr, "body") and instr.body:
                 body_gas = self.estimate_gas(instr.body)
                 if instr.opcode == SemanticOpcode.LOOP:
                     times = instr.parameters.get("times", 1)
                     total_gas += body_gas * times
                 elif instr.opcode == SemanticOpcode.WHILE:
-                    total_gas += body_gas * 100 # 默认最大循环步数
-        
+                    total_gas += body_gas * 100  # 默认最大循环步数
+
         return total_gas
 
     def _get_base_cost(self, opcode: Any) -> int:
@@ -59,12 +60,12 @@ class GasManager:
         return GasTracker(limit=limit)
 
     def record_execution(
-        self, 
-        program_name: str, 
-        limit: int, 
-        used: int, 
+        self,
+        program_name: str,
+        limit: int,
+        used: int,
         success: bool,
-        metadata: Optional[dict] = None
+        metadata: Optional[dict] = None,
     ) -> GasReceipt:
         """记录执行完成后的 Gas 收据"""
         receipt = GasReceipt(
@@ -72,7 +73,7 @@ class GasManager:
             gas_limit=limit,
             gas_used=used,
             success=success,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
         self._receipts.append(receipt)
         return receipt
@@ -87,5 +88,5 @@ class GasManager:
             "total_executions": len(self._receipts),
             "total_gas_used": total_used,
             "average_per_execution": total_used / len(self._receipts),
-            "success_rate": sum(1 for r in self._receipts if r.success) / len(self._receipts)
+            "success_rate": sum(1 for r in self._receipts if r.success) / len(self._receipts),
         }

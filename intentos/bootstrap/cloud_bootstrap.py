@@ -5,7 +5,6 @@ IntentOS 云资源 Self-Bootstrap 模块
 """
 
 from __future__ import annotations
-import logging
 
 import asyncio
 import os
@@ -16,6 +15,7 @@ from typing import Any, Optional
 
 class ResourceStatus(Enum):
     """资源状态"""
+
     NOT_EXISTS = "not_exists"
     CREATING = "creating"
     ACTIVE = "active"
@@ -25,16 +25,18 @@ class ResourceStatus(Enum):
 
 class AuthMethod(Enum):
     """认证方式"""
-    AUTO = "auto"              # 自动开通（有凭证）
-    CONSOLE = "console"        # 引导控制台操作
-    CLI = "cli"                # 引导 CLI 命令
-    TERRAFORM = "terraform"    # 引导 Terraform
-    MANUAL = "manual"          # 手动操作
+
+    AUTO = "auto"  # 自动开通（有凭证）
+    CONSOLE = "console"  # 引导控制台操作
+    CLI = "cli"  # 引导 CLI 命令
+    TERRAFORM = "terraform"  # 引导 Terraform
+    MANUAL = "manual"  # 手动操作
 
 
 @dataclass
 class CloudResource:
     """云资源定义"""
+
     name: str
     type: str
     provider: str
@@ -50,6 +52,7 @@ class CloudResource:
 @dataclass
 class BootstrapPlan:
     """Bootstrap 计划"""
+
     resources: list[CloudResource] = field(default_factory=list)
     steps: list[dict[str, Any]] = field(default_factory=list)
     estimated_cost: dict[str, float] = field(default_factory=dict)
@@ -73,17 +76,13 @@ class CloudResourceProvisioner:
         """检查云凭证"""
         if self.provider == "aws":
             self.credentials_valid = bool(
-                os.getenv('AWS_ACCESS_KEY_ID') and
-                os.getenv('AWS_SECRET_ACCESS_KEY')
+                os.getenv("AWS_ACCESS_KEY_ID") and os.getenv("AWS_SECRET_ACCESS_KEY")
             )
         elif self.provider == "gcp":
-            self.credentials_valid = bool(
-                os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
-            )
+            self.credentials_valid = bool(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
         elif self.provider == "azure":
             self.credentials_valid = bool(
-                os.getenv('ARM_CLIENT_ID') and
-                os.getenv('ARM_CLIENT_SECRET')
+                os.getenv("ARM_CLIENT_ID") and os.getenv("ARM_CLIENT_SECRET")
             )
         elif self.provider == "docker":
             self.credentials_valid = True
@@ -107,28 +106,26 @@ class CloudResourceProvisioner:
             import boto3
 
             if resource.type == "vpc":
-                client = boto3.client('ec2', region_name=self.region)
+                client = boto3.client("ec2", region_name=self.region)
                 response = client.describe_vpcs(
-                    Filters=[{'Name': 'tag:Name', 'Values': [resource.name]}]
+                    Filters=[{"Name": "tag:Name", "Values": [resource.name]}]
                 )
-                if response['Vpcs']:
-                    resource.id = response['Vpcs'][0]['VpcId']
+                if response["Vpcs"]:
+                    resource.id = response["Vpcs"][0]["VpcId"]
                     return ResourceStatus.ACTIVE
 
             elif resource.type == "ecs_cluster":
-                client = boto3.client('ecs', region_name=self.region)
+                client = boto3.client("ecs", region_name=self.region)
                 response = client.describe_clusters(clusters=[resource.name])
-                if response['clusters']:
-                    resource.id = response['clusters'][0]['clusterArn']
+                if response["clusters"]:
+                    resource.id = response["clusters"][0]["clusterArn"]
                     return ResourceStatus.ACTIVE
 
             elif resource.type == "elasticache":
-                client = boto3.client('elasticache', region_name=self.region)
-                response = client.describe_cache_clusters(
-                    CacheClusterId=resource.name
-                )
-                if response['CacheClusters']:
-                    resource.id = response['CacheClusters'][0]['CacheClusterId']
+                client = boto3.client("elasticache", region_name=self.region)
+                response = client.describe_cache_clusters(CacheClusterId=resource.name)
+                if response["CacheClusters"]:
+                    resource.id = response["CacheClusters"][0]["CacheClusterId"]
                     return ResourceStatus.ACTIVE
 
             return ResourceStatus.NOT_EXISTS
@@ -160,44 +157,42 @@ class CloudResourceProvisioner:
             import botocore
 
             if resource.type == "vpc":
-                client = boto3.client('ec2', region_name=self.region)
+                client = boto3.client("ec2", region_name=self.region)
                 response = client.create_vpc(
-                    CidrBlock=resource.config.get('cidr', '10.0.0.0/16'),
-                    TagSpecifications=[{
-                        'ResourceType': 'vpc',
-                        'Tags': [{'Key': 'Name', 'Value': resource.name}]
-                    }]
+                    CidrBlock=resource.config.get("cidr", "10.0.0.0/16"),
+                    TagSpecifications=[
+                        {"ResourceType": "vpc", "Tags": [{"Key": "Name", "Value": resource.name}]}
+                    ],
                 )
-                resource.id = response['Vpc']['VpcId']
+                resource.id = response["Vpc"]["VpcId"]
                 print(f"  ✓ VPC 已创建：{resource.id}")
 
             elif resource.type == "ecs_cluster":
-                client = boto3.client('ecs', region_name=self.region)
+                client = boto3.client("ecs", region_name=self.region)
                 response = client.create_cluster(
-                    clusterName=resource.name,
-                    tags=[{'key': 'managed-by', 'value': 'intentos'}]
+                    clusterName=resource.name, tags=[{"key": "managed-by", "value": "intentos"}]
                 )
-                resource.id = response['cluster']['clusterArn']
+                resource.id = response["cluster"]["clusterArn"]
                 print(f"  ✓ ECS Cluster 已创建：{resource.id}")
 
             elif resource.type == "elasticache":
-                client = boto3.client('elasticache', region_name=self.region)
+                client = boto3.client("elasticache", region_name=self.region)
                 response = client.create_cache_cluster(
                     CacheClusterId=resource.name,
-                    Engine='redis',
-                    CacheNodeType=resource.config.get('node_type', 'cache.t3.micro'),
+                    Engine="redis",
+                    CacheNodeType=resource.config.get("node_type", "cache.t3.micro"),
                     NumCacheNodes=1,
-                    Tags=[{'Key': 'managed-by', 'Value': 'intentos'}]
+                    Tags=[{"Key": "managed-by", "Value": "intentos"}],
                 )
-                resource.id = response['CacheCluster']['CacheClusterId']
+                resource.id = response["CacheCluster"]["CacheClusterId"]
                 print(f"  ✓ ElastiCache 已创建：{resource.id}")
 
             resource.status = ResourceStatus.ACTIVE
             return True
 
         except botocore.exceptions.ClientError as e:
-            error_code = e.response['Error']['Code']
-            if error_code in ['AccessDenied', 'UnauthorizedOperation']:
+            error_code = e.response["Error"]["Code"]
+            if error_code in ["AccessDenied", "UnauthorizedOperation"]:
                 print("  ⚠️  权限不足，需要人类介入")
                 return await self._guide_human_creation(resource)
             raise
@@ -218,17 +213,17 @@ class CloudResourceProvisioner:
         print("\n📖 创建方式（选择一种）:")
 
         # 方式 1: 控制台
-        if 'console_url' in guide:
+        if "console_url" in guide:
             print("\n  【方式 1】AWS 控制台:")
             print(f"  1. 访问：{guide['console_url']}")
             print(f"  2. 点击\"创建{resource.type.replace('_', ' ').title()}\"")
             print("  3. 配置参数:")
-            for param, value in guide.get('parameters', {}).items():
+            for param, value in guide.get("parameters", {}).items():
                 print(f"     - {param}: {value}")
-            print("  4. 点击\"创建\"")
+            print('  4. 点击"创建"')
 
         # 方式 2: CLI
-        if 'cli_command' in guide:
+        if "cli_command" in guide:
             print("\n  【方式 2】AWS CLI:")
             print("  运行以下命令:")
             print("  ```bash")
@@ -236,7 +231,7 @@ class CloudResourceProvisioner:
             print("  ```")
 
         # 方式 3: Terraform
-        if 'terraform_code' in guide:
+        if "terraform_code" in guide:
             print("\n  【方式 3】Terraform:")
             print("  添加以下配置到 main.tf:")
             print("  ```hcl")
@@ -248,9 +243,11 @@ class CloudResourceProvisioner:
 
         # 等待确认
         while True:
-            choice = input("\n请选择操作:\n  [1] 我已创建资源\n  [2] 显示指南\n  [3] 跳过此资源\n  选择：")
+            choice = input(
+                "\n请选择操作:\n  [1] 我已创建资源\n  [2] 显示指南\n  [3] 跳过此资源\n  选择："
+            )
 
-            if choice == '1':
+            if choice == "1":
                 # 验证资源是否已创建
                 status = await self.check_resource(resource)
                 if status == ResourceStatus.ACTIVE:
@@ -258,9 +255,9 @@ class CloudResourceProvisioner:
                     return True
                 else:
                     print("  ⚠️  未找到资源，请确认创建成功")
-            elif choice == '2':
+            elif choice == "2":
                 print(f"\n{guide.get('console_url', '')}")
-            elif choice == '3':
+            elif choice == "3":
                 print(f"  ⚠️  跳过资源：{resource.name}")
                 resource.status = ResourceStatus.NOT_EXISTS
                 return False
@@ -268,56 +265,50 @@ class CloudResourceProvisioner:
     def _get_creation_guide(self, resource: CloudResource) -> dict[str, Any]:
         """获取创建指南"""
         guides = {
-            'vpc': {
-                'console_url': 'https://console.aws.amazon.com/vpc/home?#VPCs:',
-                'cli_command': f'aws ec2 create-vpc --cidr-block 10.0.0.0/16 --tag-specifications "ResourceType=vpc,Tags=[{{Key=Name,Value={resource.name}}}]"',
-                'terraform_code': f'''
+            "vpc": {
+                "console_url": "https://console.aws.amazon.com/vpc/home?#VPCs:",
+                "cli_command": f'aws ec2 create-vpc --cidr-block 10.0.0.0/16 --tag-specifications "ResourceType=vpc,Tags=[{{Key=Name,Value={resource.name}}}]"',
+                "terraform_code": f"""
 resource "aws_vpc" "{resource.name}" {{
   cidr_block = "10.0.0.0/16"
   tags = {{
     Name = "{resource.name}"
   }}
-}}''',
-                'parameters': {
-                    'CIDR': '10.0.0.0/16',
-                    '名称': resource.name
-                }
+}}""",
+                "parameters": {"CIDR": "10.0.0.0/16", "名称": resource.name},
             },
-            'ecs_cluster': {
-                'console_url': 'https://console.aws.amazon.com/ecs/home?#/clusters',
-                'cli_command': f'aws ecs create-cluster --cluster-name {resource.name}',
-                'terraform_code': f'''
+            "ecs_cluster": {
+                "console_url": "https://console.aws.amazon.com/ecs/home?#/clusters",
+                "cli_command": f"aws ecs create-cluster --cluster-name {resource.name}",
+                "terraform_code": f"""
 resource "aws_ecs_cluster" "{resource.name}" {{
   name = "{resource.name}"
-}}''',
-                'parameters': {
-                    '集群名称': resource.name
-                }
+}}""",
+                "parameters": {"集群名称": resource.name},
             },
-            'elasticache': {
-                'console_url': 'https://console.aws.amazon.com/elasticache/home?#redis:',
-                'cli_command': f'aws elasticache create-cache-cluster --cache-cluster-id {resource.name} --engine redis --cache-node-type cache.t3.micro --num-cache-nodes 1',
-                'terraform_code': f'''
+            "elasticache": {
+                "console_url": "https://console.aws.amazon.com/elasticache/home?#redis:",
+                "cli_command": f"aws elasticache create-cache-cluster --cache-cluster-id {resource.name} --engine redis --cache-node-type cache.t3.micro --num-cache-nodes 1",
+                "terraform_code": f"""
 resource "aws_elasticache_cluster" "{resource.name}" {{
   cluster_id           = "{resource.name}"
   engine               = "redis"
   node_type            = "cache.t3.micro"
   num_cache_nodes      = 1
-}}''',
-                'parameters': {
-                    '引擎': 'Redis',
-                    '节点类型': 'cache.t3.micro',
-                    '节点数': '1'
-                }
-            }
+}}""",
+                "parameters": {"引擎": "Redis", "节点类型": "cache.t3.micro", "节点数": "1"},
+            },
         }
 
-        return guides.get(resource.type, {
-            'console_url': 'https://console.aws.amazon.com/',
-            'cli_command': f'# 请访问 AWS 控制台创建 {resource.name}',
-            'terraform_code': f'# 请手动配置 {resource.name}',
-            'parameters': {}
-        })
+        return guides.get(
+            resource.type,
+            {
+                "console_url": "https://console.aws.amazon.com/",
+                "cli_command": f"# 请访问 AWS 控制台创建 {resource.name}",
+                "terraform_code": f"# 请手动配置 {resource.name}",
+                "parameters": {},
+            },
+        )
 
 
 class CloudSelfBootstrap:
@@ -347,16 +338,14 @@ class CloudSelfBootstrap:
                     provider="aws",
                     config={"cidr": "10.0.0.0/16"},
                     auto_create=True,
-                    human_guide={
-                        "description": "VPC 是隔离的云资源网络环境"
-                    }
+                    human_guide={"description": "VPC 是隔离的云资源网络环境"},
                 ),
                 CloudResource(
                     name="intentos-ecs-cluster",
                     type="ecs_cluster",
                     provider="aws",
                     dependencies=["intentos-vpc"],
-                    auto_create=True
+                    auto_create=True,
                 ),
                 CloudResource(
                     name="intentos-redis",
@@ -364,21 +353,21 @@ class CloudSelfBootstrap:
                     provider="aws",
                     config={"node_type": "cache.t3.micro"},
                     dependencies=["intentos-vpc"],
-                    auto_create=True
+                    auto_create=True,
                 ),
                 CloudResource(
                     name="intentos-alb",
                     type="alb",
                     provider="aws",
                     dependencies=["intentos-vpc"],
-                    auto_create=True
+                    auto_create=True,
                 ),
                 CloudResource(
                     name="intentos-secrets",
                     type="secretsmanager",
                     provider="aws",
                     dependencies=[],
-                    auto_create=True
+                    auto_create=True,
                 ),
             ]
 
@@ -388,14 +377,14 @@ class CloudSelfBootstrap:
                     name="intentos-network",
                     type="docker_network",
                     provider="docker",
-                    auto_create=True
+                    auto_create=True,
                 ),
                 CloudResource(
                     name="intentos-redis",
                     type="docker_container",
                     provider="docker",
                     config={"image": "redis:7-alpine"},
-                    auto_create=True
+                    auto_create=True,
                 ),
             ]
 
@@ -436,20 +425,18 @@ class CloudSelfBootstrap:
     def _estimate_cost(self) -> dict[str, float]:
         """估算成本"""
         costs = {
-            'vpc': 0.0,  # VPC 免费
-            'ecs_cluster': 0.0,  # ECS 本身免费
-            'elasticache': 15.0,  # cache.t3.micro ~$15/月
-            'alb': 22.0,  # ALB ~$22/月
-            'secretsmanager': 1.0,  # Secrets Manager ~$1/月
+            "vpc": 0.0,  # VPC 免费
+            "ecs_cluster": 0.0,  # ECS 本身免费
+            "elasticache": 15.0,  # cache.t3.micro ~$15/月
+            "alb": 22.0,  # ALB ~$22/月
+            "secretsmanager": 1.0,  # Secrets Manager ~$1/月
         }
 
-        total = sum(costs.get(r.type, 0) for r in self._resources if r.status != ResourceStatus.ACTIVE)
+        total = sum(
+            costs.get(r.type, 0) for r in self._resources if r.status != ResourceStatus.ACTIVE
+        )
 
-        return {
-            'monthly': total,
-            'yearly': total * 12,
-            'breakdown': costs
-        }
+        return {"monthly": total, "yearly": total * 12, "breakdown": costs}
 
     async def execute(self) -> bool:
         """执行 Bootstrap"""
@@ -475,13 +462,13 @@ class CloudSelfBootstrap:
 
             choice = input("\n请选择：")
 
-            if choice == '1':
+            if choice == "1":
                 # 引导配置凭证
                 await self._guide_credential_setup()
-            elif choice == '2':
+            elif choice == "2":
                 # 显示手动创建指南
                 await self._show_manual_guides()
-            elif choice == '3':
+            elif choice == "3":
                 # 跳过
                 print("⚠️  将仅使用已有资源")
 
@@ -520,7 +507,8 @@ class CloudSelfBootstrap:
         print("\n📖 配置云凭证")
 
         if self.provider == "aws":
-            print("""
+            print(
+                """
 请访问 AWS 控制台获取凭证:
 
 1. 登录 AWS 控制台：https://console.aws.amazon.com/
@@ -537,7 +525,8 @@ class CloudSelfBootstrap:
    [default]
    aws_access_key_id = your_access_key
    aws_secret_access_key = your_secret_key
-""")
+"""
+            )
 
             # 等待用户配置
             input("\n配置完成后按回车继续...")
@@ -571,10 +560,10 @@ async def main():
     """主函数"""
     import argparse
 
-    parser = argparse.ArgumentParser(description='IntentOS Cloud Self-Bootstrap')
-    parser.add_argument('--provider', choices=['aws', 'gcp', 'azure', 'docker'], default='docker')
-    parser.add_argument('--region', default='')
-    parser.add_argument('--auto', action='store_true', help='自动模式（无需交互）')
+    parser = argparse.ArgumentParser(description="IntentOS Cloud Self-Bootstrap")
+    parser.add_argument("--provider", choices=["aws", "gcp", "azure", "docker"], default="docker")
+    parser.add_argument("--region", default="")
+    parser.add_argument("--auto", action="store_true", help="自动模式（无需交互）")
 
     args = parser.parse_args()
 
@@ -583,10 +572,7 @@ async def main():
     print("  云资源自动开通与人类引导授权")
     print(f"{'='*60}\n")
 
-    bootstrap = CloudSelfBootstrap(
-        provider=args.provider,
-        region=args.region
-    )
+    bootstrap = CloudSelfBootstrap(provider=args.provider, region=args.region)
 
     # 定义资源
     resources = bootstrap.define_resources()
@@ -610,7 +596,7 @@ async def main():
     else:
         # 交互模式
         choice = input("\n是否继续执行？(y/n): ")
-        if choice.lower() == 'y':
+        if choice.lower() == "y":
             success = await bootstrap.execute()
         else:
             print("Bootstrap 已取消")
@@ -619,5 +605,5 @@ async def main():
     return 0 if success else 1
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     exit(asyncio.run(main()))

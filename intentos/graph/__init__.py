@@ -5,16 +5,16 @@
 """
 
 from .intent_graph import (
+    IntentEdge,
+    IntentEdgeType,
     IntentGraph,
     IntentNode,
-    IntentEdge,
     IntentNodeType,
-    IntentEdgeType,
-    IntentSimilarityCalculator,
     IntentRecommender,
-    create_intent_node,
+    IntentSimilarityCalculator,
     create_intent_edge,
     create_intent_graph,
+    create_intent_node,
 )
 
 __all__ = [

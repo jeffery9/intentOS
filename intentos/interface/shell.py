@@ -20,6 +20,7 @@ class IntentShell(cmd.Cmd):
     """
     IntentOS 交互式 Shell - 客户端
     """
+
     intro = "IntentOS Shell. Type /help for commands.\n"
     prompt = "intentos> "
 
@@ -35,12 +36,8 @@ class IntentShell(cmd.Cmd):
         self.console.print("       IntentOS Shell (Client Mode)      ", style="bold blue")
         self.console.print("=" * 50 + "\n", style="bold blue")
         self.console.print("AI-Native Operating System", style="italic green")
-        self.console.print(
-            "System: [bold cyan]/ps, /top, /df, /status, /exit[/bold cyan]"
-        )
-        self.console.print(
-            "Natural Language: [bold white]Just type your intent[/bold white]\n"
-        )
+        self.console.print("System: [bold cyan]/ps, /top, /df, /status, /exit[/bold cyan]")
+        self.console.print("Natural Language: [bold white]Just type your intent[/bold white]\n")
 
     def onecmd(self, line):
         """
@@ -171,8 +168,9 @@ async def check_connection(client):
 
 def start_shell(args):
     """启动交互式 Shell"""
-    from intentos.interface.ipc import RPCClient, check_kernel_running, wait_for_kernel
     import subprocess
+
+    from intentos.interface.ipc import RPCClient, check_kernel_running, wait_for_kernel
 
     console = Console()
 
@@ -210,7 +208,7 @@ def start_shell(args):
             console.print(f"❌ 连接失败：{result}", style="red")
             sys.exit(1)
 
-        console.print(f"✅ 已连接到 IntentOS 内核", style="green")
+        console.print("✅ 已连接到 IntentOS 内核", style="green")
 
         # 启动 Shell（传入事件循环）
         shell = IntentShell(client, loop)

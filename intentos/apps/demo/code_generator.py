@@ -180,10 +180,7 @@ class CodeGeneratorApp:
         }
 
     async def generate_code(
-        self,
-        requirement: str,
-        language: str = "python",
-        context: Optional[dict[str, Any]] = None
+        self, requirement: str, language: str = "python", context: Optional[dict[str, Any]] = None
     ) -> dict[str, Any]:
         """
         生成代码
@@ -200,6 +197,7 @@ class CodeGeneratorApp:
 
         # 模拟代码生成
         import time
+
         start_time = time.time()
 
         # 模拟处理
@@ -250,7 +248,7 @@ class CodeGeneratorApp:
 # 测试
 print(quick_sort([3, 6, 8, 10, 1, 2, 1]))'''
             elif language == "javascript":
-                return '''function quickSort(arr) {
+                return """function quickSort(arr) {
     // 快速排序
     if (arr.length <= 1) return arr;
     const pivot = arr[Math.floor(arr.length / 2)];
@@ -261,7 +259,7 @@ print(quick_sort([3, 6, 8, 10, 1, 2, 1]))'''
 }
 
 // 测试
-console.log(quickSort([3, 6, 8, 10, 1, 2, 1]));'''
+console.log(quickSort([3, 6, 8, 10, 1, 2, 1]));"""
 
         elif "文件" in requirement or "file" in requirement.lower():
             if language == "python":
@@ -275,13 +273,13 @@ def write_file(path, content):
     with open(path, 'w', encoding='utf-8') as f:
         f.write(content)'''
 
-        return f'''# {requirement} 的实现
+        return f"""# {requirement} 的实现
 def solution():
     # TODO: 实现具体功能
     pass
 
 if __name__ == "__main__":
-    solution()'''
+    solution()"""
 
     def _estimate_tokens(self, code: str) -> int:
         """估算 Token 数量"""
@@ -299,10 +297,7 @@ if __name__ == "__main__":
         return "代码已生成，请检查实现是否符合需求。"
 
     async def review_code(
-        self,
-        code: str,
-        language: str = "python",
-        context: Optional[dict[str, Any]] = None
+        self, code: str, language: str = "python", context: Optional[dict[str, Any]] = None
     ) -> dict[str, Any]:
         """
         代码审查
@@ -341,17 +336,21 @@ if __name__ == "__main__":
         """查找问题（模拟）"""
         issues = []
         if "TODO" in code:
-            issues.append({
-                "type": "warning",
-                "message": "发现 TODO 注释，建议完成实现",
-                "line": 1,
-            })
+            issues.append(
+                {
+                    "type": "warning",
+                    "message": "发现 TODO 注释，建议完成实现",
+                    "line": 1,
+                }
+            )
         if "print(" in code:
-            issues.append({
-                "type": "info",
-                "message": "发现 print 语句，生产环境建议使用 logging",
-                "line": 1,
-            })
+            issues.append(
+                {
+                    "type": "info",
+                    "message": "发现 print 语句，生产环境建议使用 logging",
+                    "line": 1,
+                }
+            )
         return issues
 
     def _generate_suggestions(self, code: str) -> list[str]:
@@ -373,9 +372,7 @@ if __name__ == "__main__":
         }
 
     async def submit_to_intentos(
-        self,
-        intentos_url: str = "http://localhost:8080",
-        api_key: Optional[str] = None
+        self, intentos_url: str = "http://localhost:8080", api_key: Optional[str] = None
     ) -> dict[str, Any]:
         """提交到 IntentOS"""
         from intentos.agent.submission import IntentOSConnector

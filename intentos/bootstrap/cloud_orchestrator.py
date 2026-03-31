@@ -19,19 +19,21 @@ from intentos.distributed.cost_monitor import CostMonitor
 try:
     import boto3
     from botocore.exceptions import NoCredentialsError
+
     AWS_SDK_AVAILABLE = True
 except ImportError:
     AWS_SDK_AVAILABLE = False
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
 
 class CloudOrchestrator:
     """
     Orchestrates the deployment of cloud infrastructure for IntentOS.
     """
 
-    def __init__(self, provider: str = 'aws', region: str = 'us-east-1'):
+    def __init__(self, provider: str = "aws", region: str = "us-east-1"):
         """
         Initializes the orchestrator for a specific cloud provider.
 
@@ -52,28 +54,30 @@ class CloudOrchestrator:
         Verifies that the necessary cloud credentials are configured.
         """
         logging.info("Verifying cloud credentials...")
-        if self.provider == 'aws':
+        if self.provider == "aws":
             if not AWS_SDK_AVAILABLE:
                 logging.warning("AWS SDK (boto3) not found. Cannot verify credentials.")
                 return False
             try:
                 # The presence of the STS client doesn't guarantee permissions,
                 # but it's a good check for configured credentials.
-                boto3.client('sts').get_caller_identity()
+                boto3.client("sts").get_caller_identity()
                 logging.info("AWS credentials found and verified.")
                 return True
             except NoCredentialsError:
                 logging.warning("AWS credentials not found.")
                 return False
         else:
-            logging.warning(f"Credential verification for provider '{self.provider}' is not yet implemented.")
+            logging.warning(
+                f"Credential verification for provider '{self.provider}' is not yet implemented."
+            )
             return False
 
     def _guide_user_for_credentials(self):
         """
         Prints a guide for the user to configure their cloud credentials.
         """
-        if self.provider == 'aws':
+        if self.provider == "aws":
             guide = """
 ================================================================================
 ⚠️  AWS Credentials Not Found
@@ -131,7 +135,7 @@ You can set the credentials as environment variables in your shell:
         """
         logging.info(f"Loading resource definitions from: {file_path}")
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path, "r") as f:
                 self.definitions = yaml.safe_load(f)
             logging.info("Resource definitions loaded successfully.")
         except FileNotFoundError:
@@ -153,34 +157,35 @@ You can set the credentials as environment variables in your shell:
             raise ValueError("Resource definitions must be loaded before generating a plan.")
 
         logging.info("Generating deployment plan...")
-        self.plan = {
-            'provider': self.provider,
-            'actions': []
-        }
+        self.plan = {"provider": self.provider, "actions": []}
 
         # Placeholder logic: For now, assume all defined resources need to be created.
-        for resource_name, config in self.definitions.get('resources', {}).items():
+        for resource_name, config in self.definitions.get("resources", {}).items():
             action = {
-                'name': resource_name,
-                'type': config.get('type'),
-                'action': 'create', # Future: could be 'update' or 'delete'
-                'details': config.get('properties')
+                "name": resource_name,
+                "type": config.get("type"),
+                "action": "create",  # Future: could be 'update' or 'delete'
+                "details": config.get("properties"),
             }
-            self.plan['actions'].append(action)
+            self.plan["actions"].append(action)
 
         # Add cost estimate to the plan
         cost_estimate = self.cost_monitor.get_plan_cost_estimate(self.plan)
-        self.plan['estimated_cost'] = cost_estimate
+        self.plan["estimated_cost"] = cost_estimate
 
         logging.info("Deployment plan generated successfully.")
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("DEPLOYMENT PLAN SUMMARY")
-        print("="*80)
-        for action in self.plan['actions']:
-            print(f"- Action: {action['action']:<10} | Resource: {action['name']:<25} | Type: {action['type']}")
-        print("-"*80)
-        print(f"💰 Estimated Total Monthly Cost: ${self.plan['estimated_cost']['total_monthly_cost']}")
-        print("="*80 + "\n")
+        print("=" * 80)
+        for action in self.plan["actions"]:
+            print(
+                f"- Action: {action['action']:<10} | Resource: {action['name']:<25} | Type: {action['type']}"
+            )
+        print("-" * 80)
+        print(
+            f"💰 Estimated Total Monthly Cost: ${self.plan['estimated_cost']['total_monthly_cost']}"
+        )
+        print("=" * 80 + "\n")
 
         return self.plan
 
@@ -196,25 +201,30 @@ You can set the credentials as environment variables in your shell:
             raise ValueError("A plan must be generated before it can be executed.")
 
         if not auto_approve:
-            estimated_cost = self.plan['estimated_cost']['total_monthly_cost']
-            print(f"You are about to apply a plan that is estimated to cost ${estimated_cost}/month.")
+            estimated_cost = self.plan["estimated_cost"]["total_monthly_cost"]
+            print(
+                f"You are about to apply a plan that is estimated to cost ${estimated_cost}/month."
+            )
             confirm = input("--> Do you want to proceed? (yes/no): ")
-            if confirm.lower() != 'yes':
+            if confirm.lower() != "yes":
                 logging.warning("Execution cancelled by user.")
                 return
 
         logging.info("Executing deployment plan...")
 
         # Placeholder logic: Loop through actions and "pretend" to create them.
-        for action in self.plan.get('actions', []):
-            if action['action'] == 'create':
-                logging.info(f"  [CREATE] Resource '{action['name']}' of type '{action['type']}' with details: {action['details']}")
+        for action in self.plan.get("actions", []):
+            if action["action"] == "create":
+                logging.info(
+                    f"  [CREATE] Resource '{action['name']}' of type '{action['type']}' with details: {action['details']}"
+                )
             else:
                 logging.warning(f"Action '{action['action']}' is not yet implemented.")
 
         logging.info("Deployment plan executed successfully.")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # This is a simple demonstration of how the orchestrator will be used.
     # It requires a 'resources.yml' file for the demonstration.
 
@@ -225,34 +235,28 @@ if __name__ == '__main__':
         "resources": {
             "intentos_vpc": {
                 "type": "vpc",
-                "properties": {
-                    "cidr_block": "10.0.0.0/16",
-                    "tags": {"Name": "intentos-vpc"}
-                }
+                "properties": {"cidr_block": "10.0.0.0/16", "tags": {"Name": "intentos-vpc"}},
             },
             "intentos_cluster": {
                 "type": "ecs_cluster",
-                "properties": {
-                    "cluster_name": "intentos-main-cluster"
-                }
+                "properties": {"cluster_name": "intentos-main-cluster"},
             },
             "intentos_node_group": {
                 "type": "ec2_instance",
-                "properties": {
-                    "instance_type": "t3.micro"
-                }
-            }
-        }
+                "properties": {"instance_type": "t3.micro"},
+            },
+        },
     }
     # Create dummy directory if it does not exist
     import os
+
     if not os.path.exists("cloud/aws"):
         os.makedirs("cloud/aws")
 
     with open("cloud/aws/resources.yml", "w") as f:
         yaml.dump(dummy_resources, f)
 
-    orchestrator = CloudOrchestrator(provider='aws', region='us-east-1')
-    orchestrator.load_definitions('cloud/aws/resources.yml')
+    orchestrator = CloudOrchestrator(provider="aws", region="us-east-1")
+    orchestrator.load_definitions("cloud/aws/resources.yml")
     plan = orchestrator.generate_plan()
     orchestrator.execute_plan()

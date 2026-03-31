@@ -31,7 +31,9 @@ class IntentInterface:
     人类与 IntentOS 交互的主接口
     """
 
-    def __init__(self, registry: Optional[IntentRegistry] = None, mode: PrivilegeLevel = PrivilegeLevel.USER):
+    def __init__(
+        self, registry: Optional[IntentRegistry] = None, mode: PrivilegeLevel = PrivilegeLevel.USER
+    ):
         self.registry = registry or IntentRegistry()
         self.parser = IntentParser(self.registry)
         self.engine = ExecutionEngine(self.registry)
@@ -151,7 +153,7 @@ class IntentOS:
         self.watchdog.stop()
         # 清理后台任务
         for task in self._background_tasks:
-            if hasattr(task, 'cancel'):
+            if hasattr(task, "cancel"):
                 task.cancel()
         self._background_tasks.clear()
 
@@ -193,6 +195,7 @@ class IntentOS:
         # 保持运行
         try:
             import asyncio
+
             asyncio.get_event_loop().run_forever()
         except KeyboardInterrupt:
             self.shutdown()

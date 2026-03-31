@@ -16,6 +16,7 @@ from typing import Any, Optional
 
 class ExecutionStatus(Enum):
     """执行状态"""
+
     PENDING = "pending"
     RUNNING = "running"
     SUCCESS = "success"
@@ -26,6 +27,7 @@ class ExecutionStatus(Enum):
 @dataclass
 class ExecutionTrace:
     """执行追踪记录"""
+
     id: str
     intent: str
     matched_capability: Optional[str]
@@ -44,7 +46,9 @@ class ExecutionTrace:
             "matched_capability": self.matched_capability,
             "status": self.status.value,
             "start_time": datetime.fromtimestamp(self.start_time).isoformat(),
-            "end_time": datetime.fromtimestamp(self.end_time).isoformat() if self.end_time else None,
+            "end_time": datetime.fromtimestamp(self.end_time).isoformat()
+            if self.end_time
+            else None,
             "duration_ms": self.duration_ms,
             "error": self.error,
             "metadata": self.metadata,
@@ -54,6 +58,7 @@ class ExecutionTrace:
 @dataclass
 class ExecutionMetrics:
     """执行指标"""
+
     total_executions: int = 0
     successful_executions: int = 0
     failed_executions: int = 0
@@ -116,7 +121,7 @@ class ExecutionMonitor:
         matched_capability: Optional[str] = None,
         status: Optional[ExecutionStatus] = None,
         error: Optional[str] = None,
-        metadata: Optional[dict[str, Any]] = None
+        metadata: Optional[dict[str, Any]] = None,
     ) -> None:
         """更新追踪"""
         if matched_capability:
@@ -133,7 +138,9 @@ class ExecutionMonitor:
 
         self.logger.debug(f"更新执行追踪：{trace.id}, 状态：{trace.status.value}")
 
-    def end_trace(self, trace: ExecutionTrace, status: ExecutionStatus, error: Optional[str] = None) -> None:
+    def end_trace(
+        self, trace: ExecutionTrace, status: ExecutionStatus, error: Optional[str] = None
+    ) -> None:
         """结束追踪"""
         trace.end_time = time.time()
         trace.duration_ms = (trace.end_time - trace.start_time) * 1000
@@ -166,8 +173,9 @@ class ExecutionMonitor:
             self.metrics.total_duration_ms += trace.duration_ms
 
         if trace.matched_capability:
-            self.metrics.capability_usage[trace.matched_capability] = \
+            self.metrics.capability_usage[trace.matched_capability] = (
                 self.metrics.capability_usage.get(trace.matched_capability, 0) + 1
+            )
 
         # 更新延迟百分位
         self._update_latency_percentiles(trace.duration_ms)
@@ -178,10 +186,7 @@ class ExecutionMonitor:
             return
 
         # 从追踪中获取所有延迟
-        durations: list[float] = [
-            t.duration_ms for t in self.traces
-            if t.duration_ms is not None
-        ]
+        durations: list[float] = [t.duration_ms for t in self.traces if t.duration_ms is not None]
 
         if not durations:
             return
@@ -218,9 +223,7 @@ class ExecutionMonitor:
                 "percentage": count / max(total, 1) * 100,
             }
             for cap, count in sorted(
-                self.metrics.capability_usage.items(),
-                key=lambda x: x[1],
-                reverse=True
+                self.metrics.capability_usage.items(), key=lambda x: x[1], reverse=True
             )
         }
 
@@ -229,10 +232,7 @@ class AgentExecutor:
     """Agent 执行器（监控版）"""
 
     def __init__(
-        self,
-        registry: Any,
-        llm_processor: Optional[Any] = None,
-        enable_monitoring: bool = True
+        self, registry: Any, llm_processor: Optional[Any] = None, enable_monitoring: bool = True
     ) -> None:
         self.registry = registry
         self.llm_processor = llm_processor
@@ -259,7 +259,9 @@ class AgentExecutor:
                     self.monitor.update_trace(trace, matched_capability=matched.id)
 
                 params = self._extract_params(matched, pef.intent)
-                result = await self.registry.execute_capability(matched.id, context=context, **params)
+                result = await self.registry.execute_capability(
+                    matched.id, context=context, **params
+                )
 
                 if trace and self.monitor:
                     self.monitor.end_trace(trace, ExecutionStatus.SUCCESS)
@@ -270,7 +272,9 @@ class AgentExecutor:
             matched = self._keyword_match_capability(intent_lower)
             if matched:
                 params = self._extract_params(matched, pef.intent)
-                result = await self.registry.execute_capability(matched.id, context=context, **params)
+                result = await self.registry.execute_capability(
+                    matched.id, context=context, **params
+                )
 
                 if trace and self.monitor:
                     self.monitor.end_trace(trace, ExecutionStatus.SUCCESS)
@@ -281,9 +285,7 @@ class AgentExecutor:
                 self.monitor.end_trace(trace, ExecutionStatus.SUCCESS)
 
             return AgentResult(
-                success=True,
-                message=f"✓ 已理解：{pef.intent}",
-                data={"intent": pef.intent}
+                success=True, message=f"✓ 已理解：{pef.intent}", data={"intent": pef.intent}
             )
 
         except Exception as e:
@@ -291,6 +293,7 @@ class AgentExecutor:
                 self.monitor.end_trace(trace, ExecutionStatus.FAILED, error=str(e))
 
             from .core import AgentResult
+
             return AgentResult(success=False, message=f"执行失败：{e}", error=str(e))
 
     async def _llm_match_capability(self, intent: str) -> Optional[Any]:
@@ -299,10 +302,9 @@ class AgentExecutor:
             return None
 
         capabilities = self.registry.list_capabilities()
-        cap_list = "\n".join([
-            f"- {cap.id}: {cap.name} ({cap.description}) tags={cap.tags}"
-            for cap in capabilities
-        ])
+        cap_list = "\n".join(
+            [f"- {cap.id}: {cap.name} ({cap.description}) tags={cap.tags}" for cap in capabilities]
+        )
 
         prompt = f"""分析用户意图，匹配最合适的能力。
 
@@ -338,10 +340,11 @@ class AgentExecutor:
     def _extract_params(self, cap: Any, intent: str) -> dict:
         """提取参数"""
         import re
+
         params = {}
 
         if cap.id == "shell":
-            for pattern in [r'["\']([^"\']+)["\']', r'执行 (.+)', r'运行 (.+)']:
+            for pattern in [r'["\']([^"\']+)["\']', r"执行 (.+)", r"运行 (.+)"]:
                 match = re.search(pattern, intent)
                 if match:
                     params["command"] = match.group(1).strip()
@@ -349,7 +352,7 @@ class AgentExecutor:
             if "command" not in params:
                 params["command"] = intent.replace("执行", "").replace("运行", "").strip()
         elif cap.id == "calculator":
-            match = re.search(r'([\d+\-*/().\s]+)', intent)
+            match = re.search(r"([\d+\-*/().\s]+)", intent)
             if match:
                 params["expression"] = match.group(1).strip()
 

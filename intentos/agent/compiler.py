@@ -16,6 +16,7 @@ from typing import Any, Optional
 @dataclass
 class PEF:
     """Prompt Executable File"""
+
     version: str = "1.0"
     id: str = field(default_factory=lambda: f"pef_{datetime.now().strftime('%Y%m%d%H%M%S')}")
     intent: str = ""
@@ -50,6 +51,7 @@ class PEF:
 @dataclass
 class PEFCacheEntry:
     """PEF 缓存条目"""
+
     pef: PEF
     created_at: float = field(default_factory=time.time)
     access_count: int = 0
@@ -144,7 +146,9 @@ class IntentCompiler:
 
     def _register_default_templates(self) -> None:
         """注册默认 Prompt 模板"""
-        self._prompt_templates["default"] = """你是一个 AI 智能助理。可用能力：{capabilities}。用户意图：{intent}。"""
+        self._prompt_templates[
+            "default"
+        ] = """你是一个 AI 智能助理。可用能力：{capabilities}。用户意图：{intent}。"""
         self._prompt_templates["optimized"] = """角色：AI 助理
 能力：{capabilities}
 任务：{intent}
@@ -155,7 +159,7 @@ class IntentCompiler:
         intent: str,
         capabilities: list[str],
         context: Optional[dict[str, Any]] = None,
-        optimize: bool = True
+        optimize: bool = True,
     ) -> PEF:
         """编译意图为 PEF"""
         start_time: float = time.time()
@@ -209,7 +213,9 @@ class IntentCompiler:
 
         return pef
 
-    def _generate_cache_key(self, intent: str, capabilities: list[str], context: dict[str, Any]) -> str:
+    def _generate_cache_key(
+        self, intent: str, capabilities: list[str], context: dict[str, Any]
+    ) -> str:
         """生成缓存键"""
         key_data: str = f"{intent}|{','.join(sorted(capabilities))}|{str(sorted(context.items()))}"
         return hashlib.md5(key_data.encode()).hexdigest()
@@ -224,11 +230,13 @@ class IntentCompiler:
         pef.token_count = self._estimate_token_count(pef)
 
         # 3. 添加优化约束
-        pef.constraints.update({
-            "temperature": 0.0,  # 确定性执行
-            "max_tokens": 2048,
-            "stream": False,
-        })
+        pef.constraints.update(
+            {
+                "temperature": 0.0,  # 确定性执行
+                "max_tokens": 2048,
+                "stream": False,
+            }
+        )
 
     def _estimate_token_count(self, pef: PEF) -> int:
         """估算 Token 数"""

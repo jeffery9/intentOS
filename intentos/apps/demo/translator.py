@@ -165,7 +165,7 @@ class TranslatorApp:
         text: str,
         source_language: Optional[str] = None,
         target_language: str = "en",
-        context: Optional[dict[str, Any]] = None
+        context: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """
         翻译文本
@@ -223,7 +223,7 @@ class TranslatorApp:
     def _detect_language(self, text: str) -> str:
         """检测语言（模拟）"""
         # 简单启发式检测
-        chinese_chars = sum(1 for c in text if '\u4e00' <= c <= '\u9fff')
+        chinese_chars = sum(1 for c in text if "\u4e00" <= c <= "\u9fff")
         if chinese_chars > len(text) * 0.3:
             return "zh"
         return "en"  # 默认英语
@@ -242,12 +242,7 @@ class TranslatorApp:
         cost = (word_count / 100) * self.pricing["price_per_100_words"]
         return max(cost, self.pricing["minimum_charge"])
 
-    def _generate_translation(
-        self,
-        text: str,
-        source_language: str,
-        target_language: str
-    ) -> str:
+    def _generate_translation(self, text: str, source_language: str, target_language: str) -> str:
         """生成翻译（模拟）"""
         # 模拟翻译结果
         if source_language == "zh" and target_language == "en":
@@ -263,7 +258,7 @@ class TranslatorApp:
         source_language: Optional[str] = None,
         target_language: str = "en",
         preserve_format: bool = True,
-        context: Optional[dict[str, Any]] = None
+        context: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """
         翻译文档
@@ -282,6 +277,7 @@ class TranslatorApp:
 
         # 模拟文档翻译
         import time
+
         start_time = time.time()
 
         # 模拟处理
@@ -327,7 +323,7 @@ class TranslatorApp:
         texts: list[str],
         source_language: Optional[str] = None,
         target_language: str = "en",
-        context: Optional[dict[str, Any]] = None
+        context: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """
         批量翻译
@@ -379,9 +375,7 @@ class TranslatorApp:
         return self.supported_languages
 
     async def submit_to_intentos(
-        self,
-        intentos_url: str = "http://localhost:8080",
-        api_key: Optional[str] = None
+        self, intentos_url: str = "http://localhost:8080", api_key: Optional[str] = None
     ) -> dict[str, Any]:
         """提交到 IntentOS"""
         from intentos.agent.submission import IntentOSConnector

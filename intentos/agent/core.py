@@ -13,6 +13,7 @@ from typing import Any, Optional
 @dataclass
 class AgentConfig:
     """Agent 配置"""
+
     name: str = "IntentOS Agent"
     version: str = "1.0.0"
     description: str = "AI 智能助理"
@@ -26,6 +27,7 @@ class AgentConfig:
 @dataclass
 class AgentContext:
     """Agent 执行上下文"""
+
     user_id: str
     session_id: str = ""
     conversation_history: list[dict[str, Any]] = field(default_factory=list)
@@ -46,6 +48,7 @@ class AgentContext:
 @dataclass
 class AgentResult:
     """Agent 执行结果"""
+
     success: bool
     message: str
     data: Optional[dict[str, Any]] = None
@@ -82,11 +85,7 @@ class Agent(ABC):
         return True
 
     @abstractmethod
-    async def execute(
-        self,
-        intent: str,
-        context: AgentContext
-    ) -> AgentResult:
+    async def execute(self, intent: str, context: AgentContext) -> AgentResult:
         """
         执行意图
 

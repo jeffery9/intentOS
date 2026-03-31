@@ -14,12 +14,14 @@ import sys
 def start_daemon(args):
     """启动守护进程（服务器）"""
     from intentos.interface.daemon import start_daemon
+
     start_daemon(args)
 
 
 def run_cli(args):
     """运行命令行工具"""
     from intentos.cli.cli import main
+
     main()
 
 
@@ -29,7 +31,8 @@ def main():
         description="IntentOS - AI 原生操作系统",
     )
     parser.add_argument(
-        "-v", "--version",
+        "-v",
+        "--version",
         action="version",
         version="%(prog)s 16.0.0",
     )
@@ -40,31 +43,16 @@ def main():
     p_daemon = subparsers.add_parser(
         "daemon",
         help="启动内核守护进程（服务器模式）",
-        description="启动 IntentOS 内核并监听 RPC 请求"
+        description="启动 IntentOS 内核并监听 RPC 请求",
     )
-    p_daemon.add_argument(
-        "--api",
-        action="store_true",
-        help="同时启动 API 网关"
-    )
-    p_daemon.add_argument(
-        "--api-host",
-        default="localhost",
-        help="API 监听地址 (默认：localhost)"
-    )
-    p_daemon.add_argument(
-        "--api-port",
-        type=int,
-        default=8080,
-        help="API 监听端口 (默认：8080)"
-    )
+    p_daemon.add_argument("--api", action="store_true", help="同时启动 API 网关")
+    p_daemon.add_argument("--api-host", default="localhost", help="API 监听地址 (默认：localhost)")
+    p_daemon.add_argument("--api-port", type=int, default=8080, help="API 监听端口 (默认：8080)")
     p_daemon.set_defaults(func=start_daemon)
 
     # cli 命令（包含 shell、chat 等）
     p_cli = subparsers.add_parser(
-        "cli",
-        help="命令行工具",
-        description="提供 shell、chat、图谱管理、验证、轨迹等工具命令"
+        "cli", help="命令行工具", description="提供 shell、chat、图谱管理、验证、轨迹等工具命令"
     )
     p_cli.set_defaults(func=run_cli)
 

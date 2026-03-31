@@ -12,7 +12,7 @@ import logging
 from typing import Any, Dict, Optional
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
 class MCPIntegration:
@@ -27,10 +27,7 @@ class MCPIntegration:
         self.servers: dict[str, dict[str, Any]] = {}
 
     async def connect_server(
-        self,
-        name: str,
-        command: str,
-        args: Optional[list[str]] = None
+        self, name: str, command: str, args: Optional[list[str]] = None
     ) -> bool:
         """
         连接 MCP 服务器
@@ -59,14 +56,18 @@ class MCPIntegration:
             }
 
             # 发送初始化请求
-            await self._send_request(name, "initialize", {
-                "protocolVersion": "2024-11-05",
-                "capabilities": {},
-                "clientInfo": {
-                    "name": "IntentOS",
-                    "version": "1.0.0",
+            await self._send_request(
+                name,
+                "initialize",
+                {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {},
+                    "clientInfo": {
+                        "name": "IntentOS",
+                        "version": "1.0.0",
+                    },
                 },
-            })
+            )
 
             # 获取工具列表并注册
             tools: list[dict[str, Any]] = await self.list_tools(name)
@@ -88,10 +89,7 @@ class MCPIntegration:
         return False
 
     async def _send_request(
-        self,
-        name: str,
-        method: str,
-        params: dict[str, Any]
+        self, name: str, method: str, params: dict[str, Any]
     ) -> Optional[dict[str, Any]]:
         """发送 JSON-RPC 请求"""
         if name not in self.servers:
@@ -136,7 +134,7 @@ class MCPIntegration:
                 {
                     "name": tool.get("name"),
                     "arguments": kwargs,
-                }
+                },
             )
 
         self.registry.register(
@@ -174,7 +172,7 @@ class MCPIntegration:
             "capabilities_exposed": [],
             "metering_system": "active",
             "pricing_model": "pay-as-you-go",
-            "metrics_dashboard": "https://monitor.intentos.com/metrics"
+            "metrics_dashboard": "https://monitor.intentos.com/metrics",
         }
 
         logging.info("Simulating exposure of registered capabilities through the metered API.")

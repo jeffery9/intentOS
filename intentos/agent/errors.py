@@ -13,6 +13,7 @@ from typing import Any, Optional
 
 class ErrorCode(Enum):
     """错误码"""
+
     # 成功
     SUCCESS = "SUCCESS_000"
 
@@ -56,6 +57,7 @@ class ErrorCode(Enum):
 @dataclass
 class AgentError:
     """Agent 错误"""
+
     code: ErrorCode
     message: str
     details: Optional[dict[str, Any]] = None
@@ -82,7 +84,7 @@ class AgentException(Exception):
         code: ErrorCode,
         message: str,
         details: Optional[dict[str, Any]] = None,
-        cause: Optional[Exception] = None
+        cause: Optional[Exception] = None,
     ) -> None:
         super().__init__(message)
         self.code = code
@@ -101,93 +103,89 @@ class AgentException(Exception):
 
 # ========== 快捷错误创建函数 ==========
 
+
 def create_unknown_error(message: str, cause: Optional[Exception] = None) -> AgentError:
     """创建未知错误"""
     return AgentError(ErrorCode.UNKNOWN_ERROR, message, cause=cause)
 
+
 def create_invalid_argument_error(message: str) -> AgentError:
     """创建无效参数错误"""
     return AgentError(ErrorCode.INVALID_ARGUMENT, message)
+
 
 def create_capability_not_found_error(capability_id: str) -> AgentError:
     """创建能力未找到错误"""
     return AgentError(
         ErrorCode.CAPABILITY_NOT_FOUND,
         f"能力未找到：{capability_id}",
-        details={"capability_id": capability_id}
+        details={"capability_id": capability_id},
     )
 
+
 def create_capability_execution_error(
-    capability_id: str,
-    error: str,
-    cause: Optional[Exception] = None
+    capability_id: str, error: str, cause: Optional[Exception] = None
 ) -> AgentError:
     """创建能力执行错误"""
     return AgentError(
         ErrorCode.CAPABILITY_EXECUTION_FAILED,
         f"能力执行失败：{capability_id} - {error}",
         details={"capability_id": capability_id, "execution_error": error},
-        cause=cause
+        cause=cause,
     )
+
 
 def create_intent_not_understood_error(intent: str) -> AgentError:
     """创建意图未理解错误"""
     return AgentError(
-        ErrorCode.INTENT_NOT_UNDERSTOOD,
-        f"无法理解意图：{intent}",
-        details={"intent": intent}
+        ErrorCode.INTENT_NOT_UNDERSTOOD, f"无法理解意图：{intent}", details={"intent": intent}
     )
+
 
 def create_intent_no_matching_capability_error(intent: str) -> AgentError:
     """创建意图无匹配能力错误"""
     return AgentError(
         ErrorCode.INTENT_NO_MATCHING_CAPABILITY,
         f"没有匹配的能力来处理意图：{intent}",
-        details={"intent": intent}
+        details={"intent": intent},
     )
+
 
 def create_pef_compile_error(message: str, cause: Optional[Exception] = None) -> AgentError:
     """创建 PEF 编译错误"""
-    return AgentError(
-        ErrorCode.PEF_COMPILE_FAILED,
-        f"PEF 编译失败：{message}",
-        cause=cause
-    )
+    return AgentError(ErrorCode.PEF_COMPILE_FAILED, f"PEF 编译失败：{message}", cause=cause)
+
 
 def create_pef_execute_error(message: str, cause: Optional[Exception] = None) -> AgentError:
     """创建 PEF 执行错误"""
-    return AgentError(
-        ErrorCode.PEF_EXECUTE_FAILED,
-        f"PEF 执行失败：{message}",
-        cause=cause
-    )
+    return AgentError(ErrorCode.PEF_EXECUTE_FAILED, f"PEF 执行失败：{message}", cause=cause)
+
 
 def create_mcp_connection_error(server_name: str, error: str) -> AgentError:
     """创建 MCP 连接错误"""
     return AgentError(
         ErrorCode.MCP_CONNECTION_FAILED,
         f"MCP 服务器连接失败：{server_name} - {error}",
-        details={"server_name": server_name, "connection_error": error}
+        details={"server_name": server_name, "connection_error": error},
     )
+
 
 def create_skill_not_found_error(skill_id: str) -> AgentError:
     """创建 Skill 未找到错误"""
     return AgentError(
-        ErrorCode.SKILL_NOT_FOUND,
-        f"Skill 未找到：{skill_id}",
-        details={"skill_id": skill_id}
+        ErrorCode.SKILL_NOT_FOUND, f"Skill 未找到：{skill_id}", details={"skill_id": skill_id}
     )
+
 
 def create_permission_denied_error(resource: str) -> AgentError:
     """创建权限拒绝错误"""
     return AgentError(
-        ErrorCode.PERMISSION_DENIED,
-        f"权限不足：{resource}",
-        details={"resource": resource}
+        ErrorCode.PERMISSION_DENIED, f"权限不足：{resource}", details={"resource": resource}
     )
 
 
 # ========== 错误处理器 ==========
+
 
 class ErrorHandler:
     """错误处理器"""

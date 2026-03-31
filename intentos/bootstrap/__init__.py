@@ -4,42 +4,6 @@ IntentOS Bootstrap 模块
 Self-Bootstrap 自举机制：系统可以修改自身的规则
 """
 
-import logging
-
-from .executor import (
-    SelfBootstrapExecutor,
-    BootstrapRecord,
-    BootstrapPolicy,
-    create_bootstrap_executor,
-    create_bootstrap_policy,
-)
-
-from .meta_intent_executor import (
-    MetaIntentExecutor,
-    MetaIntent,
-    MetaIntentType,
-    BootstrapPolicy as MetaPolicy,
-    create_meta_intent_executor,
-    create_meta_intent,
-)
-
-from .protocol_extender import (
-    ProtocolSelfExtender,
-    CapabilityGap,
-    ExtensionSuggestion,
-)
-
-from .template_grower import (
-    IntentTemplateSelfGrower,
-    IntentPatternMiner,
-    IntentPattern,
-)
-
-from .self_modifying_os import (
-    SelfModifyingOS,
-    OSComponent,
-    create_self_modifying_os,
-)
 
 from .dual_memory_os import (
     DualMemoryOS,
@@ -47,15 +11,46 @@ from .dual_memory_os import (
     MemoryBankStatus,
     create_dual_memory_os,
 )
-
+from .executor import (
+    BootstrapPolicy,
+    BootstrapRecord,
+    SelfBootstrapExecutor,
+    create_bootstrap_executor,
+    create_bootstrap_policy,
+)
+from .meta_intent_executor import (
+    BootstrapPolicy as MetaPolicy,
+)
+from .meta_intent_executor import (
+    MetaIntent,
+    MetaIntentExecutor,
+    MetaIntentType,
+    create_meta_intent,
+    create_meta_intent_executor,
+)
+from .protocol_extender import (
+    CapabilityGap,
+    ExtensionSuggestion,
+    ProtocolSelfExtender,
+)
+from .self_modifying_os import (
+    OSComponent,
+    SelfModifyingOS,
+    create_self_modifying_os,
+)
 from .self_reproduction import (
-    SelfReproduction,
-    ReproductionType,
-    ReproductionStatus,
-    ReproductionPlan,
-    IntentOSInstance,
     AuditLog,
+    IntentOSInstance,
+    ReproductionPlan,
+    ReproductionStatus,
+    ReproductionType,
     SecurityError,
+    SelfReproduction,
+)
+from .template_grower import (
+    IntentPattern,
+    IntentPatternMiner,
+    IntentTemplateSelfGrower,
 )
 
 __all__ = [

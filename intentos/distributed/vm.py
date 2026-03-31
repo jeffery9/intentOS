@@ -39,6 +39,7 @@ class VMNode:
     """
     VM 节点
     """
+
     node_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     host: str = "localhost"
     port: int = 8000
@@ -360,7 +361,9 @@ class DistributedCoordinator:
         if not node:
             # 调度失败逻辑：如果是因为没有满足能力的节点，则报错
             if required_caps:
-                return self._create_error_result(pid, f"调度失败：无节点具备所需能力 {required_caps}")
+                return self._create_error_result(
+                    pid, f"调度失败：无节点具备所需能力 {required_caps}"
+                )
             return self._create_error_result(pid, "调度失败：没有可用节点")
 
         # 3. 创建 PCB
@@ -438,7 +441,9 @@ class DistributedCoordinator:
             active_processes.append(pcb)
         return active_processes
 
-    async def _select_best_node(self, required_capabilities: Optional[list[str]] = None) -> Optional[VMNode]:
+    async def _select_best_node(
+        self, required_capabilities: Optional[list[str]] = None
+    ) -> Optional[VMNode]:
         """
         基于能力与负载选择最佳节点 (Capability-Aware Scheduling)
 
@@ -452,7 +457,8 @@ class DistributedCoordinator:
         candidate_nodes = active_nodes
         if required_capabilities:
             candidate_nodes = [
-                n for n in active_nodes
+                n
+                for n in active_nodes
                 if all(cap in n.capabilities for cap in required_capabilities)
             ]
 
@@ -523,15 +529,14 @@ class DistributedCoordinator:
 
             # 清理屏障状态以备复用
             await self.memory.delete("VARIABLE", key)
-            return True # 屏障已释放
+            return True  # 屏障已释放
         else:
             # 挂起当前进程
             if pid in self.processes:
                 self.processes[pid].state = ProcessState.SUSPENDED
-            return False # 进程已挂起，等待中
+            return False  # 进程已挂起，等待中
 
     async def get_status(self, exec_id: str) -> Optional[dict]:
-
         """获取执行结果"""
         return self.results.get(exec_id)
 
@@ -541,14 +546,14 @@ class DistributedCoordinator:
         context: Optional[dict] = None,
         aggregator_prompt: Optional[str] = None,
         max_concurrency: int = 10,
-        max_retries: int = 2
+        max_retries: int = 2,
     ) -> dict[str, Any]:
         """
         大规模语义 Map-Reduce (Large-scale Semantic Map-Reduce)
         支持并发控制和重试机制。
         """
         semaphore = asyncio.Semaphore(max_concurrency)
-        pids_to_tasks = {} # PID -> (Program, AttemptCount)
+        pids_to_tasks = {}  # PID -> (Program, AttemptCount)
         results = []
         failed_tasks = []
 
@@ -595,7 +600,9 @@ class DistributedCoordinator:
             return {"success": True, "map_results": results, "failed": failed_tasks}
 
         summary_prompt = aggregator_prompt or "请对以下大规模子任务的执行结果进行汇总报告："
-        full_context = f"{summary_prompt}\n\n" + "\n---\n".join([str(r.get('final_state', r)) for r in results])
+        full_context = f"{summary_prompt}\n\n" + "\n---\n".join(
+            [str(r.get("final_state", r)) for r in results]
+        )
 
         final_summary = await self.local_vm.processor.execute_llm(full_context, self.memory)
 
@@ -605,8 +612,8 @@ class DistributedCoordinator:
             "stats": {
                 "total": len(sub_programs),
                 "success": len(results),
-                "failed": len(failed_tasks)
-            }
+                "failed": len(failed_tasks),
+            },
         }
 
 
@@ -787,7 +794,10 @@ class DistributedProcessor(LLMProcessor):
             # 1. 语义拆分意图 (Intelligent Split)
             intent = instruction.parameters.get("intent", "")
             if not intent:
-                return {"success": False, "error": "PARALLEL instruction requires an 'intent' parameter"}
+                return {
+                    "success": False,
+                    "error": "PARALLEL instruction requires an 'intent' parameter",
+                }
 
             # 获取集群支持的所有能力，辅助分解
             all_caps = []
@@ -799,14 +809,16 @@ class DistributedProcessor(LLMProcessor):
 
             # 2. 构造子程序列表
             from intentos.semantic_vm import SemanticInstruction, SemanticOpcode, SemanticProgram
+
             sub_programs = []
             for task in sub_tasks:
                 prog = SemanticProgram(name=task["name"], description=task["description"])
                 # 为子任务添加执行指令
-                prog.add_instruction(SemanticInstruction(
-                    opcode=SemanticOpcode.EXECUTE,
-                    parameters={"intent": task["description"]}
-                ))
+                prog.add_instruction(
+                    SemanticInstruction(
+                        opcode=SemanticOpcode.EXECUTE, parameters={"intent": task["description"]}
+                    )
+                )
                 # 注入所需能力到元数据，供调度器使用
                 prog.variables["_required_capabilities"] = task.get("required_capabilities", [])
                 sub_programs.append(prog)
@@ -815,7 +827,7 @@ class DistributedProcessor(LLMProcessor):
             result = await self.cluster.coordinator.map_reduce(
                 sub_programs,
                 context=instruction.parameters.get("context"),
-                aggregator_prompt=f"意图：{intent}\n请汇总子任务结果以回答原始意图："
+                aggregator_prompt=f"意图：{intent}\n请汇总子任务结果以回答原始意图：",
             )
             return result
 
@@ -845,7 +857,10 @@ class DistributedProcessor(LLMProcessor):
                     for i in range(0, len(data), shard_size):
                         shards.append(data[i : i + shard_size])
             else:
-                return {"success": False, "error": f"Unsupported data type for sharding: {type(data)}"}
+                return {
+                    "success": False,
+                    "error": f"Unsupported data type for sharding: {type(data)}",
+                }
 
             shard_keys = []
             for i, shard_data in enumerate(shards):
@@ -853,11 +868,7 @@ class DistributedProcessor(LLMProcessor):
                 await self.cluster.memory.set(target, shard_key, shard_data)
                 shard_keys.append(shard_key)
 
-            return {
-                "success": True,
-                "shard_keys": shard_keys,
-                "target": target
-            }
+            return {"success": True, "shard_keys": shard_keys, "target": target}
 
         elif opcode == DistributedOpcode.REPLICATE:
             # 复制数据
@@ -886,23 +897,32 @@ class DistributedProcessor(LLMProcessor):
             program = await self.cluster.memory.get("PROGRAM", target_name)
             if program:
                 from intentos.semantic_vm import SemanticProgram
+
                 if isinstance(program, dict):
                     program = SemanticProgram.from_dict(program)
-                pid = await self.cluster.execute_program(program, instruction.parameters.get("context"))
+                pid = await self.cluster.execute_program(
+                    program, instruction.parameters.get("context")
+                )
                 return {"success": True, "pid": pid}
             return {"success": False, "error": f"Program not found: {target_name}"}
 
         elif opcode == DistributedOpcode.MIGRATE:
             # 语义迁移 (Semantic Migration)
             # 参数: target (DATA/PROCESS), name/pid, destination_node
-            migrate_type = instruction.target # "DATA" or "PROCESS"
+            migrate_type = instruction.target  # "DATA" or "PROCESS"
             target_id = instruction.target_name
             dest_node_id = instruction.parameters.get("destination_node")
 
             # 找到目标节点
-            dest_node = next((n for n in self.cluster.memory.get_active_nodes() if n.node_id == dest_node_id), None)
+            dest_node = next(
+                (n for n in self.cluster.memory.get_active_nodes() if n.node_id == dest_node_id),
+                None,
+            )
             if not dest_node:
-                return {"success": False, "error": f"Destination node {dest_node_id} not found or inactive"}
+                return {
+                    "success": False,
+                    "error": f"Destination node {dest_node_id} not found or inactive",
+                }
 
             if migrate_type == "PROCESS":
                 # --- 进程热迁移 (Live Process Migration) ---
@@ -919,7 +939,7 @@ class DistributedProcessor(LLMProcessor):
                     "program_name": process.program_name,
                     "pc": process.pc,
                     "context": process.context,
-                    "parent_pid": process.parent_pid
+                    "parent_pid": process.parent_pid,
                 }
 
                 # 3. 在目标节点恢复执行 (RPC 调用)
@@ -931,22 +951,30 @@ class DistributedProcessor(LLMProcessor):
                         async with session.post(
                             url,
                             json={
-                                "program": program.to_dict() if hasattr(program, "to_dict") else program,
+                                "program": program.to_dict()
+                                if hasattr(program, "to_dict")
+                                else program,
                                 "context": process.context,
                                 "resume_pc": process.pc,
-                                "pid": pid # 保持原 PID
+                                "pid": pid,  # 保持原 PID
                             },
-                            timeout=10
+                            timeout=10,
                         ) as resp:
                             if resp.status == 200:
                                 # 4. 更新全局进程表信息
                                 process.node_id = dest_node.node_id
                                 process.state = ProcessState.RUNNING
                                 process.update_time = datetime.now()
-                                return {"success": True, "message": f"Process {pid} migrated to {dest_node_id}"}
+                                return {
+                                    "success": True,
+                                    "message": f"Process {pid} migrated to {dest_node_id}",
+                                }
                             else:
                                 process.state = ProcessState.FAILED
-                                return {"success": False, "error": f"Migration failed on destination node: {resp.status}"}
+                                return {
+                                    "success": False,
+                                    "error": f"Migration failed on destination node: {resp.status}",
+                                }
                 except Exception as e:
                     process.state = ProcessState.FAILED
                     return {"success": False, "error": f"Migration RPC error: {e}"}
@@ -954,21 +982,24 @@ class DistributedProcessor(LLMProcessor):
             else:
                 # --- 数据迁移 (Data Migration) ---
                 # 例如将 VARIABLE:user_data 从本地迁移到指定节点
-                store = migrate_type # 如 "VARIABLE", "PROGRAM"
+                store = migrate_type  # 如 "VARIABLE", "PROGRAM"
                 data = await self.cluster.memory.get(store, target_id)
                 if data:
                     # 1. 在目标节点设置数据
                     await self.cluster.memory._remote_set(dest_node, store, target_id, data)
                     # 2. (可选) 从原位置删除，如果不是本地存储则忽略
                     # self.cluster.memory.local_storage.delete(store, target_id)
-                    return {"success": True, "message": f"Data {store}:{target_id} migrated to {dest_node_id}"}
+                    return {
+                        "success": True,
+                        "message": f"Data {store}:{target_id} migrated to {dest_node_id}",
+                    }
                 return {"success": False, "error": f"Data not found: {store}:{target_id}"}
 
         elif opcode == DistributedOpcode.BARRIER:
             # 语义屏障 (Semantic Barrier)
             barrier_id = instruction.target_name or "global_barrier"
             count = instruction.parameters.get("count", 2)
-            pid = instruction.parameters.get("pid") # 需要上下文提供当前进程 PID
+            pid = instruction.parameters.get("pid")  # 需要上下文提供当前进程 PID
 
             if not pid:
                 return {"success": False, "error": "BARRIER instruction requires a 'pid' parameter"}

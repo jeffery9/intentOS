@@ -9,14 +9,15 @@ for managing products, subscriptions, and processing payments for IntentOS servi
 import logging
 from typing import Any, Dict
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
 
 class PaymentIntegration:
     """
     Simulates payment system integration for IntentOS.
     """
 
-    def __init__(self, provider: str = 'stripe'):
+    def __init__(self, provider: str = "stripe"):
         """
         Initializes the payment integration module.
 
@@ -27,7 +28,9 @@ class PaymentIntegration:
         self.subscriptions: Dict[str, Any] = {}
         logging.info(f"PaymentIntegration initialized for provider: {self.provider}")
 
-    def create_product(self, product_id: str, name: str, price_usd_per_unit: float) -> Dict[str, Any]:
+    def create_product(
+        self, product_id: str, name: str, price_usd_per_unit: float
+    ) -> Dict[str, Any]:
         """
         Simulates creating a new product in the payment system.
 
@@ -36,17 +39,21 @@ class PaymentIntegration:
         :param price_usd_per_unit: The price per unit of the product in USD.
         :return: Details of the created product.
         """
-        logging.info(f"Simulating creation of product '{name}' ({product_id}) with price ${price_usd_per_unit}/unit.")
+        logging.info(
+            f"Simulating creation of product '{name}' ({product_id}) with price ${price_usd_per_unit}/unit."
+        )
         product_details = {
             "id": product_id,
             "name": name,
             "price_per_unit": price_usd_per_unit,
-            "status": "active"
+            "status": "active",
         }
         self.products[product_id] = product_details
         return product_details
 
-    def create_subscription(self, user_id: str, product_id: str, quantity: int = 1) -> Dict[str, Any]:
+    def create_subscription(
+        self, user_id: str, product_id: str, quantity: int = 1
+    ) -> Dict[str, Any]:
         """
         Simulates creating a subscription for a user to a product.
 
@@ -60,7 +67,9 @@ class PaymentIntegration:
             logging.error(f"Product '{product_id}' not found for subscription.")
             raise ValueError(f"Product '{product_id}' does not exist.")
 
-        logging.info(f"Simulating subscription for user '{user_id}' to product '{product_id}' (quantity: {quantity}).")
+        logging.info(
+            f"Simulating subscription for user '{user_id}' to product '{product_id}' (quantity: {quantity})."
+        )
         subscription_id = f"sub_{user_id}_{product_id}"
         subscription_details = {
             "id": subscription_id,
@@ -68,9 +77,9 @@ class PaymentIntegration:
             "product_id": product_id,
             "quantity": quantity,
             "status": "active",
-            "start_date": "2026-03-18", # Dummy date
+            "start_date": "2026-03-18",  # Dummy date
             "next_bill_date": "2026-04-18",
-            "unit_price": self.products[product_id]["price_per_unit"]
+            "unit_price": self.products[product_id]["price_per_unit"],
         }
         self.subscriptions[subscription_id] = subscription_details
         return subscription_details
@@ -96,7 +105,7 @@ class PaymentIntegration:
             "amount": amount,
             "currency": "USD",
             "status": "completed",
-            "timestamp": "2026-03-18T10:00:00Z" # Dummy timestamp
+            "timestamp": "2026-03-18T10:00:00Z",  # Dummy timestamp
         }
         return payment_details
 
@@ -116,7 +125,7 @@ class PaymentIntegration:
             "total_api_calls": 1500,
             "tokens_processed": 1200000,
             "compute_units": 500,
-            "estimated_cost_this_period": 12.50
+            "estimated_cost_this_period": 12.50,
         }
 
     def get_product_price(self, product_id: str) -> float:

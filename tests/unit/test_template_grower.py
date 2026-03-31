@@ -4,13 +4,11 @@ Template Grower Module Tests
 测试意图模板自生长器模块：模式挖掘、模板生成、历史分析
 """
 
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock
 
 from intentos.bootstrap.template_grower import (
-    IntentPattern,
     IntentHistoryEntry,
+    IntentPattern,
     IntentPatternMiner,
 )
 
@@ -26,7 +24,7 @@ class TestIntentPattern:
             parameters=["region"],
             frequency=10,
             first_seen=datetime.now(),
-            last_seen=datetime.now()
+            last_seen=datetime.now(),
         )
 
         assert pattern.pattern_id == "pattern1"
@@ -45,11 +43,8 @@ class TestIntentPattern:
             frequency=50,
             first_seen=now - timedelta(days=7),
             last_seen=now,
-            examples=[
-                "对比华东和华北的 Q3 销售",
-                "对比北京和上海的月度销售"
-            ],
-            confidence=0.95
+            examples=["对比华东和华北的 Q3 销售", "对比北京和上海的月度销售"],
+            confidence=0.95,
         )
 
         assert pattern.pattern_id == "pattern2"
@@ -67,7 +62,7 @@ class TestIntentPattern:
             frequency=10,
             first_seen=datetime.now(),
             last_seen=datetime.now(),
-            confidence=0.9
+            confidence=0.9,
         )
 
         assert pattern.is_template_candidate(min_frequency=5) is True
@@ -81,7 +76,7 @@ class TestIntentPattern:
             frequency=3,
             first_seen=datetime.now(),
             last_seen=datetime.now(),
-            confidence=0.9
+            confidence=0.9,
         )
 
         assert pattern.is_template_candidate(min_frequency=5) is False
@@ -95,7 +90,7 @@ class TestIntentPattern:
             frequency=10,
             first_seen=datetime.now(),
             last_seen=datetime.now(),
-            confidence=0.9
+            confidence=0.9,
         )
 
         assert pattern.is_template_candidate(min_frequency=5) is False
@@ -109,7 +104,7 @@ class TestIntentPattern:
             frequency=10,
             first_seen=datetime.now(),
             last_seen=datetime.now(),
-            confidence=0.5
+            confidence=0.5,
         )
 
         assert pattern.is_template_candidate(min_frequency=5) is False
@@ -122,7 +117,7 @@ class TestIntentPattern:
             parameters=["region"],
             frequency=10,
             first_seen=datetime.now(),
-            last_seen=datetime.now()
+            last_seen=datetime.now(),
         )
 
         template = pattern.to_template()
@@ -144,7 +139,7 @@ class TestIntentPattern:
             parameters=["region1", "region2"],
             frequency=10,
             first_seen=datetime.now(),
-            last_seen=datetime.now()
+            last_seen=datetime.now(),
         )
 
         name = pattern._generate_name()
@@ -159,7 +154,7 @@ class TestIntentPattern:
             parameters=["region"],
             frequency=10,
             first_seen=datetime.now(),
-            last_seen=datetime.now()
+            last_seen=datetime.now(),
         )
 
         name = pattern._generate_name()
@@ -172,10 +167,7 @@ class TestIntentHistoryEntry:
 
     def test_create_entry_minimal(self):
         """创建最小条目"""
-        entry = IntentHistoryEntry(
-            intent_text="查询销售数据",
-            timestamp=datetime.now()
-        )
+        entry = IntentHistoryEntry(intent_text="查询销售数据", timestamp=datetime.now())
 
         assert entry.intent_text == "查询销售数据"
         assert entry.success is True
@@ -192,7 +184,7 @@ class TestIntentHistoryEntry:
             success=True,
             execution_time_ms=150.5,
             user_id="user123",
-            session_id="session456"
+            session_id="session456",
         )
 
         assert entry.intent_text == "查询华东区 Q3 销售"
@@ -209,7 +201,7 @@ class TestIntentHistoryEntry:
             intent_text="查询无效数据",
             timestamp=datetime.now(),
             success=False,
-            execution_time_ms=50.0
+            execution_time_ms=50.0,
         )
 
         assert entry.success is False
@@ -235,7 +227,7 @@ class TestIntentPatternMiner:
             parameters={"region": "华东"},
             success=True,
             execution_time_ms=100.0,
-            user_id="user1"
+            user_id="user1",
         )
 
         assert len(miner.history) == 1
@@ -246,10 +238,7 @@ class TestIntentPatternMiner:
         miner = IntentPatternMiner()
 
         for i in range(5):
-            miner.record_intent(
-                intent_text=f"查询区域{i}销售",
-                parameters={"region": f"区域{i}"}
-            )
+            miner.record_intent(intent_text=f"查询区域{i}销售", parameters={"region": f"区域{i}"})
 
         assert len(miner.history) == 5
 
@@ -258,10 +247,9 @@ class TestIntentPatternMiner:
         miner = IntentPatternMiner()
 
         # 空历史时应能处理
-        import asyncio
         # 注意：analyze_patterns 是异步方法
         # 这里只测试它能被调用
-        assert hasattr(miner, 'analyze_patterns')
+        assert hasattr(miner, "analyze_patterns")
 
     def test_analyze_patterns_with_history(self):
         """分析带历史的模式"""
@@ -270,8 +258,7 @@ class TestIntentPatternMiner:
         # 添加相似意图
         for i in range(10):
             miner.record_intent(
-                intent_text=f"查询区域{i % 3}销售",
-                parameters={"region": f"区域{i % 3}"}
+                intent_text=f"查询区域{i % 3}销售", parameters={"region": f"区域{i % 3}"}
             )
 
         # 验证历史已记录
@@ -287,10 +274,7 @@ class TestPatternFrequency:
 
         # 记录高频意图
         for _ in range(100):
-            miner.record_intent(
-                intent_text="查询销售数据",
-                parameters={"type": "sales"}
-            )
+            miner.record_intent(intent_text="查询销售数据", parameters={"type": "sales"})
 
         assert len(miner.history) == 100
 
@@ -300,10 +284,7 @@ class TestPatternFrequency:
 
         # 记录低频意图
         for _ in range(2):
-            miner.record_intent(
-                intent_text="罕见查询",
-                parameters={"type": "rare"}
-            )
+            miner.record_intent(intent_text="罕见查询", parameters={"type": "rare"})
 
         assert len(miner.history) == 2
 
@@ -315,10 +296,7 @@ class TestPatternParameters:
         """单参数模式"""
         miner = IntentPatternMiner()
 
-        miner.record_intent(
-            intent_text="查询北京销售",
-            parameters={"region": "北京"}
-        )
+        miner.record_intent(intent_text="查询北京销售", parameters={"region": "北京"})
 
         assert len(miner.history) == 1
         assert miner.history[0].parameters["region"] == "北京"
@@ -329,11 +307,7 @@ class TestPatternParameters:
 
         miner.record_intent(
             intent_text="对比北京和上海 Q3 销售",
-            parameters={
-                "region1": "北京",
-                "region2": "上海",
-                "period": "Q3"
-            }
+            parameters={"region1": "北京", "region2": "上海", "period": "Q3"},
         )
 
         entry = miner.history[0]
@@ -345,10 +319,7 @@ class TestPatternParameters:
         """可选参数"""
         miner = IntentPatternMiner()
 
-        miner.record_intent(
-            intent_text="查询销售",
-            parameters={}
-        )
+        miner.record_intent(intent_text="查询销售", parameters={})
 
         assert miner.history[0].parameters == {}
 
@@ -365,7 +336,7 @@ class TestPatternConfidence:
             frequency=50,
             first_seen=datetime.now(),
             last_seen=datetime.now(),
-            confidence=0.98
+            confidence=0.98,
         )
 
         assert pattern.confidence == 0.98
@@ -380,7 +351,7 @@ class TestPatternConfidence:
             frequency=50,
             first_seen=datetime.now(),
             last_seen=datetime.now(),
-            confidence=0.75
+            confidence=0.75,
         )
 
         assert pattern.confidence == 0.75
@@ -395,7 +366,7 @@ class TestPatternConfidence:
             frequency=50,
             first_seen=datetime.now(),
             last_seen=datetime.now(),
-            confidence=0.5
+            confidence=0.5,
         )
 
         assert pattern.confidence == 0.5
@@ -414,11 +385,7 @@ class TestPatternExamples:
             frequency=20,
             first_seen=datetime.now(),
             last_seen=datetime.now(),
-            examples=[
-                "对比北京和上海",
-                "对比华东和华北",
-                "对比 Q1 和 Q2"
-            ]
+            examples=["对比北京和上海", "对比华东和华北", "对比 Q1 和 Q2"],
         )
 
         assert len(pattern.examples) == 3
@@ -433,7 +400,7 @@ class TestPatternExamples:
             frequency=10,
             first_seen=datetime.now(),
             last_seen=datetime.now(),
-            examples=["查询北京"]
+            examples=["查询北京"],
         )
 
         pattern.examples.append("查询上海")
@@ -454,7 +421,7 @@ class TestPatternTimeRange:
             parameters=["period"],
             frequency=30,
             first_seen=week_ago,
-            last_seen=now
+            last_seen=now,
         )
 
         time_span = pattern.last_seen - pattern.first_seen
@@ -471,7 +438,7 @@ class TestPatternTimeRange:
             parameters=["region"],
             frequency=5,
             first_seen=hour_ago,
-            last_seen=now
+            last_seen=now,
         )
 
         time_span = pattern.last_seen - pattern.first_seen
@@ -488,7 +455,7 @@ class TestPatternTimeRange:
             parameters=["region"],
             frequency=5,
             first_seen=month_ago,
-            last_seen=month_ago + timedelta(days=1)
+            last_seen=month_ago + timedelta(days=1),
         )
 
         time_span = pattern.last_seen - pattern.first_seen

@@ -4,11 +4,7 @@ Kernel Watchdog Module Tests
 测试语义自愈监视器的健康检查和自愈功能
 """
 
-import asyncio
 from datetime import datetime
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
 
 from intentos.kernel.watchdog import HealthStatus
 
@@ -27,11 +23,7 @@ class TestHealthStatus:
 
     def test_unhealthy_status_with_issues(self):
         """创建不健康状态"""
-        status = HealthStatus(
-            is_healthy=False,
-            issues=["issue1", "issue2"],
-            metrics={"cpu": 0.9}
-        )
+        status = HealthStatus(is_healthy=False, issues=["issue1", "issue2"], metrics={"cpu": 0.9})
 
         assert status.is_healthy is False
         assert len(status.issues) == 2
@@ -40,7 +32,7 @@ class TestHealthStatus:
     def test_status_default_values(self):
         """测试默认值"""
         status = HealthStatus(is_healthy=True)
-        
+
         assert status.last_check is not None
         assert len(status.issues) == 0
         assert len(status.metrics) == 0
@@ -59,9 +51,9 @@ class TestWatchdogHealthStatusDataclass:
         status = HealthStatus(
             is_healthy=False,
             issues=["issue1", "issue2", "issue3"],
-            metrics={"cpu": 0.9, "memory": 0.8}
+            metrics={"cpu": 0.9, "memory": 0.8},
         )
-        
+
         assert len(status.issues) == 3
         assert "issue1" in status.issues
         assert "issue2" in status.issues
@@ -69,11 +61,8 @@ class TestWatchdogHealthStatusDataclass:
 
     def test_status_metrics(self):
         """多个指标"""
-        status = HealthStatus(
-            is_healthy=True,
-            metrics={"cpu": 0.5, "memory": 0.6, "disk": 0.7}
-        )
-        
+        status = HealthStatus(is_healthy=True, metrics={"cpu": 0.5, "memory": 0.6, "disk": 0.7})
+
         assert status.metrics["cpu"] == 0.5
         assert status.metrics["memory"] == 0.6
         assert status.metrics["disk"] == 0.7

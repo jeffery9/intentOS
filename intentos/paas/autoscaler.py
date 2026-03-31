@@ -15,6 +15,7 @@ from .tenant import TenantManager
 
 logger = logging.getLogger(__name__)
 
+
 class PaaSAutoScaler:
     """
     PaaS 自动扩容引擎
@@ -27,7 +28,7 @@ class PaaSAutoScaler:
         cluster: DistributedSemanticVM,
         tenant_manager: TenantManager,
         reward_system: RewardSystem,
-        node_cost: float = 10.0 # 启动一个新节点的虚拟成本
+        node_cost: float = 10.0,  # 启动一个新节点的虚拟成本
     ):
         self.cluster = cluster
         self.tenant_manager = tenant_manager
@@ -35,7 +36,7 @@ class PaaSAutoScaler:
         self.node_cost = node_cost
 
         self.is_running = False
-        self.check_interval = 60 # 每分钟检查一次
+        self.check_interval = 60  # 每分钟检查一次
 
     async def start(self):
         self.is_running = True
@@ -84,6 +85,7 @@ class PaaSAutoScaler:
 
         # 在原型中，我们可以通过 subprocess 或内置逻辑增加逻辑节点
         from ..distributed.vm import VMNode
+
         node = VMNode(host="localhost", port=new_port, status="loading")
         self.cluster.memory.add_node(node)
 
