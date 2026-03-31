@@ -1,0 +1,80 @@
+name: Security
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+    branches: ["main", "master"]
+  schedule:
+    # 每周日运行一次
+    - cron: "0 0 * * 0"
+  workflow_dispatch:
+
+jobs:
+  # ===========================================================================
+  # 依赖安全扫描
+  # ===========================================================================
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: moderate
+          deny-licenses: GPL-3.0, AGPL-3.0
+
+  # ===========================================================================
+  # 代码安全扫描
+  # ===========================================================================
+  code-scan:
+    name: Code Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit safety pip-audit
+
+      - name: Run Bandit (security linter)
+        run: bandit -r intentos -x deprecated -ll -ii
+
+      - name: Run Safety (dependency check)
+        run: safety check -r pyproject.toml || true
+
+      - name: Run pip-audit
+        run: pip-audit || true
+
+  # ===========================================================================
+  # Secret 扫描
+  # ===========================================================================
+  secret-scan:
+    name: Secret Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install truffleHog
+        run: pip install truffleHog
+
+      - name: Run truffleHog
+        run: trufflehog . --only-verified || true
