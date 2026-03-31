@@ -7,6 +7,7 @@ This module enables IntentOS to periodically evaluate its own state
 (the 'soul manifest'). It identifies deviations and can trigger corrective actions.
 """
 
+import asyncio
 import logging
 import os
 from typing import Any, Dict, List, Optional
@@ -194,7 +195,7 @@ if __name__ == "__main__":
         "cost_over_budget": False,
     }
     deviations_healthy = self_reflection.evaluate_current_state(healthy_state)
-    self_reflection.trigger_self_correction(deviations_healthy)
+    asyncio.run(self_reflection.trigger_self_correction(deviations_healthy))
     print(" " + "-" * 80 + " ")
 
     # Simulate a state with deviations
@@ -206,4 +207,4 @@ if __name__ == "__main__":
         "cost_over_budget": True,
     }
     deviations_deviated = self_reflection.evaluate_current_state(deviated_state)
-    self_reflection.trigger_self_correction(deviations_deviated)
+    asyncio.run(self_reflection.trigger_self_correction(deviations_deviated))

@@ -133,6 +133,9 @@ class ExecutionEngine:
                     self._execution_history.append(execution_result)
                     return execution_result
 
+        # Should not reach here, but satisfy mypy
+        raise RuntimeError("Unexpected execution path")
+
     async def _execute_with_llm(
         self, intent: Intent, trace: list[dict], mode: PrivilegeLevel
     ) -> Any:

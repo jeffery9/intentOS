@@ -189,7 +189,7 @@ class AppConversationStudio:
             "session_id": session_id,
         }
 
-        # 2. 在内核中执行预加载的“创世 App”
+        # 2. 在内核中执行预加载的"创世 App"
         from intentos.interface.interface import IntentOS
 
         os_instance = IntentOS()

@@ -71,7 +71,7 @@ class Heartbeat:
         deviations = self.self_reflection.evaluate_current_state(current_state)
         if deviations:
             logging.warning(f"Heartbeat: Self-reflection identified deviations: {deviations}")
-            self.self_reflection.trigger_self_correction(deviations)
+            await self.self_reflection.trigger_self_correction(deviations)
         else:
             logging.info("Heartbeat: No significant deviations found. State is aligned.")
 
