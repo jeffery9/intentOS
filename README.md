@@ -94,50 +94,153 @@ print(f"目标：{prompt.intent.target}")
 print(f"System Prompt: {prompt.system_prompt[:200]}...")
 ```
 
-### 交互式 Shell
+### 统一启动入口
 
-IntentOS 提供了一个类似 Linux Shell 的交互式界面，支持自然语言意图输入：
+IntentOS 采用 **客户端 - 服务器架构**，提供统一的命令行启动入口：
 
 ```bash
-# 启动 Shell（交互式）
-PYTHONPATH=. python intentos/interface/shell.py
+# 查看帮助
+intentos --help
+
+# 或使用 Python 模块方式运行
+python -m intentos --help
 ```
 
-在 Shell 中，你可以直接输入自然语言指令，或者使用内置命令：
-- `status`: 查看内核状态
-- `ls`: 列出所有可用的意图模板
-- `clear`: 清除对话历史
-- `exit`: 退出系统
+#### 架构说明
 
-### 守护进程模式（推荐）
+IntentOS 采用 **进程分离架构**：
+- **Daemon（服务器）**：运行 IntentOS 内核，提供 RPC 服务和 API 网关
+- **CLI（客户端）**：连接到运行中的内核，提供统一的交互界面
 
-IntentOS 可以作为后台守护进程持续运行：
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    IntentOS Daemon (服务器)                  │
+│  ┌───────────────┐  ┌───────────────┐  ┌─────────────────┐ │
+│  │  IntentOS     │  │  RPC Server   │  │   API Gateway   │ │
+│  │  Kernel       │  │  (Unix Socket)│  │   (可选启动)    │ │
+│  └───────────────┘  └───────────────┘  └─────────────────┘ │
+└─────────────────────────────────────────────────────────────┘
+                             ▲
+                             │
+                    ┌────────┴────────┐
+                    │  IntentOS CLI   │
+                    │  (统一界面)      │
+                    └─────────────────┘
+```
+
+#### 1. 启动内核（必须先执行）
 
 ```bash
-# 启动守护进程
-PYTHONPATH=. python intentos/interface/daemon.py
+# 启动守护进程（仅内核）
+intentos daemon
+
+# 启动守护进程（内核 + API 网关）
+intentos daemon --api
+
+# 自定义 API 监听地址和端口
+intentos daemon --api --api-host 0.0.0.0 --api-port 8080
 ```
 
 守护进程会：
-- ✅ 持续运行，等待请求
-- ✅ 自动处理中断信号（Ctrl+C）
-- ✅ 记录运行时间和状态
-- ✅ 优雅关闭系统资源
+- ✅ 初始化 IntentOS 内核
+- ✅ 启动后台服务（Watchdog 等）
+- ✅ 创建 Unix Socket 监听 RPC 请求
+- ✅ 如果指定 `--api`，同时启动 HTTP API 网关
+- ✅ 持续运行直到接收到中断信号
 
-### REST API 网关
+> 💡 **提示**：如果未手动启动内核，执行 `intentos cli` 时会自动启动内核进程。
 
-可以通过 HTTP 接口远程访问 IntentOS 内核：
+#### 2. CLI - 统一交互界面
+
+IntentOS CLI 整合了 Shell 和 Chat 功能，提供统一的交互界面：
 
 ```bash
-# 启动 API 服务器 (默认 localhost:8080)
-PYTHONPATH=. python intentos/interface/api.py
+# 启动 CLI（交互式）
+intentos cli
+
+# 或使用 Python 模块方式
+python -m intentos cli
+```
+
+在 CLI 中，你可以：
+- **直接输入自然语言**执行意图（例如："分析销售数据"）
+- **使用系统命令**：
+  - `/help` - 显示帮助
+  - `/status` - 查看内核状态
+  - `/ping` - 心跳检测
+  - `/clear` - 清空屏幕
+  - `/quit` 或 `/exit` - 退出
+
+**示例**:
+```
+$ intentos cli
+✅ 已连接到 IntentOS 内核
+
+====================================================
+       IntentOS CLI - AI Native Operating System      
+====================================================
+
+intentos> /status
+┏━━━━━━━━┳━━━━━━━━━━┓
+┃ 组件   ┃ 状态     ┃
+┡━━━━━━━━╇━━━━━━━━━━┩
+│ 内核   │ ✓ 运行中 │
+│ 初始化 │ ✓ 已就绪 │
+│ 能力   │ 3 个     │
+│ 模板   │ 2 个     │
+└────────┴──────────┘
+
+intentos> 分析销售数据
+┌─────────────────────────────────────┐
+│ Response                            │
+├─────────────────────────────────────┤
+│ ✅ 已完成：分析销售数据              │
+│ 结果：华东区 Q3 销售额增长 15%       │
+└─────────────────────────────────────┘
+
+intentos> /quit
+👋 Goodbye!
+```
+
+#### 3. REST API
+
+API 网关集成在 Daemon 中，启动时需要指定 `--api` 参数：
+
+```bash
+# 启动内核 + API 网关
+intentos daemon --api
+
+# 自定义监听地址和端口
+intentos daemon --api --api-host 0.0.0.0 --api-port 8080
 ```
 
 **示例请求**:
 ```bash
-curl -X POST http://localhost:8080/execute \
+# 查看状态
+curl http://localhost:8080/v1/status \
+     -H "Authorization: Bearer intentos-secret-token"
+
+# 执行意图
+curl -X POST http://localhost:8080/v1/execute \
      -H "Content-Type: application/json" \
+     -H "Authorization: Bearer intentos-secret-token" \
      -d '{"intent": "分析销售数据"}'
+
+# 健康检查
+curl http://localhost:8080/v1/health \
+     -H "Authorization: Bearer intentos-secret-token"
+```
+
+**API Token**:
+- 默认：`intentos-secret-token`
+- 自定义：`export INTENTOS_API_TOKEN=your-token`
+
+# 执行轨迹
+intentos cli trace record --intent-id test-001 -o trace.json
+intentos cli trace replay -i trace.json
+
+# 系统状态
+intentos cli status
 ```
 
 ### 带记忆注入的编译

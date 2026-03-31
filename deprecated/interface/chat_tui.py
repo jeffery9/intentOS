@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-IntentOS Chat TUI - 客户端模式
+AI Agent Chat TUI
 
-连接到运行中的 IntentOS 内核，提供聊天界面
+TUI 仅仅是 UI 层，AI Agent 通过 IntentOS 内核运行
 """
 
 import asyncio
@@ -16,6 +16,13 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.spinner import Spinner
 from rich.table import Table
+
+from intentos.core import Context
+from intentos.kernel.engine import (
+    ExecutionRequest,
+    ExecutionResponse,
+    initialize_kernel,
+)
 
 
 class ChatMessage:
@@ -45,18 +52,34 @@ class ChatMessage:
 
 class ChatTUI:
     """
-    Chat TUI - 客户端模式
+    Chat TUI
 
-    通过 RPC 连接到运行中的 IntentOS 内核
+    UI 层，通过内核执行 AI Agent
     """
 
-    def __init__(self, client, loop):
+    def __init__(self):
         self.console = Console()
-        self.client = client
-        self.loop = loop
+        self.kernel = None
+        self.context: Optional[Context] = None
         self.messages: list[ChatMessage] = []
         self.running = True
         self.width = 80
+
+    async def initialize(self) -> None:
+        """初始化"""
+        self.console.print("[bold cyan]正在启动 IntentOS 内核...[/bold cyan]\n")
+
+        # 初始化内核
+        self.kernel = await initialize_kernel()
+
+        # 创建上下文
+        self.context = Context(user_id="default")
+
+        status = self.kernel.get_status()
+        self.console.print("[bold green]✓ 内核已就绪[/bold green]")
+        self.console.print(f"  能力：{status['registry']['capabilities']} 个")
+        self.console.print(f"  模板：{status['registry']['templates']} 个")
+        self.console.print(f"  VM: {status['vm']['status']}\n")
 
     def show_banner(self) -> None:
         """显示横幅"""
@@ -64,7 +87,7 @@ class ChatTUI:
 ╔════════════════════════════════════════════════════════╗
 ║           IntentOS AI Agent - 智能助理                  ║
 ║                                                        ║
-║  已连接到 IntentOS 内核                                 ║
+║  通过 IntentOS 内核执行                                 ║
 ║  输入 /help 查看帮助，/quit 退出                       ║
 ╚════════════════════════════════════════════════════════╝
         """
@@ -77,7 +100,6 @@ class ChatTUI:
   `/help` - 帮助
   `/clear` - 清空历史
   `/status` - 内核状态
-  `/ping` - 心跳检测
   `/quit` - 退出
 
 **示例:**
@@ -89,27 +111,19 @@ class ChatTUI:
 
     def show_status(self) -> None:
         """显示内核状态"""
-        try:
-            status = self.loop.run_until_complete(self.client.get_status())
-            kernel_status = self.loop.run_until_complete(self.client.get_kernel_status())
-        except Exception as e:
-            self.console.print(f"[red]❌ 获取状态失败：{e}[/red]")
+        if not self.kernel:
             return
+
+        status = self.kernel.get_status()
 
         table = Table(title="内核状态", border_style="cyan")
         table.add_column("组件", style="cyan")
         table.add_column("状态", style="white")
 
-        table.add_row("内核", "✓ 运行中" if status.get("running") else "✗ 未启动")
-        table.add_row("初始化", "✓ 已就绪" if status.get("initialized") else "✗ 未就绪")
-
-        reg = kernel_status.get("registry", {})
-        table.add_row("能力", f"{len(reg.get('capabilities', []))} 个")
-        table.add_row("模板", f"{len(reg.get('templates', []))} 个")
-
-        cluster = kernel_status.get("cluster", {})
-        nodes = cluster.get("nodes", [])
-        table.add_row("节点", f"{len(nodes)} 个")
+        table.add_row("内核", "✓ 运行中" if status["initialized"] else "✗ 未启动")
+        table.add_row("能力", f"{status['registry']['capabilities']} 个")
+        table.add_row("模板", f"{status['registry']['templates']} 个")
+        table.add_row("语义 VM", status["vm"]["status"])
 
         self.console.print(table)
 
@@ -126,17 +140,31 @@ class ChatTUI:
             console=self.console,
             transient=True,
         ):
-            result = await self.client.execute(user_input)
+            request = ExecutionRequest(
+                intent=user_input,
+                context=self.context,
+            )
+            response: ExecutionResponse = await self.kernel.execute(request)
 
         # 显示结果
-        ai_content = result
+        ai_content = response.message
+
+        if response.result:
+            ai_content += "\n\n**结果:**\n"
+            if isinstance(response.result, dict):
+                for k, v in response.result.items():
+                    ai_content += f"• {k}: {v}\n"
+
+        if response.metadata:
+            ai_content += f"\n**元数据:** {response.metadata}"
 
         ai_msg = ChatMessage("assistant", ai_content)
         self.messages.append(ai_msg)
         self.console.print(ai_msg.render(self.console, self.width))
 
-    def run(self) -> None:
+    async def run(self) -> None:
         """运行 TUI"""
+        await self.initialize()
         self.show_banner()
 
         while self.running:
@@ -150,16 +178,16 @@ class ChatTUI:
                     continue
 
                 if user_input.startswith('/'):
-                    self._handle_command(user_input)
+                    await self._handle_command(user_input)
                 else:
-                    self.loop.run_until_complete(self.process_message(user_input))
+                    await self.process_message(user_input)
 
             except KeyboardInterrupt:
                 self.console.print("\n[yellow]输入 /quit 退出[/yellow]")
             except EOFError:
                 self.running = False
 
-    def _handle_command(self, command: str) -> None:
+    async def _handle_command(self, command: str) -> None:
         """处理命令"""
         cmd = command.lower().strip()
 
@@ -170,12 +198,6 @@ class ChatTUI:
             self.console.print("[green]✓ 已清空[/green]")
         elif cmd == '/status':
             self.show_status()
-        elif cmd == '/ping':
-            try:
-                result = self.loop.run_until_complete(self.client.ping())
-                self.console.print(f"[green]✓ 心跳正常：{result}[/green]")
-            except Exception as e:
-                self.console.print(f"[red]❌ 心跳失败：{e}[/red]")
         elif cmd in ['/quit', '/exit', '/q']:
             self.console.print("\n[green]👋 再见![/green]")
             self.running = False
@@ -183,72 +205,15 @@ class ChatTUI:
             self.console.print(f"[red]❌ 未知命令：{command}[/red]")
 
 
-async def check_connection(client):
-    """检查连接"""
-    await client.connect()
-    status = await client.get_status()
-    return True, status
-
-
-def start_chat_tui(args):
-    """启动 Chat TUI"""
-    from intentos.interface.ipc import RPCClient, check_kernel_running, wait_for_kernel
-    import subprocess
-
-    console = Console()
-
-    # 检查内核是否运行
-    if not check_kernel_running():
-        console.print("\n⚠️  IntentOS 内核未运行", style="yellow")
-        console.print("正在自动启动内核进程...", style="dim")
-
-        # 在后台启动 daemon 进程
-        subprocess.Popen(
-            [sys.executable, "-m", "intentos", "daemon"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
-
-        # 等待内核启动
-        console.print("等待内核初始化...", style="dim")
-        if not wait_for_kernel(timeout=10.0):
-            console.print("\n❌ 内核启动超时", style="red")
-            console.print("请手动启动内核：[bold]python -m intentos daemon[/bold]", style="red")
-            sys.exit(1)
-
-        console.print("✅ 内核已启动", style="green")
-
-    # 创建事件循环和客户端
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    client = None
-
+async def main():
+    """主函数"""
     try:
-        # 连接
-        client = RPCClient()
-        connected, result = loop.run_until_complete(check_connection(client))
-        if not connected:
-            console.print(f"❌ 连接失败：{result}", style="red")
-            sys.exit(1)
-
-        console.print(f"✅ 已连接到 IntentOS 内核", style="green")
-
-        # 启动 TUI（传入事件循环）
-        tui = ChatTUI(client, loop)
-        tui.run()
-
-    except Exception as e:
-        console.print(f"❌ Error: {e}", style="red")
-        sys.exit(1)
-    finally:
-        if client:
-            try:
-                loop.run_until_complete(client.disconnect())
-            except:
-                pass
-        loop.close()
+        tui = ChatTUI()
+        await tui.run()
+    except KeyboardInterrupt:
+        print("\n\n👋 再见!")
+        sys.exit(0)
 
 
 if __name__ == "__main__":
-    start_chat_tui(None)
+    asyncio.run(main())

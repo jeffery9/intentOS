@@ -67,3 +67,6 @@ disable_error_code = ["misc"]
 
 [tool.setuptools]
 packages = ["intentos", "intentos.bootstrap", "intentos.compiler", "intentos.core", "intentos.distributed", "intentos.engine", "intentos.interface", "intentos.llm", "intentos.llm.backends", "intentos.parser", "intentos.registry", "intentos.semantic_vm"]
+
+[project.scripts]
+intentos = "intentos.__main__:main"
