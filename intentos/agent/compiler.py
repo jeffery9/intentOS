@@ -218,7 +218,8 @@ class IntentCompiler:
     ) -> str:
         """生成缓存键"""
         key_data: str = f"{intent}|{','.join(sorted(capabilities))}|{str(sorted(context.items()))}"
-        return hashlib.md5(key_data.encode()).hexdigest()
+        # nosec: MD5 用于缓存键生成，不用于安全目的
+        return hashlib.md5(key_data.encode(), usedforsecurity=False).hexdigest()  # nosec B324
 
     def _optimize_pef(self, pef: PEF) -> None:
         """优化 PEF"""

@@ -72,7 +72,8 @@ class MemoryBank:
                 "version": self.version,
             }
         )
-        return hashlib.md5(data.encode()).hexdigest()
+        # nosec: MD5 用于校验和，不用于安全目的
+        return hashlib.md5(data.encode(), usedforsecurity=False).hexdigest()  # nosec B324
 
     def to_dict(self) -> dict[str, Any]:
         return {

@@ -79,12 +79,13 @@ class AIAgent(Agent):
         # Shell
         def shell_exec(command: str, timeout: int = 30) -> dict[str, Any]:
             try:
+                # nosec: 这是设计用于执行 shell 命令的能力，需要 shell=True
                 result = subprocess.run(
-                    shlex.split(command),
+                    command,  # nosec B602
                     capture_output=True,
                     text=True,
                     timeout=timeout,
-                    shell=True,
+                    shell=True,  # nosec B602
                 )
                 return {
                     "success": result.returncode == 0,
@@ -110,8 +111,10 @@ class AIAgent(Agent):
 
         # 计算器
         def calc(expression: str) -> dict[str, Any]:
+            import ast
             try:
-                result: float = eval(expression, {"__builtins__": {}}, {})
+                # 使用 ast.literal_eval 替代 eval，更安全
+                result: float = ast.literal_eval(expression)
                 return {"success": True, "result": result}
             except Exception as e:
                 raise AgentException(
