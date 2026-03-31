@@ -18,33 +18,36 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 class AppStatus(Enum):
     """应用状态"""
-    DRAFT = "draft"              # 草稿
+
+    DRAFT = "draft"  # 草稿
     PENDING_REVIEW = "pending_review"  # 待审核
-    APPROVED = "approved"        # 已批准
-    PUBLISHED = "published"      # 已发布
-    SUSPENDED = "suspended"      # 已暂停
-    REJECTED = "rejected"        # 已拒绝
-    DEPRECATED = "deprecated"    # 已弃用
+    APPROVED = "approved"  # 已批准
+    PUBLISHED = "published"  # 已发布
+    SUSPENDED = "suspended"  # 已暂停
+    REJECTED = "rejected"  # 已拒绝
+    DEPRECATED = "deprecated"  # 已弃用
 
 
 class AppCategory(Enum):
     """应用分类"""
-    PRODUCTIVITY = "productivity"    # 生产力
-    ANALYTICS = "analytics"          # 数据分析
+
+    PRODUCTIVITY = "productivity"  # 生产力
+    ANALYTICS = "analytics"  # 数据分析
     CUSTOMER_SERVICE = "customer_service"  # 客服
-    DEVELOPMENT = "development"      # 开发工具
-    LANGUAGE = "language"            # 语言翻译
-    MARKETING = "marketing"          # 营销
-    EDUCATION = "education"          # 教育
+    DEVELOPMENT = "development"  # 开发工具
+    LANGUAGE = "language"  # 语言翻译
+    MARKETING = "marketing"  # 营销
+    EDUCATION = "education"  # 教育
     ENTERTAINMENT = "entertainment"  # 娱乐
-    FINANCE = "finance"              # 金融
-    HEALTH = "health"                # 健康
-    OTHER = "other"                  # 其他
+    FINANCE = "finance"  # 金融
+    HEALTH = "health"  # 健康
+    OTHER = "other"  # 其他
 
 
 @dataclass
 class AppVersion:
     """应用版本"""
+
     version: str
     release_date: datetime = field(default_factory=datetime.now)
     changelog: Optional[str] = None
@@ -63,6 +66,7 @@ class AppVersion:
 @dataclass
 class AppMetadata:
     """应用元数据"""
+
     app_id: str
     name: str
     description: str
@@ -73,11 +77,13 @@ class AppMetadata:
     tags: list[str] = field(default_factory=list)
     pricing_model: str = "pay_per_use"  # pay_per_use, subscription, tiered
     pricing_config: dict[str, Any] = field(default_factory=dict)
-    revenue_share: dict[str, float] = field(default_factory=lambda: {
-        "developer": 0.80,  # 开发者 80%
-        "platform": 0.15,   # 平台 15%
-        "referrer": 0.05,   # 推荐者 5%
-    })
+    revenue_share: dict[str, float] = field(
+        default_factory=lambda: {
+            "developer": 0.80,  # 开发者 80%
+            "platform": 0.15,  # 平台 15%
+            "referrer": 0.05,  # 推荐者 5%
+        }
+    )
     status: AppStatus = AppStatus.DRAFT
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
@@ -107,6 +113,7 @@ class AppMetadata:
 @dataclass
 class AppReview:
     """应用评价"""
+
     id: str
     app_id: str
     user_id: str
@@ -129,6 +136,7 @@ class AppReview:
 @dataclass
 class AppUsage:
     """应用用量统计"""
+
     app_id: str
     period: str  # YYYY-MM
     total_requests: int = 0
@@ -167,6 +175,7 @@ class AppMarketplace:
     def _generate_id(self, prefix: str) -> str:
         """生成 ID"""
         import uuid
+
         return f"{prefix}_{uuid.uuid4().hex[:8]}"
 
     async def submit_app(
@@ -177,7 +186,7 @@ class AppMarketplace:
         developer_id: str,
         developer_name: str,
         manifest: dict[str, Any],
-        tags: Optional[list[str]] = None
+        tags: Optional[list[str]] = None,
     ) -> AppMetadata:
         """提交应用"""
         app_id = f"app_{name.lower().replace(' ', '_')}_{developer_id}"
@@ -196,19 +205,24 @@ class AppMarketplace:
             tags=tags or [],
             pricing_model=manifest.get("pricing", {}).get("model", "pay_per_use"),
             pricing_config=manifest.get("pricing", {}),
-            revenue_share=manifest.get("revenue_share", {
-                "developer": 0.80,
-                "platform": 0.15,
-                "referrer": 0.05,
-            }),
+            revenue_share=manifest.get(
+                "revenue_share",
+                {
+                    "developer": 0.80,
+                    "platform": 0.15,
+                    "referrer": 0.05,
+                },
+            ),
             status=AppStatus.PENDING_REVIEW,
         )
 
         # 添加初始版本
-        app.versions.append(AppVersion(
-            version="1.0.0",
-            manifest_hash=self._compute_manifest_hash(manifest),
-        ))
+        app.versions.append(
+            AppVersion(
+                version="1.0.0",
+                manifest_hash=self._compute_manifest_hash(manifest),
+            )
+        )
 
         self.apps[app_id] = app
         self.installs[app_id] = set()
@@ -217,11 +231,7 @@ class AppMarketplace:
         return app
 
     async def review_app(
-        self,
-        app_id: str,
-        approved: bool,
-        reviewer_id: str,
-        comments: Optional[str] = None
+        self, app_id: str, approved: bool, reviewer_id: str, comments: Optional[str] = None
     ) -> bool:
         """审核应用"""
         if app_id not in self.apps:
@@ -287,11 +297,7 @@ class AppMarketplace:
         return False
 
     async def add_review(
-        self,
-        app_id: str,
-        user_id: str,
-        rating: int,
-        comment: Optional[str] = None
+        self, app_id: str, user_id: str, rating: int, comment: Optional[str] = None
     ) -> AppReview:
         """添加评价"""
         if app_id not in self.apps:
@@ -325,7 +331,7 @@ class AppMarketplace:
         category: Optional[AppCategory] = None,
         status: Optional[AppStatus] = None,
         search: Optional[str] = None,
-        limit: int = 50
+        limit: int = 50,
     ) -> list[AppMetadata]:
         """列出应用"""
         apps = list(self.apps.values())
@@ -338,10 +344,11 @@ class AppMarketplace:
         if search:
             search_lower = search.lower()
             apps = [
-                a for a in apps
-                if search_lower in a.name.lower() or
-                   search_lower in a.description.lower() or
-                   any(search_lower in tag.lower() for tag in a.tags)
+                a
+                for a in apps
+                if search_lower in a.name.lower()
+                or search_lower in a.description.lower()
+                or any(search_lower in tag.lower() for tag in a.tags)
             ]
 
         # 只显示已发布的应用（除非指定状态）
@@ -375,10 +382,7 @@ class AppMarketplace:
         return {
             "average": round(average, 2),
             "count": len(reviews),
-            "distribution": {
-                str(i): sum(1 for r in reviews if r.rating == i)
-                for i in range(1, 6)
-            },
+            "distribution": {str(i): sum(1 for r in reviews if r.rating == i) for i in range(1, 6)},
         }
 
     def get_install_count(self, app_id: str) -> int:
@@ -398,10 +402,12 @@ class AppMarketplace:
             return []
 
         # 构造 App 列表描述
-        app_catalog = "\n".join([
-            f"- ID: {a.app_id}, Name: {a.name}, Desc: {a.description}, Tags: {a.tags}"
-            for a in published_apps
-        ])
+        app_catalog = "\n".join(
+            [
+                f"- ID: {a.app_id}, Name: {a.name}, Desc: {a.description}, Tags: {a.tags}"
+                for a in published_apps
+            ]
+        )
 
         prompt = f"""分析用户需求，从以下 AI Native App 目录中选出最匹配的 3 个应用。
 
@@ -416,6 +422,7 @@ class AppMarketplace:
 只返回 ID，不要其他解释。"""
 
         from intentos.llm.backends.base import Message
+
         messages = [
             Message.system("你是一个专业的应用市场推荐专家。"),
             Message.user(prompt),
@@ -433,9 +440,9 @@ class AppMarketplace:
 
     def record_usage(
         self,
-        app_instance: Any, # GeneratedApp
+        app_instance: Any,  # GeneratedApp
         period: str,
-        gas_price: float = 0.001
+        gas_price: float = 0.001,
     ) -> float:
         """
         基于实例 PID 自动汇总用量并计费
@@ -453,6 +460,7 @@ class AppMarketplace:
         # 这里模拟汇总逻辑
         total_gas = 0
         from intentos.distributed.vm import create_distributed_vm
+
         cluster = create_distributed_vm()
 
         for pid in app_instance.active_pids:
@@ -482,13 +490,13 @@ class AppMarketplace:
         stats.developer_earnings = stats.total_revenue * dev_share
         stats.platform_fees = stats.total_revenue * plat_share
 
-        logger.info(f"💰 Billing: App {app_id} (Instance {app_instance.id}) consumed {total_gas} Gas. Revenue: ${revenue:.4f}")
+        logger.info(
+            f"💰 Billing: App {app_id} (Instance {app_instance.id}) consumed {total_gas} Gas. Revenue: ${revenue:.4f}"
+        )
         return revenue
 
     def get_developer_earnings(
-        self,
-        developer_id: str,
-        period: Optional[str] = None
+        self, developer_id: str, period: Optional[str] = None
     ) -> dict[str, Any]:
         """获取开发者收益"""
         apps = [a for a in self.apps.values() if a.developer_id == developer_id]
@@ -511,8 +519,7 @@ class AppMarketplace:
             "period": period or "all",
             "total_earnings": round(total_earnings, 2),
             "earnings_by_app": {
-                app_id: round(amount, 2)
-                for app_id, amount in earnings_by_app.items()
+                app_id: round(amount, 2) for app_id, amount in earnings_by_app.items()
             },
             "app_count": len(apps),
         }
@@ -521,6 +528,7 @@ class AppMarketplace:
         """计算 manifest 哈希"""
         import hashlib
         import json
+
         content = json.dumps(manifest, sort_keys=True)
         return hashlib.sha256(content.encode()).hexdigest()[:16]
 

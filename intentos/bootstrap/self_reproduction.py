@@ -22,12 +22,11 @@ import json
 import logging
 import os
 import stat
-import time
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Set
+from typing import Any, Dict, Optional, Set
 
 import yaml
 
@@ -38,27 +37,29 @@ import yaml
 
 class CostEstimates:
     """成本估算（美元）"""
+
     CLONE_BASE = 50.0
     FORK_BASE = 30.0
     EVOLVE_BASE = 100.0
     REPAIR_BASE = 0.0
-    
+
     # 每资源成本
     PER_CONTAINER = 10.0
     PER_VPC = 20.0
     PER_REDIS = 15.0
-    
+
     # 区域系数
     REGION_MULTIPLIERS = {
-        'us-east-1': 1.0,
-        'us-west-2': 1.1,
-        'eu-west-1': 1.2,
-        'ap-northeast-1': 1.3,
+        "us-east-1": 1.0,
+        "us-west-2": 1.1,
+        "eu-west-1": 1.2,
+        "ap-northeast-1": 1.3,
     }
 
 
 class SecurityConfig:
     """安全配置"""
+
     MAX_CONCURRENT_REPRODUCTIONS = 3
     HEALTH_CHECK_RETRIES = 30
     HEALTH_CHECK_INTERVAL = 5  # 秒
@@ -73,14 +74,16 @@ class SecurityConfig:
 
 class ReproductionType(Enum):
     """繁殖类型"""
-    CLONE = "clone"              # 克隆（完全复制）
-    FORK = "fork"                # 分叉（有差异的复制）
-    EVOLVE = "evolve"            # 演化（改进版本）
-    REPAIR = "repair"            # 修复（自我修复）
+
+    CLONE = "clone"  # 克隆（完全复制）
+    FORK = "fork"  # 分叉（有差异的复制）
+    EVOLVE = "evolve"  # 演化（改进版本）
+    REPAIR = "repair"  # 修复（自我修复）
 
 
 class ReproductionStatus(Enum):
     """繁殖状态"""
+
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -91,6 +94,7 @@ class ReproductionStatus(Enum):
 
 class PermissionLevel(Enum):
     """权限级别"""
+
     READ = "read"
     WRITE = "write"
     ADMIN = "admin"
@@ -104,6 +108,7 @@ class PermissionLevel(Enum):
 @dataclass
 class ReproductionPlan:
     """繁殖计划"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     type: ReproductionType = ReproductionType.CLONE
     status: ReproductionStatus = ReproductionStatus.PENDING
@@ -122,7 +127,7 @@ class ReproductionPlan:
     completed_at: Optional[datetime] = None
     approved_by: Optional[str] = None
     rolled_back: bool = False
-    
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
@@ -145,6 +150,7 @@ class ReproductionPlan:
 @dataclass
 class IntentOSInstance:
     """IntentOS 实例"""
+
     id: str
     name: str
     provider: str
@@ -157,7 +163,7 @@ class IntentOSInstance:
     created_at: str = ""
     last_synced: str = ""
     permissions: dict[str, bool] = field(default_factory=dict)
-    
+
     def has_permission(self, permission: str) -> bool:
         """检查是否有权限"""
         return self.permissions.get(permission, False)
@@ -166,6 +172,7 @@ class IntentOSInstance:
 @dataclass
 class AuditLog:
     """审计日志"""
+
     log_id: str = field(default_factory=lambda: str(uuid.uuid4()))
     timestamp: datetime = field(default_factory=datetime.now)
     action: str = ""
@@ -174,7 +181,7 @@ class AuditLog:
     details: dict[str, Any] = field(default_factory=dict)
     success: bool = True
     error: Optional[str] = None
-    
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "log_id": self.log_id,
@@ -201,30 +208,30 @@ class SelfReproduction:
     def __init__(
         self,
         instance_id: str = "",
-        soul_manifest_path: str = 'intentos/config/soul_manifest.yaml',
-        audit_log_path: str = '/var/log/intentos/reproduction_audit.log',
+        soul_manifest_path: str = "intentos/config/soul_manifest.yaml",
+        audit_log_path: str = "/var/log/intentos/reproduction_audit.log",
     ):
         self.instance_id = instance_id or self._get_instance_id()
         self._current_instance: Optional[IntentOSInstance] = None
         self._reproduction_plans: list[ReproductionPlan] = []
         self._audit_logs: list[AuditLog] = []
-        
+
         # 并发控制 (lazy initialization)
         self._reproduction_lock: Optional[asyncio.Lock] = None
         self._active_reproductions: Set[str] = set()
         self._max_concurrent = SecurityConfig.MAX_CONCURRENT_REPRODUCTIONS
-        
+
         # 日志
         self.logger = logging.getLogger(f"SelfReproduction.{self.instance_id}")
-        
+
         # 伦理和配置
         self.soul_manifest: Dict[str, Any] = {}
         self._load_soul_manifest(soul_manifest_path)
-        
+
         # 审计日志
         self._audit_log_path = audit_log_path
         self._setup_logging()
-        
+
         # self._log_audit 在 initialize 中调用
 
     async def initialize(self) -> None:
@@ -232,17 +239,18 @@ class SelfReproduction:
         if self._reproduction_lock is None:
             self._reproduction_lock = asyncio.Lock()
         self.logger.info(f"SelfReproduction initialized for instance {self.instance_id}")
-    
+
     def _setup_logging(self) -> None:
         """设置日志"""
         # 统一使用 logging
         logging.basicConfig(
             level=logging.INFO,
-            format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
             handlers=[
                 logging.StreamHandler(),
-                logging.FileHandler('/tmp/intentos_reproduction.log'),
-            ]
+                # nosec: /tmp 用于日志文件，可接受
+                logging.FileHandler("/tmp/intentos_reproduction.log"),  # nosec B108
+            ],
         )
         self.logger = logging.getLogger(f"SelfReproduction.{self.instance_id}")
 
@@ -259,17 +267,17 @@ class SelfReproduction:
             )
             self.soul_manifest = {"ethics": [], "default_policy": "deny"}
             return
-        
+
         try:
-            with open(manifest_path, 'r') as f:
+            with open(manifest_path, "r") as f:
                 self.soul_manifest = yaml.safe_load(f)
-            
+
             # 验证清单完整性
             if not self._validate_soul_manifest(self.soul_manifest):
                 self.logger.error("Soul Manifest validation failed. Blocking reproduction.")
                 self.soul_manifest = {"ethics": [], "default_policy": "deny"}
                 return
-            
+
             self.logger.info("Soul manifest loaded and validated.")
         except yaml.YAMLError as e:
             self.logger.error(f"Error parsing Soul Manifest: {e}")
@@ -280,27 +288,27 @@ class SelfReproduction:
         # 必须有明确的允许策略
         if manifest.get("default_policy") != "allow":
             return False
-        
+
         # 必须有伦理规则
         if not manifest.get("ethics"):
             return False
-        
+
         return True
 
     async def _check_ethical_guidelines(self, proposed_plan: ReproductionPlan) -> bool:
         """
         伦理检查（改进：默认拒绝）
         """
-        ethics = self.soul_manifest.get('ethics', [])
-        default_policy = self.soul_manifest.get('default_policy', 'deny')
-        
+        ethics = self.soul_manifest.get("ethics", [])
+        default_policy = self.soul_manifest.get("default_policy", "deny")
+
         self.logger.info(
             f"Checking ethical guidelines for {proposed_plan.type.value} plan "
             f"(estimated cost: ${proposed_plan.estimated_cost:.2f})"
         )
-        
+
         # 默认拒绝，除非明确允许
-        if not ethics and default_policy == 'deny':
+        if not ethics and default_policy == "deny":
             self.logger.warning("No ethics defined. Blocking reproduction by default.")
             await self._log_audit(
                 "ethical_check",
@@ -308,12 +316,11 @@ class SelfReproduction:
                 success=False,
             )
             return False
-        
+
         # 成本检查
         if proposed_plan.estimated_cost > SecurityConfig.MAX_COST_WITHOUT_APPROVAL:
             self.logger.warning(
-                f"Cost ${proposed_plan.estimated_cost:.2f} exceeds limit. "
-                "Requires approval."
+                f"Cost ${proposed_plan.estimated_cost:.2f} exceeds limit. " "Requires approval."
             )
             proposed_plan.status = ReproductionStatus.WAITING_APPROVAL
             await self._log_audit(
@@ -321,13 +328,13 @@ class SelfReproduction:
                 f"Waiting approval: Cost exceeds ${SecurityConfig.MAX_COST_WITHOUT_APPROVAL}",
             )
             return False
-        
+
         # 逐条检查伦理规则
         for ethic in ethics:
-            principle = ethic.get('principle', '')
+            principle = ethic.get("principle", "")
         # 逐条检查伦理规则
         for ethic in ethics:
-            principle = ethic.get('principle', '')
+            principle = ethic.get("principle", "")
 
             if principle == "Respect resource limits." and proposed_plan.estimated_cost > 200.0:
                 self.logger.warning(
@@ -354,12 +361,12 @@ class SelfReproduction:
         """验证权限"""
         if not self._current_instance:
             return False
-        
+
         missing = []
         for perm in required_permissions:
             if not self._current_instance.has_permission(perm):
                 missing.append(perm)
-        
+
         if missing:
             self.logger.error(f"Missing permissions: {missing}")
             await self._log_audit(
@@ -368,7 +375,7 @@ class SelfReproduction:
                 success=False,
             )
             return False
-        
+
         return True
 
     async def _check_cloud_permissions(self, provider: str, actions: list[str]) -> bool:
@@ -383,25 +390,26 @@ class SelfReproduction:
         """检查 AWS IAM 权限"""
         try:
             import boto3
-            iam = boto3.client('iam')
-            sts = boto3.client('sts')
-            
+
+            iam = boto3.client("iam")
+            sts = boto3.client("sts")
+
             # 获取当前用户
             user = sts.get_caller_identity()
             self.logger.info(f"Running as AWS user: {user['Arn']}")
-            
+
             # 模拟权限检查（实际应该使用 iam.simulate_principal_policy）
             required_actions = {
-                'ec2:CreateVpc',
-                'ecs:CreateCluster',
-                'elasticache:CreateCacheCluster',
+                "ec2:CreateVpc",
+                "ecs:CreateCluster",
+                "elasticache:CreateCacheCluster",
             }
-            
+
             # 简化版本：检查是否有 Admin 权限
             # 生产环境应该使用 iam.simulate_principal_policy
             self.logger.info(f"Checking permissions: {actions}")
             return True
-            
+
         except Exception as e:
             self.logger.error(f"AWS permission check failed: {e}")
             return False
@@ -418,33 +426,31 @@ class SelfReproduction:
             ReproductionType.EVOLVE: CostEstimates.EVOLVE_BASE,
             ReproductionType.REPAIR: CostEstimates.REPAIR_BASE,
         }.get(plan.type, 0.0)
-        
+
         # 资源成本
         resource_cost = 0.0
         resources = plan.resources_to_copy
-        
-        if 'containers' in resources:
+
+        if "containers" in resources:
             resource_cost += CostEstimates.PER_CONTAINER * len(
-                self._current_instance.resources.get('containers', {})
+                self._current_instance.resources.get("containers", {})
             )
-        if 'vpcs' in resources:
+        if "vpcs" in resources:
             resource_cost += CostEstimates.PER_VPC
-        if 'redis' in resources:
+        if "redis" in resources:
             resource_cost += CostEstimates.PER_REDIS
-        
+
         # 区域系数
-        region_multiplier = CostEstimates.REGION_MULTIPLIERS.get(
-            plan.target_region, 1.0
-        )
-        
+        region_multiplier = CostEstimates.REGION_MULTIPLIERS.get(plan.target_region, 1.0)
+
         total_cost = (base_cost + resource_cost) * region_multiplier
-        
+
         self.logger.info(
             f"Calculated cost: ${total_cost:.2f} "
             f"(base: ${base_cost:.2f}, resources: ${resource_cost:.2f}, "
             f"region: x{region_multiplier})"
         )
-        
+
         return total_cost
 
     # =========================================================================
@@ -462,7 +468,7 @@ class SelfReproduction:
                     f"Max concurrent reproductions ({self._max_concurrent}) reached"
                 )
                 return False
-            
+
             return True
 
     def _release_reproduction_slot(self, plan_id: str) -> None:
@@ -475,55 +481,53 @@ class SelfReproduction:
 
     async def _load_config(self) -> dict[str, Any]:
         """加载配置（带安全验证）"""
-        config_path = '/opt/intentos/data/config.json'
-        
+        config_path = "/opt/intentos/data/config.json"
+
         if not os.path.exists(config_path):
             self.logger.warning(f"Config file not found: {config_path}")
             return {}
-        
+
         # 验证文件权限
         file_stat = os.stat(config_path)
         if file_stat.st_uid != os.getuid():
             raise SecurityError(
-                f"Config file owner mismatch. Expected: {os.getuid()}, "
-                f"Got: {file_stat.st_uid}"
+                f"Config file owner mismatch. Expected: {os.getuid()}, " f"Got: {file_stat.st_uid}"
             )
-        
+
         # 验证文件权限模式
         file_mode = stat.S_IMODE(file_stat.st_mode)
         if file_mode & (stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH):
-            self.logger.warning(
-                f"Config file has insecure permissions: {oct(file_mode)}"
-            )
-        
+            self.logger.warning(f"Config file has insecure permissions: {oct(file_mode)}")
+
         # 验证文件签名（如果有）
-        sig_path = config_path + '.sig'
+        sig_path = config_path + ".sig"
         if os.path.exists(sig_path):
             if not self._verify_config_signature(config_path, sig_path):
                 raise SecurityError("Config file signature verification failed")
-        
+
         with open(config_path) as f:
             config = json.load(f)
-        
+
         self.logger.info("Config loaded and verified")
         return config
 
     def _verify_config_signature(self, config_path: str, sig_path: str) -> bool:
         """验证配置文件签名"""
         try:
-            with open(config_path, 'rb') as f:
+            with open(config_path, "rb") as f:
                 config_data = f.read()
-            
-            with open(sig_path, 'rb') as f:
+
+            with open(sig_path, "rb") as f:
                 signature = f.read()
-            
+
             # 简化版本：验证 MD5（生产环境应该用 RSA/ECDSA）
-            computed_hash = hashlib.md5(config_data).hexdigest().encode()
-            
+            # nosec: MD5 用于配置验证，生产环境应升级为 RSA/ECDSA
+            computed_hash = hashlib.md5(config_data, usedforsecurity=False).hexdigest().encode()  # nosec B324
+
             if computed_hash != signature:
                 self.logger.error("Config signature mismatch")
                 return False
-            
+
             return True
         except Exception as e:
             self.logger.error(f"Signature verification failed: {e}")
@@ -549,14 +553,14 @@ class SelfReproduction:
             success=success,
             error=error,
         )
-        
+
         self._audit_logs.append(log_entry)
-        
+
         # 写入文件
         try:
             os.makedirs(os.path.dirname(self._audit_log_path), exist_ok=True)
-            with open(self._audit_log_path, 'a') as f:
-                f.write(json.dumps(log_entry.to_dict()) + '\n')
+            with open(self._audit_log_path, "a") as f:
+                f.write(json.dumps(log_entry.to_dict()) + "\n")
         except Exception as e:
             self.logger.error(f"Failed to write audit log: {e}")
 
@@ -567,10 +571,10 @@ class SelfReproduction:
     ) -> list[AuditLog]:
         """获取审计日志"""
         logs = self._audit_logs
-        
+
         if action_filter:
-            logs = [l for l in logs if l.action == action_filter]
-        
+            logs = [log for log in logs if log.action == action_filter]
+
         return logs
 
     # =========================================================================
@@ -579,8 +583,8 @@ class SelfReproduction:
 
     def _get_instance_id(self) -> str:
         """获取实例 ID"""
-        if os.path.exists('/etc/intentos/instance_id'):
-            with open('/etc/intentos/instance_id') as f:
+        if os.path.exists("/etc/intentos/instance_id"):
+            with open("/etc/intentos/instance_id") as f:
                 return f.read().strip()
         return str(uuid.uuid4())[:8]
 
@@ -621,52 +625,52 @@ class SelfReproduction:
     async def _detect_permissions(self, provider: str) -> dict[str, bool]:
         """检测权限"""
         permissions = {}
-        
+
         if provider == "aws":
             permissions = {
-                'ec2:CreateVpc': await self._check_aws_permissions(['ec2:CreateVpc']),
-                'ecs:CreateCluster': await self._check_aws_permissions(['ecs:CreateCluster']),
-                'elasticache:CreateCacheCluster': await self._check_aws_permissions([
-                    'elasticache:CreateCacheCluster'
-                ]),
+                "ec2:CreateVpc": await self._check_aws_permissions(["ec2:CreateVpc"]),
+                "ecs:CreateCluster": await self._check_aws_permissions(["ecs:CreateCluster"]),
+                "elasticache:CreateCacheCluster": await self._check_aws_permissions(
+                    ["elasticache:CreateCacheCluster"]
+                ),
             }
         elif provider == "docker":
             permissions = {
-                'docker:run': True,
-                'docker:network': True,
+                "docker:run": True,
+                "docker:network": True,
             }
-        
+
         return permissions
 
     def _detect_cloud_provider(self) -> str:
         """检测云提供商"""
-        if os.getenv('AWS_REGION') or os.getenv('AWS_DEFAULT_REGION'):
+        if os.getenv("AWS_REGION") or os.getenv("AWS_DEFAULT_REGION"):
             return "aws"
-        if os.getenv('GCP_PROJECT_ID') or os.getenv('GOOGLE_CLOUD_PROJECT'):
+        if os.getenv("GCP_PROJECT_ID") or os.getenv("GOOGLE_CLOUD_PROJECT"):
             return "gcp"
-        if os.getenv('ARM_REGION') or os.getenv('AZURE_REGION'):
+        if os.getenv("ARM_REGION") or os.getenv("AZURE_REGION"):
             return "azure"
         return "docker"
 
     def _detect_region(self) -> str:
         """检测区域"""
         return (
-            os.getenv('AWS_REGION') or
-            os.getenv('AWS_DEFAULT_REGION') or
-            os.getenv('GCP_REGION') or
-            os.getenv('AZURE_REGION') or
-            'us-east-1'
+            os.getenv("AWS_REGION")
+            or os.getenv("AWS_DEFAULT_REGION")
+            or os.getenv("GCP_REGION")
+            or os.getenv("AZURE_REGION")
+            or "us-east-1"
         )
 
     async def _scan_resources(self) -> dict[str, Any]:
         """扫描资源"""
         provider = self._detect_cloud_provider()
-        
+
         if provider == "aws":
             return await self._scan_aws_resources()
         elif provider == "docker":
             return await self._scan_docker_resources()
-        
+
         return {}
 
     async def _scan_aws_resources(self) -> dict[str, Any]:
@@ -674,22 +678,20 @@ class SelfReproduction:
         try:
             import boto3
 
-            ecs = boto3.client('ecs')
-            ec2 = boto3.client('ec2')
-            elasticache = boto3.client('elasticache')
+            ecs = boto3.client("ecs")
+            ec2 = boto3.client("ec2")
+            elasticache = boto3.client("elasticache")
 
             clusters = ecs.describe_clusters()
-            vpcs = ec2.describe_vpcs(
-                Filters=[{'Name': 'tag:managed-by', 'Values': ['intentos']}]
-            )
+            vpcs = ec2.describe_vpcs(Filters=[{"Name": "tag:managed-by", "Values": ["intentos"]}])
             redis = elasticache.describe_cache_clusters(
-                TagFilters=[{'Name': 'managed-by', 'Values': ['intentos']}]
+                TagFilters=[{"Name": "managed-by", "Values": ["intentos"]}]
             )
 
             return {
-                'ecs_clusters': [c['clusterName'] for c in clusters.get('clusters', [])],
-                'vpcs': [v['VpcId'] for v in vpcs.get('Vpcs', [])],
-                'redis_clusters': [c['CacheClusterId'] for c in redis.get('CacheClusters', [])],
+                "ecs_clusters": [c["clusterName"] for c in clusters.get("clusters", [])],
+                "vpcs": [v["VpcId"] for v in vpcs.get("Vpcs", [])],
+                "redis_clusters": [c["CacheClusterId"] for c in redis.get("CacheClusters", [])],
             }
         except Exception as e:
             self.logger.error(f"AWS resource scan failed: {e}")
@@ -699,29 +701,38 @@ class SelfReproduction:
         """扫描 Docker 资源"""
         try:
             result = await asyncio.create_subprocess_exec(
-                'docker', 'ps', '--filter', 'name=intentos',
-                '--format', '{{.Names}}:{{.Status}}',
-                stdout=asyncio.subprocess.PIPE
+                "docker",
+                "ps",
+                "--filter",
+                "name=intentos",
+                "--format",
+                "{{.Names}}:{{.Status}}",
+                stdout=asyncio.subprocess.PIPE,
             )
             stdout, _ = await result.communicate()
 
             containers = {}
-            for line in stdout.decode().strip().split('\n'):
-                if ':' in line:
-                    name, status = line.split(':', 1)
+            for line in stdout.decode().strip().split("\n"):
+                if ":" in line:
+                    name, status = line.split(":", 1)
                     containers[name] = status
 
             result = await asyncio.create_subprocess_exec(
-                'docker', 'network', 'ls', '--filter', 'name=intentos',
-                '--format', '{{.Name}}',
-                stdout=asyncio.subprocess.PIPE
+                "docker",
+                "network",
+                "ls",
+                "--filter",
+                "name=intentos",
+                "--format",
+                "{{.Name}}",
+                stdout=asyncio.subprocess.PIPE,
             )
             stdout, _ = await result.communicate()
-            networks = [n for n in stdout.decode().strip().split('\n') if n]
+            networks = [n for n in stdout.decode().strip().split("\n") if n]
 
             return {
-                'containers': containers,
-                'networks': networks,
+                "containers": containers,
+                "networks": networks,
             }
         except Exception as e:
             self.logger.error(f"Docker resource scan failed: {e}")
@@ -729,15 +740,15 @@ class SelfReproduction:
 
     def _get_endpoint(self) -> str:
         """获取端点"""
-        return os.getenv('INTENTOS_ENDPOINT', 'http://localhost:8080')
+        return os.getenv("INTENTOS_ENDPOINT", "http://localhost:8080")
 
     def _get_version(self) -> str:
         """获取版本"""
-        return os.getenv('INTENTOS_VERSION', '9.0')
+        return os.getenv("INTENTOS_VERSION", "9.0")
 
     def _get_creation_time(self) -> str:
         """获取创建时间"""
-        return os.getenv('INTENTOS_CREATED_AT', self._get_current_time())
+        return os.getenv("INTENTOS_CREATED_AT", self._get_current_time())
 
     def _get_current_time(self) -> str:
         """获取当前时间"""
@@ -816,15 +827,12 @@ class SelfReproduction:
             target_region=self._current_instance.region,
             target_provider=self._current_instance.provider,
             config_changes={
-                'replicas': int(
-                    self._current_instance.config.get('replicas', 1) * scale_factor
-                ),
-                'auto_scaling': True,
+                "replicas": int(self._current_instance.config.get("replicas", 1) * scale_factor),
+                "auto_scaling": True,
             },
             estimated_time=300,
-            estimated_cost=self._calculate_cost(
-                ReproductionPlan(type=ReproductionType.FORK)
-            ) * scale_factor,
+            estimated_cost=self._calculate_cost(ReproductionPlan(type=ReproductionType.FORK))
+            * scale_factor,
         )
 
         self._reproduction_plans.append(plan)
@@ -862,13 +870,11 @@ class SelfReproduction:
             target_region=self._current_instance.region,
             target_provider=self._current_instance.provider,
             config_changes={
-                'version': self._get_next_version(),
-                'improvements': improvements or [],
+                "version": self._get_next_version(),
+                "improvements": improvements or [],
             },
             estimated_time=900,
-            estimated_cost=self._calculate_cost(
-                ReproductionPlan(type=ReproductionType.EVOLVE)
-            ),
+            estimated_cost=self._calculate_cost(ReproductionPlan(type=ReproductionType.EVOLVE)),
         )
 
         self._reproduction_plans.append(plan)
@@ -906,12 +912,10 @@ class SelfReproduction:
             target_region=self._current_instance.region if self._current_instance else "",
             target_provider=self._current_instance.provider if self._current_instance else "",
             config_changes={
-                'repairs': issues,
+                "repairs": issues,
             },
             estimated_time=180,
-            estimated_cost=self._calculate_cost(
-                ReproductionPlan(type=ReproductionType.REPAIR)
-            ),
+            estimated_cost=self._calculate_cost(ReproductionPlan(type=ReproductionType.REPAIR)),
         )
 
         self._reproduction_plans.append(plan)
@@ -933,7 +937,7 @@ class SelfReproduction:
     async def _execute_reproduction(self, plan: ReproductionPlan) -> None:
         """执行繁殖计划（带
 
-回滚）"""
+        回滚）"""
         plan.status = ReproductionStatus.IN_PROGRESS
 
         # 伦理检查
@@ -948,7 +952,7 @@ class SelfReproduction:
             return
 
         # 权限检查
-        required_permissions = ['ec2:CreateVpc', 'ecs:CreateCluster']
+        required_permissions = ["ec2:CreateVpc", "ecs:CreateCluster"]
         if not await self._check_cloud_permissions(plan.target_provider, required_permissions):
             plan.errors.append("Permission check failed")
             plan.status = ReproductionStatus.FAILED
@@ -979,7 +983,7 @@ class SelfReproduction:
                 plan.errors.append(f"{step_name}: {str(e)}")
                 plan.status = ReproductionStatus.FAILED
                 self.logger.error(f"{step_name} failed: {e}")
-                
+
                 # 回滚
                 await self._log_audit(
                     "execute_reproduction",
@@ -999,7 +1003,7 @@ class SelfReproduction:
     async def _rollback(self, plan: ReproductionPlan, executed_steps: list[str]) -> None:
         """回滚操作"""
         self.logger.info(f"Rolling back plan {plan.id}")
-        
+
         # 反向执行已完成的步骤
         for step_name in reversed(executed_steps):
             try:
@@ -1010,10 +1014,10 @@ class SelfReproduction:
             except Exception as e:
                 self.logger.error(f"Rollback failed for {step_name}: {e}")
                 plan.errors.append(f"Rollback failed: {e}")
-        
+
         plan.rolled_back = True
         plan.status = ReproductionStatus.ROLLED_BACK
-        
+
         await self._log_audit("rollback", f"Rolled back {len(executed_steps)} steps")
 
     async def _prepare_resources(self, plan: ReproductionPlan) -> None:
@@ -1027,29 +1031,32 @@ class SelfReproduction:
         """创建 AWS 资源"""
         try:
             import boto3
+
             session = boto3.Session(region_name=plan.target_region)
 
-            ec2 = session.client('ec2')
+            ec2 = session.client("ec2")
             vpc = ec2.create_vpc(
-                CidrBlock='10.0.0.0/16',
-                TagSpecifications=[{
-                    'ResourceType': 'vpc',
-                    'Tags': [
-                        {'Key': 'Name', 'Value': plan.target_instance},
-                        {'Key': 'managed-by', 'Value': 'intentos'},
-                        {'Key': 'plan-id', 'Value': plan.id},
-                    ]
-                }]
+                CidrBlock="10.0.0.0/16",
+                TagSpecifications=[
+                    {
+                        "ResourceType": "vpc",
+                        "Tags": [
+                            {"Key": "Name", "Value": plan.target_instance},
+                            {"Key": "managed-by", "Value": "intentos"},
+                            {"Key": "plan-id", "Value": plan.id},
+                        ],
+                    }
+                ],
             )
             self.logger.info(f"VPC created: {vpc['Vpc']['VpcId']}")
 
-            ecs = session.client('ecs')
+            ecs = session.client("ecs")
             cluster = ecs.create_cluster(
                 clusterName=plan.target_instance,
                 tags=[
-                    {'key': 'managed-by', 'value': 'intentos'},
-                    {'key': 'plan-id', 'value': plan.id},
-                ]
+                    {"key": "managed-by", "value": "intentos"},
+                    {"key": "plan-id", "value": plan.id},
+                ],
             )
             self.logger.info(f"ECS cluster created: {cluster['cluster']['clusterName']}")
 
@@ -1059,10 +1066,11 @@ class SelfReproduction:
     async def _create_docker_resources(self, plan: ReproductionPlan) -> None:
         """创建 Docker 资源"""
         compose_content = self._generate_docker_compose(plan)
-        target_dir = f"/tmp/intentos-{plan.target_instance}"
+        # nosec: /tmp 用于临时 Docker 配置，可接受
+        target_dir = f"/tmp/intentos-{plan.target_instance}"  # nosec B108
         os.makedirs(target_dir, exist_ok=True)
 
-        with open(f"{target_dir}/docker-compose.yml", 'w') as f:
+        with open(f"{target_dir}/docker-compose.yml", "w") as f:
             f.write(compose_content)
 
         self.logger.info("Docker Compose generated")
@@ -1093,26 +1101,33 @@ volumes:
     async def _copy_config(self, plan: ReproductionPlan) -> None:
         """复制配置"""
         if self._current_instance:
-            plan.config_changes.update({
-                'source_instance': self._current_instance.id,
-                'source_config': self._current_instance.config,
-            })
+            plan.config_changes.update(
+                {
+                    "source_instance": self._current_instance.id,
+                    "source_config": self._current_instance.config,
+                }
+            )
         self.logger.info("Config copied")
 
     async def _deploy_instance(self, plan: ReproductionPlan) -> None:
         """部署实例"""
         if plan.target_provider == "docker":
-            target_dir = f"/tmp/intentos-{plan.target_instance}"
+            # nosec: /tmp 用于临时 Docker 配置，可接受
+            target_dir = f"/tmp/intentos-{plan.target_instance}"  # nosec B108
             proc = await asyncio.create_subprocess_exec(
-                'docker-compose', '-f', f'{target_dir}/docker-compose.yml', 'up', '-d',
+                "docker-compose",
+                "-f",
+                f"{target_dir}/docker-compose.yml",
+                "up",
+                "-d",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
             stdout, stderr = await proc.communicate()
-            
+
             if proc.returncode != 0:
                 raise Exception(f"Docker deploy failed: {stderr.decode()}")
-        
+
         self.logger.info("Instance deployed")
 
     async def _sync_data(self, plan: ReproductionPlan) -> None:
@@ -1121,24 +1136,25 @@ volumes:
 
     async def _verify_health(self, plan: ReproductionPlan) -> None:
         """验证健康（改进：多端点多轮检查）"""
-        endpoints = ['/v1/status', '/v1/health', '/v1/ready']
+        endpoints = ["/v1/status", "/v1/health", "/v1/ready"]
         max_retries = SecurityConfig.HEALTH_CHECK_RETRIES
         retry_interval = SecurityConfig.HEALTH_CHECK_INTERVAL
-        
-        endpoint = plan.config_changes.get('target_endpoint', 'http://localhost:8080')
-        
+
+        endpoint = plan.config_changes.get("target_endpoint", "http://localhost:8080")
+
         for attempt in range(max_retries):
             for ep in endpoints:
                 try:
                     import aiohttp
+
                     async with aiohttp.ClientSession() as session:
-                        async with session.get(f'{endpoint}{ep}', timeout=10) as resp:
+                        async with session.get(f"{endpoint}{ep}", timeout=10) as resp:
                             if resp.status != 200:
                                 raise Exception(f"{ep} returned {resp.status}")
                 except Exception as e:
                     if attempt == max_retries - 1:
                         raise Exception(f"Health check failed after {max_retries} attempts: {e}")
-                    
+
                     self.logger.warning(
                         f"Health check attempt {attempt + 1}/{max_retries} failed, "
                         f"retrying in {retry_interval}s..."
@@ -1148,7 +1164,7 @@ volumes:
             else:
                 self.logger.info("Health check passed")
                 return
-        
+
         raise Exception("Health check timeout")
 
     async def _undeploy_instance(self, plan: ReproductionPlan) -> None:
@@ -1156,11 +1172,14 @@ volumes:
         if plan.target_provider == "docker":
             target_dir = f"/tmp/intentos-{plan.target_instance}"
             proc = await asyncio.create_subprocess_exec(
-                'docker-compose', '-f', f'{target_dir}/docker-compose.yml', 'down',
+                "docker-compose",
+                "-f",
+                f"{target_dir}/docker-compose.yml",
+                "down",
                 stdout=asyncio.subprocess.PIPE,
             )
             await proc.communicate()
-        
+
         self.logger.info("Instance undeployed (rollback)")
 
     async def _cleanup_resources(self, plan: ReproductionPlan) -> None:
@@ -1168,9 +1187,10 @@ volumes:
         if plan.target_provider == "aws":
             try:
                 import boto3
+
                 session = boto3.Session(region_name=plan.target_region)
-                ec2 = session.client('ec2')
-                
+                ec2 = session.client("ec2")
+
                 # 删除 VPC（简化版本）
                 self.logger.info("AWS resources cleaned up (rollback)")
             except Exception as e:
@@ -1186,9 +1206,9 @@ volumes:
         """获取下一版本"""
         if self._current_instance:
             current = self._current_instance.version
-            parts = current.split('.')
+            parts = current.split(".")
             parts[-1] = str(int(parts[-1]) + 1)
-            return '.'.join(parts)
+            return ".".join(parts)
         return "9.1"
 
     # =========================================================================
@@ -1214,8 +1234,12 @@ volumes:
         """获取统计信息"""
         return {
             "total_plans": len(self._reproduction_plans),
-            "completed": sum(1 for p in self._reproduction_plans if p.status == ReproductionStatus.COMPLETED),
-            "failed": sum(1 for p in self._reproduction_plans if p.status == ReproductionStatus.FAILED),
+            "completed": sum(
+                1 for p in self._reproduction_plans if p.status == ReproductionStatus.COMPLETED
+            ),
+            "failed": sum(
+                1 for p in self._reproduction_plans if p.status == ReproductionStatus.FAILED
+            ),
             "rolled_back": sum(1 for p in self._reproduction_plans if p.rolled_back),
             "active": len(self._active_reproductions),
             "total_audit_logs": len(self._audit_logs),
@@ -1229,6 +1253,7 @@ volumes:
 
 class SecurityError(Exception):
     """安全相关异常"""
+
     pass
 
 
@@ -1241,51 +1266,51 @@ async def main():
     """演示"""
     import argparse
 
-    parser = argparse.ArgumentParser(description='IntentOS Self-Reproduction (Improved)')
+    parser = argparse.ArgumentParser(description="IntentOS Self-Reproduction (Improved)")
     parser.add_argument(
-        '--action',
-        choices=['clone', 'scale', 'evolve', 'repair', 'discover', 'status'],
-        default='discover',
+        "--action",
+        choices=["clone", "scale", "evolve", "repair", "discover", "status"],
+        default="discover",
     )
-    parser.add_argument('--target-region', default='')
-    parser.add_argument('--scale-factor', type=float, default=2.0)
+    parser.add_argument("--target-region", default="")
+    parser.add_argument("--scale-factor", type=float, default=2.0)
 
     args = parser.parse_args()
 
     reproducer = SelfReproduction()
 
-    if args.action == 'discover':
+    if args.action == "discover":
         await reproducer.discover_self()
 
-    elif args.action == 'clone':
+    elif args.action == "clone":
         await reproducer.discover_self()
-        plan = await reproducer.clone_self(args.target_region or 'us-west-2')
+        plan = await reproducer.clone_self(args.target_region or "us-west-2")
         print(f"\nClone Plan: {plan.id}")
         print(f"Status: {plan.status.value}")
         print(f"Estimated Cost: ${plan.estimated_cost:.2f}")
 
-    elif args.action == 'scale':
+    elif args.action == "scale":
         await reproducer.discover_self()
         plan = await reproducer.scale_self(args.scale_factor)
         print(f"\nScale Plan: {plan.id}")
         print(f"Status: {plan.status.value}")
 
-    elif args.action == 'evolve':
+    elif args.action == "evolve":
         await reproducer.discover_self()
         plan = await reproducer.evolve_self()
         print(f"\nEvolve Plan: {plan.id}")
         print(f"Status: {plan.status.value}")
 
-    elif args.action == 'repair':
+    elif args.action == "repair":
         await reproducer.discover_self()
         plan = await reproducer.repair_self()
         print(f"\nRepair Plan: {plan.id}")
         print(f"Status: {plan.status.value}")
 
-    elif args.action == 'status':
+    elif args.action == "status":
         stats = reproducer.get_statistics()
         print(f"\nStatistics: {stats}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

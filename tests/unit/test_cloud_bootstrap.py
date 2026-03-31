@@ -5,15 +5,16 @@ Cloud Bootstrap Module Tests
 """
 
 import os
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import MagicMock, patch
 
 from intentos.bootstrap.cloud_bootstrap import (
-    ResourceStatus,
     AuthMethod,
-    CloudResource,
     BootstrapPlan,
+    CloudResource,
     CloudResourceProvisioner,
+    ResourceStatus,
 )
 
 
@@ -70,11 +71,7 @@ class TestCloudResource:
 
     def test_create_resource_minimal(self):
         """创建最小资源"""
-        resource = CloudResource(
-            name="test-resource",
-            type="s3",
-            provider="aws"
-        )
+        resource = CloudResource(name="test-resource", type="s3", provider="aws")
 
         assert resource.name == "test-resource"
         assert resource.type == "s3"
@@ -94,7 +91,7 @@ class TestCloudResource:
             endpoint="https://s3.amazonaws.com/bucket-123",
             config={"versioning": True},
             dependencies=["vpc-123"],
-            auto_create=False
+            auto_create=False,
         )
 
         assert resource.name == "test-bucket"
@@ -105,11 +102,7 @@ class TestCloudResource:
 
     def test_resource_default_config(self):
         """资源默认配置"""
-        resource = CloudResource(
-            name="test",
-            type="ec2",
-            provider="aws"
-        )
+        resource = CloudResource(name="test", type="ec2", provider="aws")
 
         assert resource.config == {}
         assert resource.dependencies == []
@@ -130,17 +123,13 @@ class TestBootstrapPlan:
 
     def test_create_plan_with_resources(self):
         """创建带资源的计划"""
-        resource = CloudResource(
-            name="test",
-            type="s3",
-            provider="aws"
-        )
+        resource = CloudResource(name="test", type="s3", provider="aws")
 
         plan = BootstrapPlan(
             resources=[resource],
             steps=[{"action": "create", "resource": "test"}],
             estimated_cost={"monthly": 10.0},
-            requires_human_action=True
+            requires_human_action=True,
         )
 
         assert len(plan.resources) == 1
@@ -163,10 +152,9 @@ class TestCloudResourceProvisioner:
 
     def test_init_aws_with_credentials(self):
         """初始化 AWS 开通器（有凭证）"""
-        with patch.dict(os.environ, {
-            'AWS_ACCESS_KEY_ID': 'test-key',
-            'AWS_SECRET_ACCESS_KEY': 'test-secret'
-        }):
+        with patch.dict(
+            os.environ, {"AWS_ACCESS_KEY_ID": "test-key", "AWS_SECRET_ACCESS_KEY": "test-secret"}
+        ):
             provisioner = CloudResourceProvisioner("aws")
 
             assert provisioner.credentials_valid is True
@@ -211,10 +199,13 @@ class TestCloudResourceProvisionerMethods:
 
     def test_check_credentials_aws_partial_env(self):
         """AWS 凭证检查 - 部分环境变量"""
-        with patch.dict(os.environ, {
-            'AWS_ACCESS_KEY_ID': 'test-key'
-            # 缺少 SECRET_ACCESS_KEY
-        }):
+        with patch.dict(
+            os.environ,
+            {
+                "AWS_ACCESS_KEY_ID": "test-key"
+                # 缺少 SECRET_ACCESS_KEY
+            },
+        ):
             provisioner = CloudResourceProvisioner("aws")
             assert provisioner.credentials_valid is False
 
@@ -226,9 +217,7 @@ class TestCloudResourceProvisionerMethods:
 
     def test_check_credentials_gcp_with_credentials(self):
         """GCP 凭证检查 - 有凭证"""
-        with patch.dict(os.environ, {
-            'GOOGLE_APPLICATION_CREDENTIALS': '/path/to/creds.json'
-        }):
+        with patch.dict(os.environ, {"GOOGLE_APPLICATION_CREDENTIALS": "/path/to/creds.json"}):
             provisioner = CloudResourceProvisioner("gcp")
             assert provisioner.credentials_valid is True
 
@@ -238,11 +227,7 @@ class TestResourceStatusTransitions:
 
     def test_resource_status_flow(self):
         """资源状态流程"""
-        resource = CloudResource(
-            name="test",
-            type="s3",
-            provider="aws"
-        )
+        resource = CloudResource(name="test", type="s3", provider="aws")
 
         # 初始状态
         assert resource.status == ResourceStatus.NOT_EXISTS
@@ -266,17 +251,11 @@ class TestBootstrapPlanValidation:
     def test_plan_with_circular_dependencies(self):
         """带循环依赖的计划"""
         resource1 = CloudResource(
-            name="resource1",
-            type="s3",
-            provider="aws",
-            dependencies=["resource2"]
+            name="resource1", type="s3", provider="aws", dependencies=["resource2"]
         )
 
         resource2 = CloudResource(
-            name="resource2",
-            type="ec2",
-            provider="aws",
-            dependencies=["resource1"]
+            name="resource2", type="ec2", provider="aws", dependencies=["resource1"]
         )
 
         plan = BootstrapPlan(resources=[resource1, resource2])
@@ -287,12 +266,7 @@ class TestBootstrapPlanValidation:
     def test_plan_cost_estimation(self):
         """计划成本估算"""
         plan = BootstrapPlan(
-            estimated_cost={
-                "hourly": 0.5,
-                "daily": 12.0,
-                "monthly": 360.0,
-                "yearly": 4320.0
-            }
+            estimated_cost={"hourly": 0.5, "daily": 12.0, "monthly": 360.0, "yearly": 4320.0}
         )
 
         assert plan.estimated_cost["hourly"] == 0.5
@@ -312,15 +286,9 @@ class TestCloudResourceConfig:
             provider="aws",
             config={
                 "instance_type": "t3.medium",
-                "storage": {
-                    "size": 100,
-                    "type": "gp3"
-                },
-                "network": {
-                    "vpc": "vpc-123",
-                    "subnet": "subnet-456"
-                }
-            }
+                "storage": {"size": 100, "type": "gp3"},
+                "network": {"vpc": "vpc-123", "subnet": "subnet-456"},
+            },
         )
 
         assert resource.config["instance_type"] == "t3.medium"
@@ -333,13 +301,7 @@ class TestCloudResourceConfig:
             name="tagged-resource",
             type="s3",
             provider="aws",
-            config={
-                "tags": {
-                    "Environment": "Production",
-                    "Team": "DevOps",
-                    "CostCenter": "IT"
-                }
-            }
+            config={"tags": {"Environment": "Production", "Team": "DevOps", "CostCenter": "IT"}},
         )
 
         assert resource.config["tags"]["Environment"] == "Production"
@@ -374,21 +336,14 @@ class TestCloudResourceDependencies:
 
     def test_resource_no_dependencies(self):
         """无依赖资源"""
-        resource = CloudResource(
-            name="standalone",
-            type="s3",
-            provider="aws"
-        )
+        resource = CloudResource(name="standalone", type="s3", provider="aws")
 
         assert resource.dependencies == []
 
     def test_resource_single_dependency(self):
         """单依赖资源"""
         resource = CloudResource(
-            name="app-server",
-            type="ec2",
-            provider="aws",
-            dependencies=["vpc-123"]
+            name="app-server", type="ec2", provider="aws", dependencies=["vpc-123"]
         )
 
         assert len(resource.dependencies) == 1
@@ -400,7 +355,7 @@ class TestCloudResourceDependencies:
             name="app-server",
             type="ec2",
             provider="aws",
-            dependencies=["vpc-123", "subnet-456", "sg-789"]
+            dependencies=["vpc-123", "subnet-456", "sg-789"],
         )
 
         assert len(resource.dependencies) == 3

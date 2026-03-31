@@ -8,6 +8,29 @@
 - VM 社区共识（单归属约束）
 """
 
+from .cluster_manager import (
+    # 成员资格
+    ClusterMembership,
+    # 共识协议
+    CommunityConsensusProtocol,
+    # 社区发现
+    CommunityDiscoveryProtocol,
+    CommunityFullError,
+    ConsensusNotReachedError,
+    ConsensusVote,
+    ConsensusVotingResult,
+    MembershipStatus,
+    # 异常
+    SingleHomingViolationError,
+    # VM 社区
+    VMCommunity,
+    # 节点成员
+    VMCommunityMember,
+    # 工厂函数
+    create_community,
+    create_community_member,
+    create_consensus_protocol,
+)
 from .vm import (
     DistributedCoordinator,
     DistributedOpcode,
@@ -17,30 +40,6 @@ from .vm import (
     VMNode,
     create_distributed_vm,
     create_node,
-)
-
-from .cluster_manager import (
-    # VM 社区
-    VMCommunity,
-    # 成员资格
-    ClusterMembership,
-    MembershipStatus,
-    # 节点成员
-    VMCommunityMember,
-    # 共识协议
-    CommunityConsensusProtocol,
-    ConsensusVote,
-    ConsensusVotingResult,
-    # 社区发现
-    CommunityDiscoveryProtocol,
-    # 异常
-    SingleHomingViolationError,
-    CommunityFullError,
-    ConsensusNotReachedError,
-    # 工厂函数
-    create_community,
-    create_community_member,
-    create_consensus_protocol,
 )
 
 __all__ = [

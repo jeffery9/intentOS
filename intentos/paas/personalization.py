@@ -19,10 +19,11 @@ logger: logging.Logger = logging.getLogger(__name__)
 @dataclass
 class UserAppConfig:
     """用户应用配置"""
-    user_id: str                     # 用户 ID
-    app_id: str                      # App ID
-    config: dict[str, Any]           # 配置内容
-    version: str = "1.0"             # 配置版本
+
+    user_id: str  # 用户 ID
+    app_id: str  # App ID
+    config: dict[str, Any]  # 配置内容
+    version: str = "1.0"  # 配置版本
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
     metadata: dict[str, Any] = field(default_factory=dict)
@@ -52,8 +53,9 @@ class UserAppConfig:
 @dataclass
 class UserGlobalConfig:
     """用户全局配置"""
-    user_id: str                     # 用户 ID
-    config: dict[str, Any]           # 配置内容
+
+    user_id: str  # 用户 ID
+    config: dict[str, Any]  # 配置内容
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
 
@@ -70,9 +72,10 @@ class UserGlobalConfig:
 @dataclass
 class ConfigSchema:
     """配置 Schema"""
-    app_id: str                      # App ID
-    schema: dict[str, Any]           # JSON Schema
-    defaults: dict[str, Any]         # 默认值
+
+    app_id: str  # App ID
+    schema: dict[str, Any]  # JSON Schema
+    defaults: dict[str, Any]  # 默认值
     version: str = "1.0"
 
     def to_dict(self) -> dict[str, Any]:
@@ -102,10 +105,7 @@ class PersonalizationManager:
         logger.info("个性化管理器初始化完成")
 
     def register_config_schema(
-        self,
-        app_id: str,
-        schema: dict[str, Any],
-        defaults: Optional[dict[str, Any]] = None
+        self, app_id: str, schema: dict[str, Any], defaults: Optional[dict[str, Any]] = None
     ) -> ConfigSchema:
         """注册配置 Schema"""
         config_schema = ConfigSchema(
@@ -122,11 +122,7 @@ class PersonalizationManager:
         return self.config_schemas.get(app_id)
 
     def set_app_config(
-        self,
-        user_id: str,
-        app_id: str,
-        config: dict[str, Any],
-        validate: bool = True
+        self, user_id: str, app_id: str, config: dict[str, Any], validate: bool = True
     ) -> UserAppConfig:
         """设置应用配置"""
         key = f"{user_id}:{app_id}"
@@ -155,11 +151,7 @@ class PersonalizationManager:
         logger.info(f"设置应用配置：{user_id} -> {app_id}")
         return app_config
 
-    def get_app_config(
-        self,
-        user_id: str,
-        app_id: str
-    ) -> dict[str, Any]:
+    def get_app_config(self, user_id: str, app_id: str) -> dict[str, Any]:
         """获取应用配置（合并默认值）"""
         key = f"{user_id}:{app_id}"
         user_config = self.app_configs.get(key)
@@ -176,11 +168,7 @@ class PersonalizationManager:
 
         return merged
 
-    def set_global_config(
-        self,
-        user_id: str,
-        config: dict[str, Any]
-    ) -> UserGlobalConfig:
+    def set_global_config(self, user_id: str, config: dict[str, Any]) -> UserGlobalConfig:
         """设置全局配置"""
         existing = self.global_configs.get(user_id)
         if existing:
@@ -225,15 +213,11 @@ class PersonalizationManager:
         prefix = f"{user_id}:"
         for key, config in self.app_configs.items():
             if key.startswith(prefix):
-                app_id = key[len(prefix):]
+                app_id = key[len(prefix) :]
                 configs[app_id] = config.to_dict()
         return configs
 
-    def _validate_config(
-        self,
-        config: dict[str, Any],
-        schema: ConfigSchema
-    ) -> dict[str, Any]:
+    def _validate_config(self, config: dict[str, Any], schema: ConfigSchema) -> dict[str, Any]:
         """验证配置"""
         # 简单的类型验证
         validated = {}
@@ -276,10 +260,7 @@ class PersonalizationManager:
 
         return isinstance(value, expected)
 
-    def merge_configs(
-        self,
-        *configs: dict[str, Any]
-    ) -> dict[str, Any]:
+    def merge_configs(self, *configs: dict[str, Any]) -> dict[str, Any]:
         """合并多个配置（后覆盖前）"""
         merged = {}
         for config in configs:
@@ -287,10 +268,7 @@ class PersonalizationManager:
         return merged
 
     def get_effective_config(
-        self,
-        user_id: str,
-        app_id: str,
-        app_defaults: Optional[dict[str, Any]] = None
+        self, user_id: str, app_id: str, app_defaults: Optional[dict[str, Any]] = None
     ) -> dict[str, Any]:
         """
         获取有效配置
@@ -326,12 +304,7 @@ class PreferenceManager:
         self.preferences: dict[str, dict[str, Any]] = {}
         logger.info("偏好管理器初始化完成")
 
-    def set_preference(
-        self,
-        user_id: str,
-        key: str,
-        value: Any
-    ) -> None:
+    def set_preference(self, user_id: str, key: str, value: Any) -> None:
         """设置偏好"""
         if user_id not in self.preferences:
             self.preferences[user_id] = {}
@@ -339,12 +312,7 @@ class PreferenceManager:
         self.preferences[user_id][key] = value
         logger.info(f"设置偏好：{user_id}.{key} = {value}")
 
-    def get_preference(
-        self,
-        user_id: str,
-        key: str,
-        default: Any = None
-    ) -> Any:
+    def get_preference(self, user_id: str, key: str, default: Any = None) -> Any:
         """获取偏好"""
         user_prefs = self.preferences.get(user_id, {})
         return user_prefs.get(key, default)
@@ -414,9 +382,7 @@ def get_personalization_manager() -> PersonalizationManager:
                 "type": "object",
                 "properties": UI_PREFERENCES,
             },
-            defaults={
-                k: v["default"] for k, v in UI_PREFERENCES.items()
-            }
+            defaults={k: v["default"] for k, v in UI_PREFERENCES.items()},
         )
     return _global_personalization_manager
 

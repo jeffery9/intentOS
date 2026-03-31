@@ -4,7 +4,6 @@ Runtime Agent Module Tests
 测试运行时 Agent 的节点功能、API 路由和分布式执行
 """
 
-import pytest
 from aiohttp import web
 
 from intentos.runtime.agent import RuntimeAgent
@@ -25,12 +24,7 @@ class TestRuntimeAgentInitialization:
 
     def test_init_custom_params(self):
         """自定义参数初始化"""
-        agent = RuntimeAgent(
-            node_id="custom_node",
-            host="127.0.0.1",
-            port=9000,
-            is_seed=True
-        )
+        agent = RuntimeAgent(node_id="custom_node", host="127.0.0.1", port=9000, is_seed=True)
 
         assert agent.node_id == "custom_node"
         assert agent.host == "127.0.0.1"
@@ -62,7 +56,7 @@ class TestRuntimeAgentRoutes:
         agent = RuntimeAgent()
 
         routes = [str(r.resource) for r in agent.app.router.routes()]
-        
+
         # 应包含 RPC 路由
         assert any("rpc" in r for r in routes)
         # 应包含 v1 API 路由
@@ -75,7 +69,7 @@ class TestRuntimeAgentRoutes:
         agent = RuntimeAgent()
 
         routes = [str(r.resource) for r in agent.app.router.routes()]
-        
+
         assert any("execute" in r for r in routes)
         assert any("memory" in r for r in routes)
         assert any("status" in r for r in routes)
@@ -85,7 +79,7 @@ class TestRuntimeAgentRoutes:
         agent = RuntimeAgent()
 
         routes = [str(r.resource) for r in agent.app.router.routes()]
-        
+
         assert any("/v1/execute" in r for r in routes)
         assert any("/v1/status" in r for r in routes)
         assert any("/v1/registry" in r for r in routes)
@@ -97,7 +91,7 @@ class TestRuntimeAgentProperties:
     def test_host_port(self):
         """主机和端口"""
         agent = RuntimeAgent(host="localhost", port=8080)
-        
+
         assert agent.host == "localhost"
         assert agent.port == 8080
 

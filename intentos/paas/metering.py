@@ -19,19 +19,21 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 class UsageUnit(Enum):
     """用量单位"""
-    CPU_MILLISECOND = "cpu_ms"        # CPU 毫秒
-    TOKEN = "token"                    # Token 数量
-    MEMORY_MB = "memory_mb"            # 内存 MB
-    API_CALL = "api_call"              # API 调用次数
-    EXECUTION_SECOND = "exec_sec"      # 执行秒数
-    STORAGE_MB = "storage_mb"          # 存储 MB
-    BANDWIDTH_MB = "bandwidth_mb"      # 带宽 MB
-    REQUEST = "request"                # 请求次数
+
+    CPU_MILLISECOND = "cpu_ms"  # CPU 毫秒
+    TOKEN = "token"  # Token 数量
+    MEMORY_MB = "memory_mb"  # 内存 MB
+    API_CALL = "api_call"  # API 调用次数
+    EXECUTION_SECOND = "exec_sec"  # 执行秒数
+    STORAGE_MB = "storage_mb"  # 存储 MB
+    BANDWIDTH_MB = "bandwidth_mb"  # 带宽 MB
+    REQUEST = "request"  # 请求次数
 
 
 @dataclass
 class UsageRecord:
     """单条用量记录"""
+
     unit: UsageUnit
     amount: float
     timestamp: datetime = field(default_factory=datetime.now)
@@ -52,6 +54,7 @@ class UsageRecord:
 @dataclass
 class UsageSummary:
     """用量汇总"""
+
     user_id: str
     session_id: Optional[str]
     period_start: datetime
@@ -148,7 +151,7 @@ class UsageMeter:
         unit: UsageUnit,
         amount: float,
         description: Optional[str] = None,
-        metadata: Optional[dict[str, Any]] = None
+        metadata: Optional[dict[str, Any]] = None,
     ) -> None:
         """记录用量"""
         record = UsageRecord(
@@ -262,7 +265,7 @@ class MeteringService:
         self,
         user_id: str,
         period_start: Optional[datetime] = None,
-        period_end: Optional[datetime] = None
+        period_end: Optional[datetime] = None,
     ) -> list[UsageSummary]:
         """获取用户用量汇总"""
         if user_id not in self.summaries:
@@ -282,7 +285,7 @@ class MeteringService:
         self,
         user_id: str,
         period_start: Optional[datetime] = None,
-        period_end: Optional[datetime] = None
+        period_end: Optional[datetime] = None,
     ) -> dict[str, Any]:
         """获取用户用量汇总（聚合）"""
         summaries = self.get_user_summaries(user_id, period_start, period_end)

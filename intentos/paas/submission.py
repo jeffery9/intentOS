@@ -29,6 +29,7 @@ class IntentPackage:
     包含意图定义、能力描述、计费规则等。
     这是 AI Native App 的基本单位。
     """
+
     name: str
     version: str
     description: str
@@ -41,13 +42,16 @@ class IntentPackage:
 
     def compute_hash(self) -> str:
         """计算 manifest 哈希"""
-        content = json.dumps({
-            "name": self.name,
-            "version": self.version,
-            "intents": self.intents,
-            "capabilities": self.capabilities,
-            "pricing": self.pricing,
-        }, sort_keys=True)
+        content = json.dumps(
+            {
+                "name": self.name,
+                "version": self.version,
+                "intents": self.intents,
+                "capabilities": self.capabilities,
+                "pricing": self.pricing,
+            },
+            sort_keys=True,
+        )
         return hashlib.sha256(content.encode()).hexdigest()[:16]
 
     def to_dict(self) -> dict[str, Any]:
@@ -84,6 +88,7 @@ class IntentPackage:
 @dataclass
 class CapabilityRegistration:
     """能力注册信息"""
+
     id: str
     name: str
     description: str
@@ -108,11 +113,7 @@ class LocalAppBuilder:
         logger.info(f"本地 App 构建器初始化：workspace={self.workspace}")
 
     def create_package(
-        self,
-        name: str,
-        version: str = "1.0.0",
-        description: str = "",
-        author: str = ""
+        self, name: str, version: str = "1.0.0", description: str = "", author: str = ""
     ) -> IntentPackage:
         """创建意图包"""
         self.package = IntentPackage(
@@ -131,7 +132,7 @@ class LocalAppBuilder:
         description: str,
         patterns: list[str],
         required_capabilities: list[str],
-        pricing: Optional[dict[str, Any]] = None
+        pricing: Optional[dict[str, Any]] = None,
     ) -> IntentPackage:
         """添加意图"""
         if not self.package:
@@ -156,7 +157,7 @@ class LocalAppBuilder:
         handler: Optional[Callable] = None,
         tags: Optional[list[str]] = None,
         source: str = "local",
-        pricing: Optional[dict[str, Any]] = None
+        pricing: Optional[dict[str, Any]] = None,
     ) -> IntentPackage:
         """注册能力"""
         if not self.package:
@@ -184,11 +185,7 @@ class LocalAppBuilder:
         logger.info(f"注册能力：{cap_id} - {name}")
         return self.package
 
-    def set_pricing(
-        self,
-        model: str = "pay_per_use",
-        **kwargs: Any
-    ) -> IntentPackage:
+    def set_pricing(self, model: str = "pay_per_use", **kwargs: Any) -> IntentPackage:
         """设置计费规则"""
         if not self.package:
             raise RuntimeError("请先创建意图包")
@@ -278,9 +275,7 @@ class AppSubmissionClient:
     """
 
     def __init__(
-        self,
-        intentos_url: str = "http://localhost:8080",
-        api_key: Optional[str] = None
+        self, intentos_url: str = "http://localhost:8080", api_key: Optional[str] = None
     ) -> None:
         self.intentos_url = intentos_url
         self.api_key = api_key
@@ -308,9 +303,7 @@ class AppSubmissionClient:
             self.session_id = None
 
     async def submit_package(
-        self,
-        package: IntentPackage,
-        wait_for_approval: bool = False
+        self, package: IntentPackage, wait_for_approval: bool = False
     ) -> dict[str, Any]:
         """
         提交意图包到 IntentOS
@@ -356,11 +349,7 @@ class AppSubmissionClient:
 
         return submission_result
 
-    async def register_capability(
-        self,
-        app_id: str,
-        capability: CapabilityRegistration
-    ) -> bool:
+    async def register_capability(self, app_id: str, capability: CapabilityRegistration) -> bool:
         """注册能力到 IntentOS"""
         if not self.connected:
             raise RuntimeError("未连接到 IntentOS")
@@ -377,7 +366,7 @@ class AppSubmissionClient:
         app_id: str,
         intent_id: str,
         input_data: dict[str, Any],
-        context: Optional[dict[str, Any]] = None
+        context: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """
         在 IntentOS 中执行意图
@@ -454,7 +443,7 @@ class IntentOSConnector:
         self,
         intentos_url: str = "http://localhost:8080",
         api_key: Optional[str] = None,
-        workspace: Optional[str] = None
+        workspace: Optional[str] = None,
     ) -> None:
         self.client = AppSubmissionClient(intentos_url, api_key)
         self.builder = LocalAppBuilder(workspace)
@@ -470,11 +459,7 @@ class IntentOSConnector:
         await self.client.disconnect()
 
     def create_app(
-        self,
-        name: str,
-        version: str = "1.0.0",
-        description: str = "",
-        author: str = ""
+        self, name: str, version: str = "1.0.0", description: str = "", author: str = ""
     ) -> LocalAppBuilder:
         """创建 App"""
         return self.builder.create_package(name, version, description, author)
@@ -486,12 +471,11 @@ class IntentOSConnector:
         description: str,
         patterns: list[str],
         required_capabilities: list[str],
-        pricing: Optional[dict[str, Any]] = None
+        pricing: Optional[dict[str, Any]] = None,
     ) -> LocalAppBuilder:
         """添加意图"""
         return self.builder.add_intent(
-            intent_id, name, description, patterns,
-            required_capabilities, pricing
+            intent_id, name, description, patterns, required_capabilities, pricing
         )
 
     def register_capability(
@@ -501,7 +485,7 @@ class IntentOSConnector:
         description: str,
         handler: Optional[Callable] = None,
         tags: Optional[list[str]] = None,
-        pricing: Optional[dict[str, Any]] = None
+        pricing: Optional[dict[str, Any]] = None,
     ) -> LocalAppBuilder:
         """注册能力"""
         return self.builder.register_capability(
@@ -519,30 +503,19 @@ class IntentOSConnector:
             raise ValueError(f"App 验证失败：{', '.join(errors)}")
 
         # 提交
-        result = await self.client.submit_package(
-            self.builder.package,
-            wait_for_approval
-        )
+        result = await self.client.submit_package(self.builder.package, wait_for_approval)
 
         self.current_app_id = result["app_id"]
         return result
 
     async def execute(
-        self,
-        intent_id: str,
-        input_data: dict[str, Any],
-        context: Optional[dict[str, Any]] = None
+        self, intent_id: str, input_data: dict[str, Any], context: Optional[dict[str, Any]] = None
     ) -> dict[str, Any]:
         """执行意图"""
         if not self.current_app_id:
             raise RuntimeError("请先提交 App")
 
-        return await self.client.execute_intent(
-            self.current_app_id,
-            intent_id,
-            input_data,
-            context
-        )
+        return await self.client.execute_intent(self.current_app_id, intent_id, input_data, context)
 
     async def __aenter__(self) -> IntentOSConnector:
         """异步上下文管理器入口"""
@@ -556,11 +529,9 @@ class IntentOSConnector:
 
 # 便捷函数
 
+
 def create_app(
-    name: str,
-    version: str = "1.0.0",
-    description: str = "",
-    author: str = ""
+    name: str, version: str = "1.0.0", description: str = "", author: str = ""
 ) -> LocalAppBuilder:
     """快速创建 App"""
     builder = LocalAppBuilder()
@@ -569,10 +540,7 @@ def create_app(
 
 
 def register_capability(
-    cap_id: str,
-    name: str,
-    description: str,
-    tags: Optional[list[str]] = None
+    cap_id: str, name: str, description: str, tags: Optional[list[str]] = None
 ) -> Callable:
     """
     装饰器方式注册能力
@@ -582,10 +550,12 @@ def register_capability(
         def my_capability(param: str) -> dict:
             return {"result": param}
     """
+
     def decorator(handler: Callable) -> Callable:
         # 实际实现会注册到全局能力注册表
         logger.info(f"注册能力：{cap_id} - {name}")
         return handler
+
     return decorator
 
 

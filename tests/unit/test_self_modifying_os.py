@@ -4,7 +4,6 @@ Self-Modifying OS Module Tests
 测试自修改操作系统模块：组件管理、动态修改、版本控制
 """
 
-import pytest
 from datetime import datetime
 from unittest.mock import MagicMock
 
@@ -24,7 +23,7 @@ class TestOSComponent:
             component_type="instruction",
             module="intentos.test",
             class_name="TestComponent",
-            code="def test(): pass"
+            code="def test(): pass",
         )
 
         assert component.name == "test_component"
@@ -49,7 +48,7 @@ class TestOSComponent:
             version="2.0.0",
             description="Advanced compiler rule",
             modified_at=now,
-            modified_by="admin"
+            modified_by="admin",
         )
 
         assert component.name == "advanced_component"
@@ -66,7 +65,7 @@ class TestOSComponent:
             module="intentos.engine",
             class_name="ExecutorRule",
             code="rule = {}",
-            version="1.5.0"
+            version="1.5.0",
         )
 
         data = component.to_dict()
@@ -87,7 +86,7 @@ class TestOSComponent:
             module="intentos.test",
             class_name="Test",
             code="pass",
-            modified_at=now
+            modified_at=now,
         )
 
         data = component.to_dict()
@@ -101,7 +100,7 @@ class TestOSComponent:
             component_type="instruction",
             module="intentos.test",
             class_name="Test",
-            code="pass"
+            code="pass",
         )
 
         data = component.to_dict()
@@ -143,9 +142,7 @@ class TestSelfModifyingOSDefineInstruction:
             return "test"
 
         component = os.define_instruction(
-            name="test_instr",
-            handler=test_instruction,
-            description="Test instruction"
+            name="test_instr", handler=test_instruction, description="Test instruction"
         )
 
         assert "test_instr" in os.instructions
@@ -160,11 +157,7 @@ class TestSelfModifyingOSDefineInstruction:
         def add(x, y):
             return x + y
 
-        component = os.define_instruction(
-            name="add",
-            handler=add,
-            description="Add two numbers"
-        )
+        component = os.define_instruction(name="add", handler=add, description="Add two numbers")
 
         assert os.instructions["add"](2, 3) == 5
         assert component.description == "Add two numbers"
@@ -240,9 +233,11 @@ class TestSelfModifyingOSMultipleModifications:
         os = SelfModifyingOS()
 
         for i in range(3):
+
             def make_instr(n):
                 def instr():
                     return n
+
                 return instr
 
             os.define_instruction(f"instr_{i}", make_instr(i))
@@ -281,7 +276,7 @@ class TestSelfModifyingOSComponentTypes:
             component_type="instruction",
             module="intentos.test",
             class_name="Test",
-            code="def instr(): pass"
+            code="def instr(): pass",
         )
 
         assert component.component_type == "instruction"
@@ -293,7 +288,7 @@ class TestSelfModifyingOSComponentTypes:
             component_type="compiler_rule",
             module="intentos.compiler",
             class_name="Rule",
-            code="rule = {}"
+            code="rule = {}",
         )
 
         assert component.component_type == "compiler_rule"
@@ -305,7 +300,7 @@ class TestSelfModifyingOSComponentTypes:
             component_type="executor_rule",
             module="intentos.engine",
             class_name="ExecRule",
-            code="exec_rule = {}"
+            code="exec_rule = {}",
         )
 
         assert component.component_type == "executor_rule"
@@ -317,7 +312,7 @@ class TestSelfModifyingOSComponentTypes:
             component_type="protocol",
             module="intentos.distributed",
             class_name="Protocol",
-            code="protocol = {}"
+            code="protocol = {}",
         )
 
         assert component.component_type == "protocol"
@@ -356,7 +351,7 @@ class TestSelfModifyingOSVersioning:
             module="test",
             class_name="Test",
             code="pass",
-            version="1.0.0"
+            version="1.0.0",
         )
 
         assert component.version == "1.0.0"
@@ -372,6 +367,6 @@ class TestSelfModifyingOSVersioning:
                 module="test",
                 class_name="Test",
                 code="pass",
-                version=version
+                version=version,
             )
             assert component.version == version

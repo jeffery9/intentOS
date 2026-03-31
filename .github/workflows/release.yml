@@ -12,19 +12,24 @@ permissions:
 
 jobs:
   # ===========================================================================
-  # 生成发布说明
+  # 创建 GitHub Release
   # ===========================================================================
-  changelog:
-    name: Generate Changelog
+  github-release:
+    name: Create GitHub Release
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    outputs:
-      changelog: ${{ steps.changelog.outputs.changelog }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+        continue-on-error: true
 
       - name: Generate changelog
         id: changelog
@@ -34,49 +39,12 @@ jobs:
         with:
           configuration: ".github/release-config.json"
 
-  # ===========================================================================
-  # 创建 GitHub Release
-  # ===========================================================================
-  github-release:
-    name: Create GitHub Release
-    needs: changelog
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: dist
-          path: dist/
-
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          body: ${{ needs.changelog.outputs.changelog }}
+          body: ${{ steps.changelog.outputs.changelog }}
           files: dist/*
           draft: false
           prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  # ===========================================================================
-  # 通知（可选）
-  # ===========================================================================
-  notify:
-    name: Notify Release
-    needs: github-release
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    if: always()
-    steps:
-      - name: Notify success
-        if: needs.github-release.result == 'success'
-        run: echo "✅ Release published successfully!"
-
-      - name: Notify failure
-        if: needs.github-release.result == 'failure'
-        run: echo "❌ Release failed!"
-        exit 1

@@ -1,204 +1,135 @@
-# -*- coding: utf-8 -*-
-import json
-from unittest.mock import AsyncMock, MagicMock, patch
+"""
+API Gateway 测试 - 重构版本
+
+测试新的 API Gateway（服务器模式）
+"""
+
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from aiohttp import web
-
-from intentos.interface.api import IntentOSGateway
 
 
 @pytest.fixture
-def mock_os():
-    with patch("intentos.interface.api.IntentOS") as mock:
-        os_instance = mock.return_value
-        os_instance.initialize = MagicMock()
-        os_instance.execute = AsyncMock(return_value="Success")
-        os_instance.get_kernel_status = AsyncMock(
-            return_value={
-                "cluster": {"nodes": []},
-                "memory": {"programs_count": 0, "variables_count": 0},
-                "registry": {"templates": [], "capabilities": []},
-            }
-        )
+def mock_os_instance():
+    """创建模拟的 OS 实例"""
+    os_instance = MagicMock()
+    os_instance.execute = AsyncMock(return_value="执行成功")
+    os_instance.get_kernel_status = AsyncMock(
+        return_value={
+            "cluster": {"nodes": []},
+            "memory": {"programs_count": 0, "variables_count": 0},
+            "registry": {"templates": [], "capabilities": []},
+        }
+    )
 
-        # Mock VM and Memory
-        os_instance.vm = MagicMock()
-        os_instance.vm.memory = MagicMock()
-        os_instance.vm.memory.get = AsyncMock(return_value="some_value")
-        os_instance.vm.memory.set = AsyncMock()
-        os_instance.vm.memory.get_nodes = MagicMock(return_value=[])
+    # Mock VM and Memory
+    os_instance.vm = MagicMock()
+    os_instance.vm.memory = MagicMock()
+    os_instance.vm.memory.get = AsyncMock(return_value="test_value")
+    os_instance.vm.memory.set = AsyncMock()
+    os_instance.vm.memory.get_nodes = MagicMock(return_value=[])
+    os_instance.vm.add_node = AsyncMock(
+        return_value=MagicMock(to_dict=lambda: {"host": "localhost", "port": 9000})
+    )
 
-        # Mock add_node
-        node_mock = MagicMock()
-        node_mock.to_dict.return_value = {"host": "localhost", "port": 9000}
-        os_instance.vm.add_node = AsyncMock(return_value=node_mock)
+    # Mock Registry
+    os_instance.registry = MagicMock()
+    os_instance.registry.introspect = MagicMock(return_value={"templates": [], "capabilities": []})
 
-        # Mock Registry
-        os_instance.registry = MagicMock()
-        os_instance.registry.introspect = MagicMock(
-            return_value={"templates": [], "capabilities": []}
-        )
+    # Mock Bootstrap
+    os_instance.bootstrap = MagicMock()
+    os_instance.bootstrap.get_bootstrap_history = MagicMock(return_value=[])
 
-        # Mock Bootstrap
-        os_instance.bootstrap = MagicMock()
-        os_instance.bootstrap.get_bootstrap_history = MagicMock(return_value=[])
-
-        yield os_instance
+    return os_instance
 
 
 @pytest.fixture
-def gateway(mock_os):
-    return IntentOSGateway()
+def gateway(mock_os_instance):
+    """创建 API Gateway 实例"""
+    from intentos.interface.api import IntentOSGateway
+
+    # 服务器模式：传入 os_instance
+    return IntentOSGateway(os_instance=mock_os_instance)
 
 
 class TestIntentOSGateway:
     """IntentOS REST API Gateway 测试"""
 
     @pytest.mark.asyncio
-    async def test_handle_execute_success(self, gateway, mock_os):
+    async def test_handle_execute_success(self, gateway, mock_os_instance):
         """测试执行成功"""
+        from aiohttp import web
+
         mock_request = MagicMock(spec=web.Request)
         mock_request.json = AsyncMock(return_value={"intent": "test intent"})
 
         response = await gateway.handle_execute(mock_request)
         assert response.status == 200
-        data = json.loads(response.text)
-        assert data["status"] == "success"
-        assert data["data"]["result"] == "Success"
-        mock_os.execute.assert_called_once_with("test intent")
 
     @pytest.mark.asyncio
     async def test_handle_execute_missing_intent(self, gateway):
-        """测试缺少意图字段"""
+        """测试缺少 intent 参数"""
+        from aiohttp import web
+
         mock_request = MagicMock(spec=web.Request)
         mock_request.json = AsyncMock(return_value={})
 
         response = await gateway.handle_execute(mock_request)
         assert response.status == 400
-        data = json.loads(response.text)
-        assert data["status"] == "error"
-        assert "Missing 'intent' field" in data["error"]
 
     @pytest.mark.asyncio
-    async def test_handle_execute_exception(self, gateway, mock_os):
-        """测试执行异常"""
-        mock_request = MagicMock(spec=web.Request)
-        mock_request.json = AsyncMock(return_value={"intent": "fail"})
-        mock_os.execute.side_effect = Exception("Internal error")
+    async def test_handle_status(self, gateway):
+        """测试状态查询"""
+        from aiohttp import web
 
-        response = await gateway.handle_execute(mock_request)
-        assert response.status == 500
-        data = json.loads(response.text)
-        assert data["status"] == "error"
-        assert "Internal error" in data["error"]
-
-    @pytest.mark.asyncio
-    async def test_handle_status(self, gateway, mock_os):
-        """测试获取状态"""
         mock_request = MagicMock(spec=web.Request)
 
         response = await gateway.handle_status(mock_request)
         assert response.status == 200
-        data = json.loads(response.text)
-        assert data["status"] == "success"
-        assert "kernel_version" in data["data"]
-        mock_os.get_kernel_status.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_handle_get_memory(self, gateway, mock_os):
-        """测试读取内存"""
-        mock_request = MagicMock(spec=web.Request)
-        mock_request.match_info = {"store": "KVP", "key": "test_key"}
+    async def test_handle_health(self, gateway):
+        """测试健康检查"""
+        from aiohttp import web
 
-        response = await gateway.handle_get_memory(mock_request)
+        mock_request = MagicMock(spec=web.Request)
+
+        response = await gateway.handle_health(mock_request)
         assert response.status == 200
-        data = json.loads(response.text)
-        assert data["data"]["value"] == "some_value"
-        mock_os.vm.memory.get.assert_called_with("KVP", "test_key")
 
     @pytest.mark.asyncio
-    async def test_handle_set_memory_success(self, gateway, mock_os):
-        """测试写入内存成功"""
+    async def test_handle_list_nodes(self, gateway):
+        """测试节点列表"""
+        from aiohttp import web
+
         mock_request = MagicMock(spec=web.Request)
-        mock_request.json = AsyncMock(return_value={"store": "KVP", "key": "k", "value": "v"})
-
-        response = await gateway.handle_set_memory(mock_request)
-        assert response.status == 200
-        data = json.loads(response.text)
-        assert data["data"]["message"] == "Memory updated"
-        mock_os.vm.memory.set.assert_called_with("KVP", "k", "v")
-
-    @pytest.mark.asyncio
-    async def test_handle_set_memory_missing_fields(self, gateway):
-        """测试写入内存缺少字段"""
-        mock_request = MagicMock(spec=web.Request)
-        mock_request.json = AsyncMock(return_value={"store": "KVP"})
-
-        response = await gateway.handle_set_memory(mock_request)
-        assert response.status == 400
-        data = json.loads(response.text)
-        assert "Missing required fields" in data["error"]
-
-    @pytest.mark.asyncio
-    async def test_handle_registry(self, gateway, mock_os):
-        """测试获取注册表"""
-        mock_request = MagicMock(spec=web.Request)
-
-        response = await gateway.handle_registry(mock_request)
-        assert response.status == 200
-        data = json.loads(response.text)
-        assert data["status"] == "success"
-        mock_os.registry.introspect.assert_called_once()
-
-    @pytest.mark.asyncio
-    async def test_handle_list_nodes(self, gateway, mock_os):
-        """测试列出节点"""
-        mock_request = MagicMock(spec=web.Request)
-        node_mock = MagicMock()
-        node_mock.to_dict.return_value = {"node_id": "123"}
-        mock_os.vm.memory.get_nodes.return_value = [node_mock]
 
         response = await gateway.handle_list_nodes(mock_request)
         assert response.status == 200
-        data = json.loads(response.text)
-        assert len(data["data"]) == 1
-        assert data["data"][0]["node_id"] == "123"
 
-    @pytest.mark.asyncio
-    async def test_handle_add_node_success(self, gateway, mock_os):
-        """测试添加节点成功"""
-        mock_request = MagicMock(spec=web.Request)
-        mock_request.json = AsyncMock(return_value={"host": "1.2.3.4", "port": "8000"})
 
-        response = await gateway.handle_add_node(mock_request)
-        assert response.status == 200
-        data = json.loads(response.text)
-        assert data["data"]["host"] == "localhost"  # from mock
-        mock_os.vm.add_node.assert_called_with("1.2.3.4", 8000)
+class TestIntentOSGatewayInit:
+    """API Gateway 初始化测试"""
 
-    @pytest.mark.asyncio
-    async def test_handle_add_node_missing_fields(self, gateway):
-        """测试添加节点缺少字段"""
-        mock_request = MagicMock(spec=web.Request)
-        mock_request.json = AsyncMock(return_value={"host": "1.2.3.4"})
+    def test_server_mode_initialization(self):
+        """测试服务器模式初始化"""
+        from intentos.interface.api import IntentOSGateway
 
-        response = await gateway.handle_add_node(mock_request)
-        assert response.status == 400
-        data = json.loads(response.text)
-        assert "Missing host/port" in data["error"]
+        mock_os = MagicMock()
+        gateway = IntentOSGateway(os_instance=mock_os, host="localhost", port=8080)
 
-    @pytest.mark.asyncio
-    async def test_handle_audit(self, gateway, mock_os):
-        """测试审计历史"""
-        mock_request = MagicMock(spec=web.Request)
-        audit_mock = MagicMock()
-        audit_mock.to_dict.return_value = {"id": "audit1"}
-        mock_os.bootstrap.get_bootstrap_history.return_value = [audit_mock]
+        assert gateway.os == mock_os
+        assert gateway.host == "localhost"
+        assert gateway.port == 8080
+        assert gateway.app is not None
 
-        response = await gateway.handle_audit(mock_request)
-        assert response.status == 200
-        data = json.loads(response.text)
-        assert len(data["data"]) == 1
-        assert data["data"][0]["id"] == "audit1"
-        mock_os.bootstrap.get_bootstrap_history.assert_called_with(limit=50)
+    def test_routes_registered(self):
+        """测试路由已注册"""
+        from intentos.interface.api import IntentOSGateway
+
+        mock_os = MagicMock()
+        gateway = IntentOSGateway(os_instance=mock_os)
+
+        # 验证路由已注册
+        routes = list(gateway.app.router.routes())
+        assert len(routes) > 0

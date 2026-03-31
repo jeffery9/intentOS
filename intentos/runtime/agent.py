@@ -21,6 +21,7 @@ from intentos.interface.interface import IntentOS
 
 logger = logging.getLogger(__name__)
 
+
 class RuntimeAgent:
     """
     Runtime Agent: 每个节点都是对外服务的入口
@@ -31,7 +32,7 @@ class RuntimeAgent:
         node_id: Optional[str] = None,
         host: str = "0.0.0.0",
         port: int = 8000,
-        is_seed: bool = False
+        is_seed: bool = False,
     ):
         self.node_id = node_id or f"node_{uuid.uuid4().hex[:8]}"
         self.host = host
@@ -65,6 +66,7 @@ class RuntimeAgent:
     async def handle_rpc_execute(self, request: web.Request) -> web.Response:
         data = await request.json()
         from intentos.semantic_vm import SemanticProgram
+
         program = SemanticProgram.from_dict(data["program"])
         # 在本地 VM 执行
         asyncio.create_task(self.os.vm.local_vm.execute_program(program.name, data.get("context")))
@@ -87,11 +89,7 @@ class RuntimeAgent:
 
         # 调用 OS 接口层处理
         result = await self.os.execute(intent_text)
-        return web.json_response({
-            "status": "success",
-            "node": self.node_id,
-            "result": result
-        })
+        return web.json_response({"status": "success", "node": self.node_id, "result": result})
 
     async def handle_v1_status(self, request: web.Request) -> web.Response:
         """获取整个集群的视角状态"""
@@ -143,8 +141,10 @@ class RuntimeAgent:
         except asyncio.CancelledError:
             self.os.shutdown()
 
+
 if __name__ == "__main__":
     import sys
+
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
     agent = RuntimeAgent(port=port)
     asyncio.run(agent.start())

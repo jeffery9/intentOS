@@ -8,29 +8,26 @@ IntentOS CLI - 统一的命令行交互界面
 - 图谱管理、验证等工具命令
 """
 
-import argparse
 import asyncio
 import cmd
 import json
 import os
-import signal
+
+# =============================================================================
+# IPC/RPC 通信层（简化版，内联到 CLI）
+# =============================================================================
+import struct
 import subprocess
 import sys
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Optional
 
 from rich.console import Console
 from rich.live import Live
 from rich.panel import Panel
-from rich.prompt import Prompt
 from rich.spinner import Spinner
 from rich.table import Table
-
-
-# =============================================================================
-# IPC/RPC 通信层（简化版，内联到 CLI）
-# =============================================================================
-
 
 PROTOCOL_VERSION = 1
 MAGIC_HEADER = b"INTENTOS"
@@ -42,7 +39,7 @@ def get_socket_path() -> str:
     tmp_socket = "/tmp/intentos.sock"
     if os.path.exists(tmp_socket):
         return tmp_socket
-    
+
     # 否则使用环境变量或临时目录
     base_dir = os.environ.get("INTENTOS_RUNTIME_DIR", "/tmp")
     return os.path.join(base_dir, "intentos.sock")
@@ -57,6 +54,7 @@ def check_kernel_running() -> bool:
 def wait_for_kernel(timeout: float = 10.0) -> bool:
     """等待内核启动"""
     import time
+
     start = time.time()
     while time.time() - start < timeout:
         if check_kernel_running():
@@ -70,25 +68,25 @@ def wait_for_kernel(timeout: float = 10.0) -> bool:
 # =============================================================================
 
 
-import struct
-from dataclasses import dataclass, field
-
-
 @dataclass
 class RPCRequest:
     """RPC 请求"""
+
     method: str
     params: dict = field(default_factory=dict)
     request_id: str = ""
 
     def to_bytes(self) -> bytes:
         """序列化为字节"""
-        data = json.dumps({
-            "version": PROTOCOL_VERSION,
-            "id": self.request_id or datetime.now().isoformat(),
-            "method": self.method,
-            "params": self.params,
-        }, ensure_ascii=False).encode("utf-8")
+        data = json.dumps(
+            {
+                "version": PROTOCOL_VERSION,
+                "id": self.request_id or datetime.now().isoformat(),
+                "method": self.method,
+                "params": self.params,
+            },
+            ensure_ascii=False,
+        ).encode("utf-8")
         header = MAGIC_HEADER + struct.pack(">I", len(data))
         return header + data
 
@@ -96,6 +94,7 @@ class RPCRequest:
 @dataclass
 class RPCResponse:
     """RPC 响应"""
+
     request_id: str
     result: Any = None
     error: Optional[str] = None
@@ -192,12 +191,12 @@ class RPCClient:
 class IntentOSCLI(cmd.Cmd):
     """
     IntentOS 统一命令行界面
-    
+
     整合了 Shell 和 Chat 功能：
     - 直接输入自然语言执行意图
     - 使用 / 开头的系统命令
     """
-    
+
     intro = "IntentOS CLI. Type /help for commands.\n"
     prompt = "intentos> "
 
@@ -211,7 +210,9 @@ class IntentOSCLI(cmd.Cmd):
     def _print_banner(self):
         """打印欢迎横幅"""
         self.console.print("\n" + "=" * 60, style="bold blue")
-        self.console.print("       IntentOS CLI - AI Native Operating System      ", style="bold blue")
+        self.console.print(
+            "       IntentOS CLI - AI Native Operating System      ", style="bold blue"
+        )
         self.console.print("=" * 60 + "\n", style="bold blue")
         self.console.print("AI 原生操作系统 - 统一命令行界面", style="italic green")
         self.console.print("\n使用方式:")
@@ -271,7 +272,7 @@ class IntentOSCLI(cmd.Cmd):
 
     def do_clear(self, arg):
         """清空屏幕：/clear"""
-        os.system('cls' if os.name == 'nt' else 'clear')
+        os.system("cls" if os.name == "nt" else "clear")
         self._print_banner()
 
     def do_status(self, arg):
@@ -279,7 +280,7 @@ class IntentOSCLI(cmd.Cmd):
         try:
             status = self.loop.run_until_complete(self.client.get_status())
             kernel_status = self.loop.run_until_complete(self.client.get_kernel_status())
-            
+
             table = Table(title="内核状态", border_style="cyan")
             table.add_column("组件", style="cyan")
             table.add_column("状态", style="white")
@@ -363,7 +364,7 @@ def start_cli(args=None):
         # 连接
         client = RPCClient()
         loop.run_until_complete(client.connect())
-        console.print(f"✅ 已连接到 IntentOS 内核", style="green")
+        console.print("✅ 已连接到 IntentOS 内核", style="green")
 
         # 启动 CLI
         cli = IntentOSCLI(client, loop)
@@ -378,7 +379,7 @@ def start_cli(args=None):
         if client:
             try:
                 loop.run_until_complete(client.disconnect())
-            except:
+            except Exception:
                 pass
         loop.close()
 
@@ -400,18 +401,18 @@ def main():
         if not check_kernel_running():
             console.print("❌ 内核未运行", style="red")
             sys.exit(1)
-        
+
         loop = asyncio.new_event_loop()
         client = RPCClient()
         try:
             loop.run_until_complete(client.connect())
             status = loop.run_until_complete(client.get_status())
             kernel_status = loop.run_until_complete(client.get_kernel_status())
-            
+
             console.print("\n[bold blue]IntentOS 内核状态[/bold blue]")
             console.print(f"运行状态：{'✓' if status.get('running') else '✗'}")
             console.print(f"初始化：{'✓' if status.get('initialized') else '✗'}")
-            
+
             reg = kernel_status.get("registry", {})
             console.print(f"能力数：{len(reg.get('capabilities', []))}")
             console.print(f"模板数：{len(reg.get('templates', []))}")

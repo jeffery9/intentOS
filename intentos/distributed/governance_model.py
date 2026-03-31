@@ -15,12 +15,14 @@ from typing import Any, Dict, List, Optional
 
 from intentos.agent.reward_system import RewardSystem
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
 
 class Proposal:
     """
     Represents a governance proposal.
     """
+
     def __init__(self, proposer_id: str, title: str, description: str, vote_duration_days: int = 7):
         self.id = str(uuid.uuid4())
         self.proposer_id = proposer_id
@@ -30,8 +32,8 @@ class Proposal:
         self.ends_at = self.created_at + timedelta(days=vote_duration_days)
         self.votes_for: float = 0.0
         self.votes_against: float = 0.0
-        self.voters: Dict[str, bool] = {} # Records if a user has voted to prevent double voting
-        self.status: str = "open" # "open", "closed", "passed", "failed"
+        self.voters: Dict[str, bool] = {}  # Records if a user has voted to prevent double voting
+        self.status: str = "open"  # "open", "closed", "passed", "failed"
 
     def is_active(self) -> bool:
         return self.status == "open" and datetime.now() < self.ends_at
@@ -60,7 +62,9 @@ class GovernanceModel:
         self.proposals: Dict[str, Proposal] = {}
         logging.info("GovernanceModel initialized.")
 
-    def create_proposal(self, proposer_id: str, title: str, description: str, vote_duration_days: int = 7) -> Proposal:
+    def create_proposal(
+        self, proposer_id: str, title: str, description: str, vote_duration_days: int = 7
+    ) -> Proposal:
         """
         Creates a new governance proposal.
 
@@ -77,11 +81,15 @@ class GovernanceModel:
 
         # Simulate initial voter participation and rewards
         num_initial_voters = random.randint(2, 5)
-        logging.info(f"Simulating {num_initial_voters} initial voters for proposal '{proposal.title}'.")
+        logging.info(
+            f"Simulating {num_initial_voters} initial voters for proposal '{proposal.title}'."
+        )
         for i in range(num_initial_voters):
             voter_id = f"sim_voter_{random.randint(100, 999)}"
             # Award some credits for community engagement to these simulated voters
-            self.reward_system.award_credits(voter_id, "community_engagement", random.uniform(1.0, 5.0))
+            self.reward_system.award_credits(
+                voter_id, "community_engagement", random.uniform(1.0, 5.0)
+            )
             # Make them vote randomly
             self.vote_on_proposal(voter_id, proposal.id, random.choice([True, False]))
 
@@ -106,17 +114,21 @@ class GovernanceModel:
             logging.warning(f"Entity {voter_id} has already voted on proposal {proposal_id}.")
             return False
 
-        voting_power = self.reward_system.get_balance(voter_id) # Voting power == credit balance
+        voting_power = self.reward_system.get_balance(voter_id)  # Voting power == credit balance
         if voting_power <= 0:
             logging.warning(f"Entity {voter_id} has no voting power (0 credits).")
             return False
 
         if vote:
             proposal.votes_for += voting_power
-            logging.info(f"Entity {voter_id} voted FOR proposal '{proposal.title}' with {voting_power} power.")
+            logging.info(
+                f"Entity {voter_id} voted FOR proposal '{proposal.title}' with {voting_power} power."
+            )
         else:
             proposal.votes_against += voting_power
-            logging.info(f"Entity {voter_id} voted AGAINST proposal '{proposal.title}' with {voting_power} power.")
+            logging.info(
+                f"Entity {voter_id} voted AGAINST proposal '{proposal.title}' with {voting_power} power."
+            )
 
         proposal.voters[voter_id] = True
         return True
@@ -156,7 +168,9 @@ class GovernanceModel:
         :return: A list of dictionaries, each representing a proposal's status.
         """
         all_proposals = []
-        for proposal_id in list(self.proposals.keys()): # Iterate over a copy to allow modification if closing votes
+        for proposal_id in list(
+            self.proposals.keys()
+        ):  # Iterate over a copy to allow modification if closing votes
             status = self.get_proposal_status(proposal_id)
             if status:
                 all_proposals.append(status)

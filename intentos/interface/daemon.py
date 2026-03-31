@@ -95,14 +95,14 @@ class IntentOSDaemon:
         # 关闭 OS
         if self.os:
             self.os.shutdown()
-        
+
         # 停止 API 网关
-        if hasattr(self, 'api_runner') and self.api_runner:
+        if hasattr(self, "api_runner") and self.api_runner:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             loop.run_until_complete(self.api_runner.cleanup())
             loop.close()
-        
+
         # 停止 RPC 服务器
         if self.rpc_server:
             loop = asyncio.new_event_loop()

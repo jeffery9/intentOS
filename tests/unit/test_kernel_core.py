@@ -5,16 +5,17 @@ Kernel Core Module Tests
 """
 
 import pytest
+
 from intentos.kernel.core import (
-    PrivilegeLevel,
-    MemoryRegion,
-    ProtectedMemory,
-    SyscallTable,
     InvalidSyscallError,
     KernelMode,
-    UserMode,
+    MemoryRegion,
+    PrivilegeLevel,
+    ProtectedMemory,
     ProtectionDomain,
     SecurityChecker,
+    SyscallTable,
+    UserMode,
 )
 
 
@@ -39,12 +40,7 @@ class TestMemoryRegion:
 
     def test_create_region(self):
         """创建内存区域"""
-        region = MemoryRegion(
-            start=0x1000,
-            end=0x1FFF,
-            permissions="rw",
-            owner="kernel"
-        )
+        region = MemoryRegion(start=0x1000, end=0x1FFF, permissions="rw", owner="kernel")
         assert region.start == 0x1000
         assert region.end == 0x1FFF
         assert region.permissions == "rw"
@@ -53,7 +49,7 @@ class TestMemoryRegion:
     def test_contains_address(self):
         """测试地址是否在区域内"""
         region = MemoryRegion(start=100, end=200, permissions="rw")
-        
+
         assert region.contains(100) is True
         assert region.contains(150) is True
         assert region.contains(200) is True
@@ -113,7 +109,7 @@ class TestProtectedMemory:
         memory = ProtectedMemory()
         region = MemoryRegion(start=0, end=100, permissions="w")
         memory.add_region(region)
-        
+
         with pytest.raises(MemoryError, match="地址 50 不可读"):
             memory.read(50)
 
@@ -122,7 +118,7 @@ class TestProtectedMemory:
         memory = ProtectedMemory()
         region = MemoryRegion(start=0, end=100, permissions="r")
         memory.add_region(region)
-        
+
         with pytest.raises(MemoryError, match="地址 50 不可写"):
             memory.write(50, "value")
 
@@ -131,7 +127,7 @@ class TestProtectedMemory:
         memory = ProtectedMemory()
         region = MemoryRegion(start=0, end=100, permissions="rw", owner="kernel")
         memory.add_region(region)
-        
+
         with pytest.raises(PermissionError, match="用户程序不能读取内核内存"):
             memory.read(50, caller="user")
 
@@ -140,7 +136,7 @@ class TestProtectedMemory:
         memory = ProtectedMemory()
         region = MemoryRegion(start=0, end=100, permissions="rw", owner="kernel")
         memory.add_region(region)
-        
+
         with pytest.raises(PermissionError, match="用户程序不能写入内核内存"):
             memory.write(50, "value", caller="user")
 
@@ -149,7 +145,7 @@ class TestProtectedMemory:
         memory = ProtectedMemory()
         region = MemoryRegion(start=0, end=100, permissions="rw", owner="user")
         memory.add_region(region)
-        
+
         memory.write(50, "test_value", caller="user")
         value = memory.read(50, caller="user")
         assert value == "test_value"
@@ -161,10 +157,10 @@ class TestSyscallTable:
     def test_register_and_call(self):
         """注册并调用系统调用"""
         table = SyscallTable()
-        
+
         def mock_handler(x, y):
             return x + y
-        
+
         table.register(0, "add", mock_handler)
         result = table.call(0, 2, 3)
         assert result == 5
@@ -172,7 +168,7 @@ class TestSyscallTable:
     def test_call_invalid_syscall(self):
         """调用不存在的系统调用应抛出异常"""
         table = SyscallTable()
-        
+
         with pytest.raises(InvalidSyscallError, match="无效的系统调用"):
             table.call(999)
 
@@ -180,7 +176,7 @@ class TestSyscallTable:
         """获取系统调用名称"""
         table = SyscallTable()
         table.register(5, "test_call", lambda: None)
-        
+
         assert table.get_name(5) == "test_call"
         assert table.get_name(999).startswith("unknown_")
 
@@ -191,7 +187,7 @@ class TestKernelMode:
     def test_initialization(self):
         """内核初始化"""
         kernel = KernelMode()
-        
+
         assert kernel.kernel_memory is not None
         assert kernel.syscall_table is not None
         assert isinstance(kernel.process_table, dict)
@@ -247,7 +243,7 @@ class TestKernelMode:
     def test_syscall_invalid(self):
         """测试无效系统调用"""
         kernel = KernelMode()
-        
+
         with pytest.raises(InvalidSyscallError):
             kernel.syscall(999, ())
 
@@ -259,7 +255,7 @@ class TestUserMode:
         """用户空间初始化"""
         kernel = KernelMode()
         user = UserMode(kernel)
-        
+
         assert user.kernel is kernel
         assert isinstance(user.user_memory, dict)
         assert user.protection_domain.level == PrivilegeLevel.USER
@@ -268,7 +264,7 @@ class TestUserMode:
         """用户程序调用允许的系统调用"""
         kernel = KernelMode()
         user = UserMode(kernel)
-        
+
         result = user.syscall(0, 0, bytearray(10), 10)
         assert result == 0
 
@@ -276,7 +272,7 @@ class TestUserMode:
         """用户程序调用不允许的系统调用"""
         kernel = KernelMode()
         user = UserMode(kernel)
-        
+
         # 假设 syscall 8 不在允许列表中
         with pytest.raises(PermissionError):
             user.syscall(8)
@@ -285,7 +281,7 @@ class TestUserMode:
         """用户程序修改 CONFIG 应被阻止"""
         kernel = KernelMode()
         user = UserMode(kernel)
-        
+
         with pytest.raises(PermissionError, match="禁止在用户态修改"):
             user.syscall(5, "CONFIG", "key", "value")
 
@@ -293,7 +289,7 @@ class TestUserMode:
         """用户程序修改 POLICY 应被阻止"""
         kernel = KernelMode()
         user = UserMode(kernel)
-        
+
         with pytest.raises(PermissionError, match="禁止在用户态修改"):
             user.syscall(5, "POLICY", "key", "value")
 
@@ -301,7 +297,7 @@ class TestUserMode:
         """用户程序修改 INTENT 应被允许"""
         kernel = KernelMode()
         user = UserMode(kernel)
-        
+
         # 不应抛出异常
         result = user.syscall(5, "INTENT", "test", {"data": "value"})
         assert result == 0
@@ -310,7 +306,7 @@ class TestUserMode:
         """执行程序"""
         kernel = KernelMode()
         user = UserMode(kernel)
-        
+
         result = user.execute_program({"program": "test"})
         assert result == {}
 
@@ -320,11 +316,8 @@ class TestProtectionDomain:
 
     def test_create_domain(self):
         """创建保护域"""
-        domain = ProtectionDomain(
-            level=PrivilegeLevel.USER,
-            allowed_syscalls={0, 1, 2, 3}
-        )
-        
+        domain = ProtectionDomain(level=PrivilegeLevel.USER, allowed_syscalls={0, 1, 2, 3})
+
         assert domain.level == PrivilegeLevel.USER
         assert len(domain.allowed_syscalls) == 4
 
@@ -334,48 +327,34 @@ class TestSecurityChecker:
 
     def test_kernel_can_call_any_syscall(self):
         """内核可以调用任何系统调用"""
-        assert SecurityChecker.check_syscall_permission(
-            PrivilegeLevel.KERNEL, 999
-        ) is True
+        assert SecurityChecker.check_syscall_permission(PrivilegeLevel.KERNEL, 999) is True
 
     def test_user_allowed_syscall(self):
         """用户可以调用允许的系统调用"""
-        assert SecurityChecker.check_syscall_permission(
-            PrivilegeLevel.USER, 0
-        ) is True
+        assert SecurityChecker.check_syscall_permission(PrivilegeLevel.USER, 0) is True
 
     def test_user_blocked_syscall(self):
         """用户不能调用不允许的系统调用"""
-        assert SecurityChecker.check_syscall_permission(
-            PrivilegeLevel.USER, 999
-        ) is False
+        assert SecurityChecker.check_syscall_permission(PrivilegeLevel.USER, 999) is False
 
     def test_memory_access_allowed(self):
         """内存访问权限检查 - 允许"""
         region = MemoryRegion(start=0, end=100, permissions="rw", owner="user")
-        
-        assert SecurityChecker.check_memory_access(
-            PrivilegeLevel.USER, 50, "r", [region]
-        ) is True
+
+        assert SecurityChecker.check_memory_access(PrivilegeLevel.USER, 50, "r", [region]) is True
 
     def test_memory_access_no_permission(self):
         """内存访问权限检查 - 无操作权限"""
         region = MemoryRegion(start=0, end=100, permissions="r", owner="user")
-        
-        assert SecurityChecker.check_memory_access(
-            PrivilegeLevel.USER, 50, "w", [region]
-        ) is False
+
+        assert SecurityChecker.check_memory_access(PrivilegeLevel.USER, 50, "w", [region]) is False
 
     def test_memory_access_kernel_region(self):
         """内存访问权限检查 - 内核区域"""
         region = MemoryRegion(start=0, end=100, permissions="rw", owner="kernel")
-        
-        assert SecurityChecker.check_memory_access(
-            PrivilegeLevel.USER, 50, "r", [region]
-        ) is False
+
+        assert SecurityChecker.check_memory_access(PrivilegeLevel.USER, 50, "r", [region]) is False
 
     def test_memory_access_not_found(self):
         """内存访问权限检查 - 未找到区域"""
-        assert SecurityChecker.check_memory_access(
-            PrivilegeLevel.USER, 50, "r", []
-        ) is False
+        assert SecurityChecker.check_memory_access(PrivilegeLevel.USER, 50, "r", []) is False

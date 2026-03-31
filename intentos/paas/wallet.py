@@ -19,43 +19,48 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 class CurrencyType(Enum):
     """货币类型"""
-    CRYPTO = "crypto"      # 加密货币
-    FIAT = "fiat"          # 法币
+
+    CRYPTO = "crypto"  # 加密货币
+    FIAT = "fiat"  # 法币
 
 
 class PaymentMethod(Enum):
     """支付方式"""
-    META_MASK = "metamask"       # MetaMask
-    IM_TOKEN = "imtoken"         # ImToken
-    TOKEN_POCKET = "tokenpocket" # TokenPocket
-    STRIPE = "stripe"            # Stripe
-    ALIPAY = "alipay"            # 支付宝
-    WECHAT = "wechat"            # 微信
-    BANK_TRANSFER = "bank"       # 银行转账
+
+    META_MASK = "metamask"  # MetaMask
+    IM_TOKEN = "imtoken"  # ImToken
+    TOKEN_POCKET = "tokenpocket"  # TokenPocket
+    STRIPE = "stripe"  # Stripe
+    ALIPAY = "alipay"  # 支付宝
+    WECHAT = "wechat"  # 微信
+    BANK_TRANSFER = "bank"  # 银行转账
 
 
 class TransactionType(Enum):
     """交易类型"""
-    RECHARGE = "recharge"        # 充值
-    PAYMENT = "payment"          # 支付
-    REFUND = "refund"            # 退款
-    WITHDRAW = "withdraw"        # 提现
-    TRANSFER = "transfer"        # 转账
-    SUBSCRIPTION = "subscription" # 订阅扣费
+
+    RECHARGE = "recharge"  # 充值
+    PAYMENT = "payment"  # 支付
+    REFUND = "refund"  # 退款
+    WITHDRAW = "withdraw"  # 提现
+    TRANSFER = "transfer"  # 转账
+    SUBSCRIPTION = "subscription"  # 订阅扣费
 
 
 class TransactionStatus(Enum):
     """交易状态"""
-    PENDING = "pending"          # 待处理
-    PROCESSING = "processing"    # 处理中
-    COMPLETED = "completed"      # 已完成
-    FAILED = "failed"            # 失败
-    CANCELLED = "cancelled"      # 已取消
+
+    PENDING = "pending"  # 待处理
+    PROCESSING = "processing"  # 处理中
+    COMPLETED = "completed"  # 已完成
+    FAILED = "failed"  # 失败
+    CANCELLED = "cancelled"  # 已取消
 
 
 @dataclass
 class Transaction:
     """交易记录"""
+
     id: str
     user_id: str
     type: TransactionType
@@ -88,6 +93,7 @@ class Transaction:
 @dataclass
 class WalletBalance:
     """钱包余额"""
+
     user_id: str
     balances: dict[str, float] = field(default_factory=dict)  # currency -> amount
     last_updated: datetime = field(default_factory=datetime.now)
@@ -148,7 +154,7 @@ class DigitalWallet:
         amount: float,
         currency: str = "USD",
         method: PaymentMethod = PaymentMethod.STRIPE,
-        tx_hash: Optional[str] = None
+        tx_hash: Optional[str] = None,
     ) -> Transaction:
         """充值"""
         tx = Transaction(
@@ -186,7 +192,7 @@ class DigitalWallet:
         amount: float,
         currency: str = "USD",
         description: Optional[str] = None,
-        auto_recharge: bool = False
+        auto_recharge: bool = False,
     ) -> Transaction:
         """支付"""
         # 检查余额
@@ -196,7 +202,9 @@ class DigitalWallet:
                 recharge_amount = amount - self.balance.get_balance(currency) + 10  # 多充$10
                 await self.recharge(recharge_amount, currency)
             else:
-                raise ValueError(f"余额不足：需要{amount} {currency}, 可用{self.balance.get_balance(currency)} {currency}")
+                raise ValueError(
+                    f"余额不足：需要{amount} {currency}, 可用{self.balance.get_balance(currency)} {currency}"
+                )
 
         tx = Transaction(
             id=self._generate_tx_id(),
@@ -227,11 +235,13 @@ class DigitalWallet:
         amount: float,
         currency: str = "USD",
         method: PaymentMethod = PaymentMethod.BANK_TRANSFER,
-        destination: Optional[str] = None
+        destination: Optional[str] = None,
     ) -> Transaction:
         """提现"""
         if self.balance.get_balance(currency) < amount:
-            raise ValueError(f"余额不足：需要{amount} {currency}, 可用{self.balance.get_balance(currency)} {currency}")
+            raise ValueError(
+                f"余额不足：需要{amount} {currency}, 可用{self.balance.get_balance(currency)} {currency}"
+            )
 
         tx = Transaction(
             id=self._generate_tx_id(),
@@ -263,7 +273,7 @@ class DigitalWallet:
         self,
         limit: int = 50,
         tx_type: Optional[TransactionType] = None,
-        status: Optional[TransactionStatus] = None
+        status: Optional[TransactionStatus] = None,
     ) -> list[Transaction]:
         """获取交易历史"""
         transactions = self.transactions
@@ -289,6 +299,7 @@ class DigitalWallet:
         """处理充值（子类可重写）"""
         # 模拟处理延迟
         import asyncio
+
         await asyncio.sleep(0.1)
 
 
@@ -304,12 +315,7 @@ class PaymentGateway:
         self.api_keys: dict[str, str] = {}
         logger.info("支付网关初始化完成")
 
-    def register_provider(
-        self,
-        name: str,
-        provider: Any,
-        api_key: Optional[str] = None
-    ) -> None:
+    def register_provider(self, name: str, provider: Any, api_key: Optional[str] = None) -> None:
         """注册支付提供商"""
         self.providers[name] = provider
         if api_key:
@@ -320,7 +326,10 @@ class PaymentGateway:
         """连接 MetaMask"""
         logger.info("连接 MetaMask...")
         # 实际实现会连接 Web3  provider
-        self.providers["metamask"] = {"type": "web3", "rpc_url": rpc_url or "https://mainnet.infura.io"}
+        self.providers["metamask"] = {
+            "type": "web3",
+            "rpc_url": rpc_url or "https://mainnet.infura.io",
+        }
         logger.info("MetaMask 连接成功")
         return True
 
@@ -345,11 +354,7 @@ class PaymentGateway:
         return True
 
     async def process_payment(
-        self,
-        wallet: DigitalWallet,
-        amount: float,
-        currency: str,
-        method: PaymentMethod
+        self, wallet: DigitalWallet, amount: float, currency: str, method: PaymentMethod
     ) -> Transaction:
         """处理支付"""
         if method.value not in self.providers:
@@ -361,11 +366,7 @@ class PaymentGateway:
         return tx
 
     async def process_recharge(
-        self,
-        wallet: DigitalWallet,
-        amount: float,
-        currency: str,
-        method: PaymentMethod
+        self, wallet: DigitalWallet, amount: float, currency: str, method: PaymentMethod
     ) -> Transaction:
         """处理充值"""
         if method.value not in self.providers:
@@ -394,7 +395,7 @@ class SubscriptionManager:
         amount: float,
         currency: str = "USD",
         billing_cycle: str = "monthly",
-        auto_renew: bool = True
+        auto_renew: bool = True,
     ) -> dict[str, Any]:
         """创建订阅"""
         sub_id = f"sub_{user_id}_{plan_id}_{datetime.now().strftime('%Y%m%d')}"
@@ -427,9 +428,7 @@ class SubscriptionManager:
         return True
 
     async def process_auto_charge(
-        self,
-        wallet: DigitalWallet,
-        sub_id: str
+        self, wallet: DigitalWallet, sub_id: str
     ) -> Optional[Transaction]:
         """处理自动扣费"""
         if sub_id not in self.subscriptions:
@@ -443,7 +442,7 @@ class SubscriptionManager:
             tx = await wallet.pay(
                 amount=sub["amount"],
                 currency=sub["currency"],
-                description=f"订阅扣费：{sub['plan_id']}"
+                description=f"订阅扣费：{sub['plan_id']}",
             )
             tx.type = TransactionType.SUBSCRIPTION
             tx.metadata["subscription_id"] = sub_id
@@ -468,7 +467,11 @@ class SubscriptionManager:
         elif billing_cycle == "weekly":
             return now + timedelta(weeks=1)
         elif billing_cycle == "monthly":
-            return now.replace(month=now.month + 1) if now.month < 12 else now.replace(year=now.year + 1, month=1)
+            return (
+                now.replace(month=now.month + 1)
+                if now.month < 12
+                else now.replace(year=now.year + 1, month=1)
+            )
         elif billing_cycle == "yearly":
             return now.replace(year=now.year + 1)
         else:
@@ -476,10 +479,7 @@ class SubscriptionManager:
 
     def get_user_subscriptions(self, user_id: str) -> list[dict[str, Any]]:
         """获取用户订阅"""
-        return [
-            sub for sub in self.subscriptions.values()
-            if sub["user_id"] == user_id
-        ]
+        return [sub for sub in self.subscriptions.values() if sub["user_id"] == user_id]
 
 
 # 全局支付网关实例

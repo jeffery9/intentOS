@@ -54,7 +54,7 @@ class AIAgent(Agent):
         self.executor = AgentExecutor(
             self.registry,
             llm_processor=None,  # 可传入 LLM Processor
-            enable_monitoring=True
+            enable_monitoring=True,
         )
         self._monitor = self.executor.get_monitor()
 
@@ -72,19 +72,19 @@ class AIAgent(Agent):
 
     def _register_builtin_capabilities(self) -> None:
         """注册内置能力"""
-        import shlex
         import subprocess
         from datetime import datetime
 
         # Shell
         def shell_exec(command: str, timeout: int = 30) -> dict[str, Any]:
             try:
+                # nosec: 这是设计用于执行 shell 命令的能力，需要 shell=True
                 result = subprocess.run(
-                    shlex.split(command),
+                    command,  # nosec B602
                     capture_output=True,
                     text=True,
                     timeout=timeout,
-                    shell=True,
+                    shell=True,  # nosec B602
                 )
                 return {
                     "success": result.returncode == 0,
@@ -95,7 +95,7 @@ class AIAgent(Agent):
                 raise AgentException(
                     ErrorCode.CAPABILITY_EXECUTION_FAILED,
                     f"Shell 执行失败：{e}",
-                    details={"command": command}
+                    details={"command": command},
                 ) from e
 
         self.registry.register(
@@ -110,14 +110,17 @@ class AIAgent(Agent):
 
         # 计算器
         def calc(expression: str) -> dict[str, Any]:
+            import ast
+
             try:
-                result: float = eval(expression, {"__builtins__": {}}, {})
+                # 使用 ast.literal_eval 替代 eval，更安全
+                result: float = ast.literal_eval(expression)
                 return {"success": True, "result": result}
             except Exception as e:
                 raise AgentException(
                     ErrorCode.CAPABILITY_EXECUTION_FAILED,
                     f"计算失败：{e}",
-                    details={"expression": expression}
+                    details={"expression": expression},
                 ) from e
 
         self.registry.register(
@@ -159,9 +162,7 @@ class AIAgent(Agent):
         """执行意图"""
         if not self.executor:
             return AgentResult(
-                success=False,
-                message="Agent 未初始化",
-                error="agent_not_initialized"
+                success=False, message="Agent 未初始化", error="agent_not_initialized"
             )
 
         try:
@@ -201,12 +202,7 @@ class AIAgent(Agent):
             caps.append(f"{cap.name} ({cap.source}): {cap.description}")
         return caps
 
-    async def connect_mcp(
-        self,
-        name: str,
-        command: str,
-        args: Optional[list[str]] = None
-    ) -> bool:
+    async def connect_mcp(self, name: str, command: str, args: Optional[list[str]] = None) -> bool:
         """连接 MCP 服务器"""
         if self.mcp:
             return await self.mcp.connect_server(name, command, args)

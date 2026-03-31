@@ -156,10 +156,7 @@ class DataAnalystApp:
         }
 
     async def analyze(
-        self,
-        data_source: str,
-        query: str,
-        context: Optional[dict[str, Any]] = None
+        self, data_source: str, query: str, context: Optional[dict[str, Any]] = None
     ) -> dict[str, Any]:
         """
         执行数据分析
@@ -176,6 +173,7 @@ class DataAnalystApp:
 
         # 模拟分析过程
         import time
+
         start_time = time.time()
 
         # 模拟处理
@@ -235,9 +233,7 @@ class DataAnalystApp:
         ]
 
     async def submit_to_intentos(
-        self,
-        intentos_url: str = "http://localhost:8080",
-        api_key: Optional[str] = None
+        self, intentos_url: str = "http://localhost:8080", api_key: Optional[str] = None
     ) -> dict[str, Any]:
         """提交到 IntentOS"""
         from intentos.agent.submission import IntentOSConnector

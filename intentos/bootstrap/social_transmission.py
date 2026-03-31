@@ -5,7 +5,6 @@ IntentOS 社会传播模块
 """
 
 from __future__ import annotations
-import logging
 
 import asyncio
 import json
@@ -19,26 +18,29 @@ from typing import Any, Optional
 
 class TransmissionType(Enum):
     """传播类型"""
-    VIRAL = "viral"              # 病毒式传播
-    COMMUNITY = "community"      # 社区自组织
+
+    VIRAL = "viral"  # 病毒式传播
+    COMMUNITY = "community"  # 社区自组织
     MARKETPLACE = "marketplace"  # 市场交易
-    EDUCATION = "education"      # 教育传播
-    ENTERPRISE = "enterprise"    # 企业采用
+    EDUCATION = "education"  # 教育传播
+    ENTERPRISE = "enterprise"  # 企业采用
 
 
 class AdoptionStage(Enum):
     """采用阶段"""
-    UNAWARE = "unaware"          # 不知道
-    AWARE = "aware"              # 知道
-    INTERESTED = "interested"    # 感兴趣
-    TRIAL = "trial"              # 试用
-    ADOPTER = "adopter"          # 采用者
-    ADVOCATE = "advocate"        # 倡导者
+
+    UNAWARE = "unaware"  # 不知道
+    AWARE = "aware"  # 知道
+    INTERESTED = "interested"  # 感兴趣
+    TRIAL = "trial"  # 试用
+    ADOPTER = "adopter"  # 采用者
+    ADVOCATE = "advocate"  # 倡导者
 
 
 @dataclass
 class TransmissionNode:
     """传播节点（个人/组织）"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     name: str = ""
     type: str = "individual"  # individual / organization
@@ -53,6 +55,7 @@ class TransmissionNode:
 @dataclass
 class TransmissionEvent:
     """传播事件"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     type: TransmissionType = TransmissionType.VIRAL
     source_node: str = ""
@@ -68,6 +71,7 @@ class TransmissionEvent:
 @dataclass
 class Community:
     """社区"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     name: str = ""
     description: str = ""
@@ -81,6 +85,7 @@ class Community:
 @dataclass
 class ValueNetwork:
     """价值网络"""
+
     id: str = field(default_factory=lambda: str(uuid.uuid4()))
     name: str = ""
     participants: list[str] = field(default_factory=list)
@@ -105,7 +110,7 @@ class SocialTransmission:
 
     def _load_state(self) -> None:
         """加载状态"""
-        state_file = '/tmp/intentos_transmission_state.json'
+        state_file = "/tmp/intentos_transmission_state.json"
         if os.path.exists(state_file):
             with open(state_file) as f:
                 state = json.load(f)
@@ -113,13 +118,13 @@ class SocialTransmission:
 
     def _save_state(self) -> None:
         """保存状态"""
-        state_file = '/tmp/intentos_transmission_state.json'
+        state_file = "/tmp/intentos_transmission_state.json"
         state = {
-            'nodes': {k: vars(v) for k, v in self.nodes.items()},
-            'events': [vars(e) for e in self.events],
-            'communities': {k: vars(c) for k, c in self.communities.items()},
+            "nodes": {k: vars(v) for k, v in self.nodes.items()},
+            "events": [vars(e) for e in self.events],
+            "communities": {k: vars(c) for k, c in self.communities.items()},
         }
-        with open(state_file, 'w') as f:
+        with open(state_file, "w") as f:
             json.dump(state, f, indent=2)
 
     # ========== 病毒式传播 ==========
@@ -144,14 +149,12 @@ class SocialTransmission:
 
         event = TransmissionEvent(
             type=TransmissionType.VIRAL,
-            message=campaign_config.get('message', ''),
-            channel=','.join(campaign_config.get('channels', [])),
+            message=campaign_config.get("message", ""),
+            channel=",".join(campaign_config.get("channels", [])),
         )
 
         # 识别种子用户
-        seed_users = await self._identify_seed_users(
-            campaign_config.get('target_audience', {})
-        )
+        seed_users = await self._identify_seed_users(campaign_config.get("target_audience", {}))
         event.target_nodes = seed_users
         event.source_node = "intentos_official"
 
@@ -169,15 +172,15 @@ class SocialTransmission:
         seed_users = []
 
         # 示例：GitHub 上的开源贡献者
-        if target_audience.get('platform') == 'github':
+        if target_audience.get("platform") == "github":
             seed_users = await self._find_github_influencers(
-                target_audience.get('keywords', ['ai', 'llm', 'os'])
+                target_audience.get("keywords", ["ai", "llm", "os"])
             )
 
         # 示例：Twitter 上的技术意见领袖
-        elif target_audience.get('platform') == 'twitter':
+        elif target_audience.get("platform") == "twitter":
             seed_users = await self._find_twitter_influencers(
-                target_audience.get('topics', ['AI', 'OpenSource'])
+                target_audience.get("topics", ["AI", "OpenSource"])
             )
 
         return seed_users
@@ -201,20 +204,18 @@ class SocialTransmission:
         ]
 
     async def _execute_viral_transmission(
-        self,
-        event: TransmissionEvent,
-        config: dict[str, Any]
+        self, event: TransmissionEvent, config: dict[str, Any]
     ) -> None:
         """执行病毒式传播"""
         print("  执行传播...")
 
         # 1. 发布内容
-        for channel in config.get('channels', []):
+        for channel in config.get("channels", []):
             await self._publish_to_channel(channel, event.message, config)
 
         # 2. 激励分享
-        if config.get('incentives'):
-            await self._distribute_incentives(config['incentives'])
+        if config.get("incentives"):
+            await self._distribute_incentives(config["incentives"])
 
         # 3. 追踪转化
         event.reach = await self._track_reach(event)
@@ -225,38 +226,33 @@ class SocialTransmission:
         print(f"  ✓ 互动：{event.engagements} 次")
         print(f"  ✓ 转化率：{event.conversion_rate:.2%}")
 
-    async def _publish_to_channel(
-        self,
-        channel: str,
-        message: str,
-        config: dict
-    ) -> None:
+    async def _publish_to_channel(self, channel: str, message: str, config: dict) -> None:
         """发布到渠道"""
-        if channel == 'github':
+        if channel == "github":
             # 创建 GitHub Release、Issue、PR
             print(f"    → GitHub: 发布 {message[:30]}...")
-        elif channel == 'twitter':
+        elif channel == "twitter":
             # 发布 Twitter 线程
             print(f"    → Twitter: 发布 {message[:30]}...")
-        elif channel == 'reddit':
+        elif channel == "reddit":
             # 发布 Reddit 帖子
             print(f"    → Reddit: 发布 {message[:30]}...")
-        elif channel == 'product_hunt':
+        elif channel == "product_hunt":
             # 发布 Product Hunt
             print(f"    → Product Hunt: 发布 {message[:30]}...")
 
     async def _distribute_incentives(self, incentives: dict) -> None:
         """分发激励"""
         # NFT 奖励
-        if incentives.get('nft'):
+        if incentives.get("nft"):
             print("    → 分发 NFT 奖励...")
 
         # Token 奖励
-        if incentives.get('token'):
+        if incentives.get("token"):
             print("    → 分发 Token 奖励...")
 
         # 荣誉奖励
-        if incentives.get('badge'):
+        if incentives.get("badge"):
             print("    → 颁发荣誉徽章...")
 
     async def _track_reach(self, event: TransmissionEvent) -> int:
@@ -275,10 +271,7 @@ class SocialTransmission:
     # ========== 社区自组织 ==========
 
     async def create_community(
-        self,
-        name: str,
-        description: str,
-        platform: str = "discord"
+        self, name: str, description: str, platform: str = "discord"
     ) -> Community:
         """
         创建社区
@@ -317,23 +310,22 @@ class SocialTransmission:
 
     async def _setup_community_platform(self, community: Community) -> None:
         """设置社区平台"""
-        if community.platform == 'discord':
+        if community.platform == "discord":
             # 创建 Discord 服务器
             print("    → 创建 Discord 服务器...")
-        elif community.platform == 'slack':
+        elif community.platform == "slack":
             # 创建 Slack 工作区
             print("    → 创建 Slack 工作区...")
-        elif community.platform == 'github':
+        elif community.platform == "github":
             # 创建 GitHub Organization
             print("    → 创建 GitHub Organization...")
 
     async def _find_founding_members(self) -> list[str]:
         """寻找创始成员"""
         # 从早期采用者中邀请
-        return [
-            node.id for node in self.nodes.values()
-            if node.stage == AdoptionStage.ADVOCATE
-        ][:10]  # 前 10 个倡导者
+        return [node.id for node in self.nodes.values() if node.stage == AdoptionStage.ADVOCATE][
+            :10
+        ]  # 前 10 个倡导者
 
     async def nurture_community(self, community_id: str) -> None:
         """培育社区"""
@@ -439,24 +431,24 @@ class SocialTransmission:
         """定义价值流"""
         return [
             {
-                'from': '开发者',
-                'to': '用户',
-                'value': '应用/插件',
+                "from": "开发者",
+                "to": "用户",
+                "value": "应用/插件",
             },
             {
-                'from': '用户',
-                'to': '开发者',
-                'value': '反馈/收入',
+                "from": "用户",
+                "to": "开发者",
+                "value": "反馈/收入",
             },
             {
-                'from': '投资者',
-                'to': '生态',
-                'value': '资金',
+                "from": "投资者",
+                "to": "生态",
+                "value": "资金",
             },
             {
-                'from': '生态',
-                'to': '投资者',
-                'value': '回报',
+                "from": "生态",
+                "to": "投资者",
+                "value": "回报",
             },
         ]
 
@@ -472,15 +464,15 @@ class SocialTransmission:
         print("\n📚 创建教育项目...")
 
         # 大学合作
-        if program_config.get('university'):
+        if program_config.get("university"):
             await self._partner_with_universities(program_config)
 
         # 在线课程
-        if program_config.get('online_course'):
+        if program_config.get("online_course"):
             await self._create_online_courses(program_config)
 
         # 认证体系
-        if program_config.get('certification'):
+        if program_config.get("certification"):
             await self._setup_certification(program_config)
 
     async def _partner_with_universities(self, config: dict) -> None:
@@ -564,26 +556,27 @@ class SocialTransmission:
 
         total_events = len(self.events)
         avg_conversion = (
-            sum(e.conversion_rate for e in self.events) / total_events
-            if total_events else 0
+            sum(e.conversion_rate for e in self.events) / total_events if total_events else 0
         )
 
         return {
-            'total_reach': total_nodes,
-            'adopters': adopters,
-            'advocates': advocates,
-            'adoption_rate': adopters / total_nodes if total_nodes else 0,
-            'total_events': total_events,
-            'avg_conversion_rate': avg_conversion,
-            'communities': len(self.communities),
-            'value_networks': len(self.value_networks),
+            "total_reach": total_nodes,
+            "adopters": adopters,
+            "advocates": advocates,
+            "adoption_rate": adopters / total_nodes if total_nodes else 0,
+            "total_events": total_events,
+            "avg_conversion_rate": avg_conversion,
+            "communities": len(self.communities),
+            "value_networks": len(self.value_networks),
         }
 
     def plot_transmission_curve(self) -> None:
         """绘制传播曲线"""
         # 实际实现会使用 matplotlib 绘制
         print("\n📊 传播曲线:")
-        print("  创新者 (2.5%) → 早期采用者 (13.5%) → 早期大众 (34%) → 晚期大众 (34%) → 落后者 (16%)")
+        print(
+            "  创新者 (2.5%) → 早期采用者 (13.5%) → 早期大众 (34%) → 晚期大众 (34%) → 落后者 (16%)"
+        )
 
     async def optimize_transmission(self) -> dict[str, Any]:
         """优化传播策略"""
@@ -593,26 +586,32 @@ class SocialTransmission:
         recommendations = []
 
         # 分析瓶颈
-        if metrics['adoption_rate'] < 0.1:
-            recommendations.append({
-                'issue': '采用率低',
-                'action': '增加激励措施、降低使用门槛',
-                'expected_impact': '+20% 采用率',
-            })
+        if metrics["adoption_rate"] < 0.1:
+            recommendations.append(
+                {
+                    "issue": "采用率低",
+                    "action": "增加激励措施、降低使用门槛",
+                    "expected_impact": "+20% 采用率",
+                }
+            )
 
-        if metrics['avg_conversion_rate'] < 0.03:
-            recommendations.append({
-                'issue': '转化率低',
-                'action': '优化 onboarding 流程、改进文档',
-                'expected_impact': '+50% 转化率',
-            })
+        if metrics["avg_conversion_rate"] < 0.03:
+            recommendations.append(
+                {
+                    "issue": "转化率低",
+                    "action": "优化 onboarding 流程、改进文档",
+                    "expected_impact": "+50% 转化率",
+                }
+            )
 
-        if metrics['advocates'] < metrics['adopters'] * 0.1:
-            recommendations.append({
-                'issue': '倡导者少',
-                'action': '建立布道师计划、增加激励',
-                'expected_impact': '+30% 病毒系数',
-            })
+        if metrics["advocates"] < metrics["adopters"] * 0.1:
+            recommendations.append(
+                {
+                    "issue": "倡导者少",
+                    "action": "建立布道师计划、增加激励",
+                    "expected_impact": "+30% 病毒系数",
+                }
+            )
 
         print("  建议:")
         for rec in recommendations:
@@ -620,8 +619,8 @@ class SocialTransmission:
             print(f"      预期影响：{rec['expected_impact']}")
 
         return {
-            'metrics': metrics,
-            'recommendations': recommendations,
+            "metrics": metrics,
+            "recommendations": recommendations,
         }
 
 
@@ -629,33 +628,37 @@ async def main():
     """演示社会传播"""
     import argparse
 
-    parser = argparse.ArgumentParser(description='IntentOS 社会传播')
-    parser.add_argument('--action', choices=[
-        'viral', 'community', 'network', 'education', 'enterprise', 'analyze'
-    ], default='analyze')
+    parser = argparse.ArgumentParser(description="IntentOS 社会传播")
+    parser.add_argument(
+        "--action",
+        choices=["viral", "community", "network", "education", "enterprise", "analyze"],
+        default="analyze",
+    )
 
     args = parser.parse_args()
 
     transmission = SocialTransmission()
 
-    if args.action == 'viral':
-        event = await transmission.start_viral_campaign({
-            'message': 'IntentOS: AI 原生操作系统，自我繁殖的数字生命体！',
-            'channels': ['github', 'twitter', 'reddit', 'product_hunt'],
-            'target_audience': {
-                'platform': 'github',
-                'keywords': ['ai', 'llm', 'os', 'agent'],
-            },
-            'incentives': {
-                'nft': True,
-                'token': True,
-                'badge': True,
-            },
-        })
+    if args.action == "viral":
+        event = await transmission.start_viral_campaign(
+            {
+                "message": "IntentOS: AI 原生操作系统，自我繁殖的数字生命体！",
+                "channels": ["github", "twitter", "reddit", "product_hunt"],
+                "target_audience": {
+                    "platform": "github",
+                    "keywords": ["ai", "llm", "os", "agent"],
+                },
+                "incentives": {
+                    "nft": True,
+                    "token": True,
+                    "badge": True,
+                },
+            }
+        )
         print(f"\n活动 ID: {event.id}")
         print(f"触达：{event.reach} 人")
 
-    elif args.action == 'community':
+    elif args.action == "community":
         community = await transmission.create_community(
             name="IntentOS 开发者社区",
             description="AI 原生操作系统的开发者家园",
@@ -663,23 +666,23 @@ async def main():
         )
         await transmission.nurture_community(community.id)
 
-    elif args.action == 'network':
-        network = await transmission.create_value_network(
-            name="IntentOS 生态网络"
-        )
+    elif args.action == "network":
+        network = await transmission.create_value_network(name="IntentOS 生态网络")
         print(f"\n网络价值：${network.total_value:,.0f}")
 
-    elif args.action == 'education':
-        await transmission.create_education_program({
-            'university': True,
-            'online_course': True,
-            'certification': True,
-        })
+    elif args.action == "education":
+        await transmission.create_education_program(
+            {
+                "university": True,
+                "online_course": True,
+                "certification": True,
+            }
+        )
 
-    elif args.action == 'enterprise':
+    elif args.action == "enterprise":
         await transmission.enterprise_adoption_program()
 
-    elif args.action == 'analyze':
+    elif args.action == "analyze":
         metrics = transmission.get_transmission_metrics()
         print("\n📊 传播指标:")
         for k, v in metrics.items():
@@ -688,5 +691,5 @@ async def main():
         await transmission.optimize_transmission()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

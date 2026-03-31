@@ -88,9 +88,15 @@ class SkillIntegration:
     def _scan_resources(self, skill_path: str) -> dict[str, Optional[str]]:
         """扫描 Skill 资源"""
         return {
-            "scripts": os.path.join(skill_path, "scripts") if os.path.exists(os.path.join(skill_path, "scripts")) else None,
-            "references": os.path.join(skill_path, "references") if os.path.exists(os.path.join(skill_path, "references")) else None,
-            "assets": os.path.join(skill_path, "assets") if os.path.exists(os.path.join(skill_path, "assets")) else None,
+            "scripts": os.path.join(skill_path, "scripts")
+            if os.path.exists(os.path.join(skill_path, "scripts"))
+            else None,
+            "references": os.path.join(skill_path, "references")
+            if os.path.exists(os.path.join(skill_path, "references"))
+            else None,
+            "assets": os.path.join(skill_path, "assets")
+            if os.path.exists(os.path.join(skill_path, "assets"))
+            else None,
         }
 
     async def _register_skill_capabilities(self, skill_id: str, skill_data: dict[str, Any]) -> None:

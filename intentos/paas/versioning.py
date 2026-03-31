@@ -18,29 +18,32 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 class VersionStatus(Enum):
     """版本状态"""
-    DRAFT = "draft"                  # 草稿
-    BETA = "beta"                    # 测试版
-    STABLE = "stable"                # 稳定版
-    DEPRECATED = "deprecated"        # 已弃用
-    ARCHIVED = "archived"            # 已归档
+
+    DRAFT = "draft"  # 草稿
+    BETA = "beta"  # 测试版
+    STABLE = "stable"  # 稳定版
+    DEPRECATED = "deprecated"  # 已弃用
+    ARCHIVED = "archived"  # 已归档
 
 
 class ReleaseChannel(Enum):
     """发布渠道"""
-    NIGHTLY = "nightly"              # 每夜构建
-    BETA = "beta"                    # 测试渠道
-    STABLE = "stable"                # 稳定渠道
-    LTS = "lts"                      # 长期支持
+
+    NIGHTLY = "nightly"  # 每夜构建
+    BETA = "beta"  # 测试渠道
+    STABLE = "stable"  # 稳定渠道
+    LTS = "lts"  # 长期支持
 
 
 @dataclass
 class VersionInfo:
     """版本信息"""
-    app_id: str                      # App ID
-    version: str                     # 版本号 (语义化版本)
-    status: VersionStatus            # 版本状态
-    channel: ReleaseChannel          # 发布渠道
-    manifest_hash: str               # manifest 哈希
+
+    app_id: str  # App ID
+    version: str  # 版本号 (语义化版本)
+    status: VersionStatus  # 版本状态
+    channel: ReleaseChannel  # 发布渠道
+    manifest_hash: str  # manifest 哈希
     created_at: datetime = field(default_factory=datetime.now)
     published_at: Optional[datetime] = None
     deprecated_at: Optional[datetime] = None
@@ -70,11 +73,12 @@ class VersionInfo:
 @dataclass
 class UserVersionPreference:
     """用户版本偏好"""
-    user_id: str                     # 用户 ID
-    app_id: str                      # App ID
-    version: str                     # 偏好的版本
+
+    user_id: str  # 用户 ID
+    app_id: str  # App ID
+    version: str  # 偏好的版本
     channel: ReleaseChannel = ReleaseChannel.STABLE  # 发布渠道
-    auto_update: bool = False        # 是否自动更新
+    auto_update: bool = False  # 是否自动更新
     created_at: datetime = field(default_factory=datetime.now)
     updated_at: datetime = field(default_factory=datetime.now)
 
@@ -94,16 +98,17 @@ class UserVersionPreference:
 @dataclass
 class RolloutConfig:
     """灰度发布配置"""
-    app_id: str                      # App ID
-    version: str                     # 目标版本
-    percentage: float = 0.0          # 灰度百分比 (0-100)
+
+    app_id: str  # App ID
+    version: str  # 目标版本
+    percentage: float = 0.0  # 灰度百分比 (0-100)
     target_users: Optional[list[str]] = None  # 目标用户列表（可选）
     exclude_users: Optional[list[str]] = None  # 排除用户列表（可选）
     start_time: Optional[datetime] = None  # 开始时间
-    end_time: Optional[datetime] = None    # 结束时间
+    end_time: Optional[datetime] = None  # 结束时间
     success_metrics: dict[str, Any] = field(default_factory=dict)  # 成功指标
     rollback_threshold: float = 0.05  # 回滚阈值（错误率）
-    status: str = "pending"          # pending/active/paused/completed/rolled_back
+    status: str = "pending"  # pending/active/paused/completed/rolled_back
 
     def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
@@ -148,15 +153,13 @@ class VersionManager:
         manifest: dict[str, Any],
         status: VersionStatus = VersionStatus.DRAFT,
         channel: ReleaseChannel = ReleaseChannel.NIGHTLY,
-        changelog: Optional[str] = None
+        changelog: Optional[str] = None,
     ) -> VersionInfo:
         """注册版本"""
         import hashlib
 
         # 计算 manifest 哈希
-        manifest_hash = hashlib.sha256(
-            str(manifest).encode()
-        ).hexdigest()[:16]
+        manifest_hash = hashlib.sha256(str(manifest).encode()).hexdigest()[:16]
 
         # 检查版本是否已存在
         if app_id in self.versions and version in self.versions[app_id]:
@@ -198,7 +201,7 @@ class VersionManager:
         app_id: str,
         version: str,
         status: VersionStatus = VersionStatus.STABLE,
-        channel: ReleaseChannel = ReleaseChannel.STABLE
+        channel: ReleaseChannel = ReleaseChannel.STABLE,
     ) -> bool:
         """发布版本"""
         version_info = self.get_version(app_id, version)
@@ -235,11 +238,7 @@ class VersionManager:
 
         return True
 
-    def get_version(
-        self,
-        app_id: str,
-        version: str
-    ) -> Optional[VersionInfo]:
+    def get_version(self, app_id: str, version: str) -> Optional[VersionInfo]:
         """获取版本信息"""
         if app_id not in self.versions:
             return None
@@ -257,7 +256,7 @@ class VersionManager:
         self,
         app_id: str,
         status: Optional[VersionStatus] = None,
-        channel: Optional[ReleaseChannel] = None
+        channel: Optional[ReleaseChannel] = None,
     ) -> list[VersionInfo]:
         """列出版本"""
         if app_id not in self.versions:
@@ -281,7 +280,7 @@ class VersionManager:
         app_id: str,
         version: str,
         channel: ReleaseChannel = ReleaseChannel.STABLE,
-        auto_update: bool = False
+        auto_update: bool = False,
     ) -> UserVersionPreference:
         """设置用户版本偏好"""
         key = f"{user_id}:{app_id}"
@@ -303,11 +302,7 @@ class VersionManager:
 
         return preference
 
-    def get_user_version(
-        self,
-        user_id: str,
-        app_id: str
-    ) -> str:
+    def get_user_version(self, user_id: str, app_id: str) -> str:
         """获取用户版本偏好"""
         key = f"{user_id}:{app_id}"
         preference = self.user_preferences.get(key)
@@ -332,7 +327,7 @@ class VersionManager:
         app_id: str,
         version: str,
         percentage: float = 0.0,
-        target_users: Optional[list[str]] = None
+        target_users: Optional[list[str]] = None,
     ) -> RolloutConfig:
         """创建灰度发布"""
         # 检查版本是否存在
@@ -351,12 +346,7 @@ class VersionManager:
 
         return rollout
 
-    def update_rollout(
-        self,
-        app_id: str,
-        percentage: float,
-        status: Optional[str] = None
-    ) -> bool:
+    def update_rollout(self, app_id: str, percentage: float, status: Optional[str] = None) -> bool:
         """更新灰度发布"""
         rollout = self.rollout_configs.get(app_id)
         if not rollout:
@@ -370,11 +360,7 @@ class VersionManager:
 
         return True
 
-    def get_rollout_for_user(
-        self,
-        user_id: str,
-        app_id: str
-    ) -> Optional[str]:
+    def get_rollout_for_user(self, user_id: str, app_id: str) -> Optional[str]:
         """获取用户所在的灰度版本"""
         rollout = self.rollout_configs.get(app_id)
         if not rollout:
@@ -393,21 +379,15 @@ class VersionManager:
 
         # 基于用户 ID 哈希计算是否在灰度范围内
         import hashlib
-        hash_value = int(
-            hashlib.md5(f"{user_id}:{app_id}".encode()).hexdigest(),
-            16
-        ) % 100
+
+        hash_value = int(hashlib.md5(f"{user_id}:{app_id}".encode()).hexdigest(), 16) % 100
 
         if hash_value < rollout.percentage:
             return rollout.version
 
         return None
 
-    def _is_newer(
-        self,
-        version: str,
-        existing: Optional[VersionInfo]
-    ) -> bool:
+    def _is_newer(self, version: str, existing: Optional[VersionInfo]) -> bool:
         """检查版本是否更新"""
         if not existing:
             return True

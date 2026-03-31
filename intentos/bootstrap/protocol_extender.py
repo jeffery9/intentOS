@@ -7,11 +7,11 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Optional
 
-import logging
 from .meta_intent_executor import MetaIntent, MetaIntentType
 
 
@@ -19,16 +19,17 @@ from .meta_intent_executor import MetaIntent, MetaIntentType
 class CapabilityGap:
     """
     能力缺口
-    
+
     系统检测到的能力缺失
     """
+
     capability_name: str
     description: str
     required_by: str  # 哪个意图需要
     detected_at: datetime = field(default_factory=datetime.now)
     confidence: float = 1.0
     suggested_interface: dict[str, Any] = field(default_factory=dict)
-    
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "capability_name": self.capability_name,
@@ -44,15 +45,16 @@ class CapabilityGap:
 class ExtensionSuggestion:
     """
     扩展建议
-    
+
     系统生成的能力扩展建议
     """
+
     gap: CapabilityGap
     suggestion_type: str  # register_capability / modify_protocol / etc.
     params: dict[str, Any]
     reason: str
     risk_level: str = "low"  # low / medium / high
-    
+
     def to_meta_intent(self) -> MetaIntent:
         """转换为元意图"""
         return MetaIntent(
@@ -67,14 +69,14 @@ class ExtensionSuggestion:
 class ProtocolSelfExtender:
     """
     协议自扩展器
-    
+
     检测能力缺口并生成扩展建议
     """
-    
+
     def __init__(self):
         self.detected_gaps: dict[str, CapabilityGap] = {}
         self.extension_history: list[ExtensionSuggestion] = []
-    
+
     def detect_capability_gap(
         self,
         intent_text: str,
@@ -84,7 +86,7 @@ class ProtocolSelfExtender:
     ) -> Optional[CapabilityGap]:
         """
         检测能力缺口
-        
+
         Args:
             intent_text: 用户意图文本
             available_capabilities: 当前可用能力列表
@@ -95,7 +97,7 @@ class ProtocolSelfExtender:
             检测到的能力缺口，如果没有则返回 None
         """
         import asyncio
-        
+
         # 1. 分析意图，识别需要的能力（使用 LLM 或关键词）
         if use_llm:
             # LLM 需要异步调用
@@ -104,13 +106,13 @@ class ProtocolSelfExtender:
             except RuntimeError:
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
-            
+
             required_capabilities = loop.run_until_complete(
                 self._extract_required_capabilities(intent_text, use_llm=True)
             )
         else:
             required_capabilities = self._keyword_extract_capabilities(intent_text)
-        
+
         # 2. 检查是否有缺失的能力
         missing_caps = []
         for cap in required_capabilities:
@@ -140,16 +142,16 @@ class ProtocolSelfExtender:
     ) -> ExtensionSuggestion:
         """
         生成扩展建议
-        
+
         Args:
             gap: 能力缺口
-            
+
         Returns:
             扩展建议
         """
         # 分析能力名称，推断能力类型和接口
         cap_name = gap.capability_name
-        
+
         # 推断能力类型
         if "render" in cap_name or "display" in cap_name:
             cap_type = "io"
@@ -163,7 +165,7 @@ class ProtocolSelfExtender:
         else:
             cap_type = "io"
             output_type = "any"
-        
+
         # 创建建议
         suggestion = ExtensionSuggestion(
             gap=gap,
@@ -177,19 +179,21 @@ class ProtocolSelfExtender:
             reason=f"Capability '{cap_name}' is required but not registered",
             risk_level="low",
         )
-        
+
         self.extension_history.append(suggestion)
-        
+
         return suggestion
-    
-    async def _extract_required_capabilities(self, intent_text: str, use_llm: bool = True) -> list[str]:
+
+    async def _extract_required_capabilities(
+        self, intent_text: str, use_llm: bool = True
+    ) -> list[str]:
         """
         从意图文本中提取需要的能力
-        
+
         Args:
             intent_text: 意图文本
             use_llm: 是否使用 LLM 语义分析（默认 True）
-            
+
         Returns:
             需要的能力列表
         """
@@ -199,14 +203,14 @@ class ProtocolSelfExtender:
             except Exception as e:
                 # LLM 失败时降级到关键词匹配
                 logging.warning(f"LLM 提取失败，降级到关键词匹配：{e}")
-        
+
         # 降级：关键词匹配
         return self._keyword_extract_capabilities(intent_text)
-    
+
     async def _llm_extract_capabilities(self, intent_text: str) -> list[str]:
         """
         使用 LLM 进行语义分析提取能力
-        
+
         优势:
         - 理解语义，不只是关键词
         - 支持同义词和隐含意图
@@ -233,21 +237,22 @@ class ProtocolSelfExtender:
 
 只返回 JSON，不要其他内容。
 """
-        
+
         # 调用 LLM (使用 IntentOS 的 LLM 后端)
         try:
             from intentos.llm import create_executor
-            
+
             llm = create_executor(provider="mock")  # 实际使用配置中的 provider
             response = await llm.execute(prompt)
-            
+
             # 解析响应
             import json
+
             result = json.loads(response.strip())
-            
+
             capabilities = result.get("capabilities", [])
             confidence = result.get("confidence", 0.0)
-            
+
             # 只返回高置信度的能力
             if confidence >= 0.7:
                 logging.info(f"LLM 识别能力：{capabilities} (confidence: {confidence})")
@@ -255,11 +260,11 @@ class ProtocolSelfExtender:
             else:
                 logging.warning(f"LLM 置信度过低：{confidence}")
                 return []
-                
+
         except Exception as e:
             logging.error(f"LLM 能力提取失败：{e}")
             raise
-    
+
     def _keyword_extract_capabilities(self, intent_text: str) -> list[str]:
         """
         关键词匹配（降级方案）
@@ -275,7 +280,6 @@ class ProtocolSelfExtender:
             "visualize": "chart_renderer",
             "可视化": "chart_renderer",
             "渲染": "chart_renderer",
-            
             # 连接类
             "database": "database_connector",
             "db": "database_connector",
@@ -283,7 +287,6 @@ class ProtocolSelfExtender:
             "http": "http_client",
             "network": "network_client",
             "数据库": "database_connector",
-            
             # 处理类
             "file": "file_handler",
             "save": "file_handler",
@@ -291,7 +294,6 @@ class ProtocolSelfExtender:
             "fetch": "data_loader",
             "下载": "data_loader",
             "保存": "file_handler",
-            
             # 分析类
             "analyze": "data_analyzer",
             "process": "data_processor",
@@ -310,7 +312,7 @@ class ProtocolSelfExtender:
                     required.append(capability)
 
         return required
-    
+
     def _infer_interface(
         self,
         capability_name: str,
@@ -318,7 +320,7 @@ class ProtocolSelfExtender:
     ) -> dict[str, Any]:
         """
         推断能力接口
-        
+
         在实际系统中，这里会使用 LLM 生成接口定义
         """
         # 简化的推断逻辑
@@ -329,7 +331,7 @@ class ProtocolSelfExtender:
                     "properties": {
                         "data": {"type": "array"},
                         "style": {"type": "string"},
-                    }
+                    },
                 },
                 "output": {"type": "string"},  # URL or Base64
             }
@@ -340,7 +342,7 @@ class ProtocolSelfExtender:
                     "properties": {
                         "source": {"type": "string"},
                         "filters": {"type": "object"},
-                    }
+                    },
                 },
                 "output": {"type": "array"},
             }
@@ -349,15 +351,15 @@ class ProtocolSelfExtender:
                 "input": {"type": "object"},
                 "output": {"type": "any"},
             }
-    
+
     def get_detected_gaps(self) -> list[CapabilityGap]:
         """获取所有检测到的能力缺口"""
         return list(self.detected_gaps.values())
-    
+
     def get_extension_history(self) -> list[ExtensionSuggestion]:
         """获取扩展历史"""
         return self.extension_history
-    
+
     def clear_gaps(self) -> None:
         """清除已检测的缺口"""
         self.detected_gaps.clear()
@@ -370,38 +372,38 @@ class ProtocolSelfExtender:
 
 async def demo_protocol_extension():
     """演示协议自扩展"""
-    from .meta_intent_executor import MetaIntentExecutor, BootstrapPolicy
     from ..apps import IntentPackageRegistry
-    
+    from .meta_intent_executor import MetaIntentExecutor
+
     # 1. 初始化组件
     registry = IntentPackageRegistry()
     executor = MetaIntentExecutor(registry=registry)
     extender = ProtocolSelfExtender()
-    
+
     # 2. 用户意图
     intent_text = "用 AR 展示华东区销售数据"
     available_capabilities = ["data_loader", "chart_renderer"]
-    
+
     # 3. 检测能力缺口
     gap = extender.detect_capability_gap(
         intent_text=intent_text,
         available_capabilities=available_capabilities,
     )
-    
+
     if gap:
         print(f"检测到能力缺口：{gap.capability_name}")
-        
+
         # 4. 生成扩展建议
         suggestion = extender.generate_extension_suggestion(gap)
         print(f"扩展建议：{suggestion.reason}")
-        
+
         # 5. 转换为元意图
         meta_intent = suggestion.to_meta_intent()
-        
+
         # 6. 执行元意图（在实际系统中需要人工审批）
         meta_intent.approved_by = "auto_approved"  # 演示用
         result = await executor.execute(meta_intent)
-        
+
         if result.status == "completed":
             print(f"✅ 系统已自我扩展！新增能力：{gap.capability_name}")
         else:
@@ -410,4 +412,5 @@ async def demo_protocol_extension():
 
 if __name__ == "__main__":
     import asyncio
+
     asyncio.run(demo_protocol_extension())

@@ -18,12 +18,14 @@ from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class HealthStatus:
     is_healthy: bool
     last_check: datetime = field(default_factory=datetime.now)
     issues: list[str] = field(default_factory=list)
     metrics: dict[str, Any] = field(default_factory=dict)
+
 
 class SemanticWatchdog:
     """
@@ -88,7 +90,7 @@ class SemanticWatchdog:
             issues.append("Audit log exceeds safety threshold")
 
         # 4. 检查是否有僵尸进程
-        if hasattr(self.vm, 'coordinator'):
+        if hasattr(self.vm, "coordinator"):
             processes = await self.vm.coordinator.get_process_list()
             metrics["active_processes"] = len(processes)
             zombies = [p for p in processes if p.state.value == "zombie"]
@@ -96,10 +98,7 @@ class SemanticWatchdog:
                 issues.append(f"Detected {len(zombies)} zombie processes")
 
         self.status = HealthStatus(
-            is_healthy=len(issues) == 0,
-            last_check=datetime.now(),
-            issues=issues,
-            metrics=metrics
+            is_healthy=len(issues) == 0, last_check=datetime.now(), issues=issues, metrics=metrics
         )
         return self.status
 
@@ -120,7 +119,7 @@ class SemanticWatchdog:
                     self.vm.memory.audit_log = self.vm.memory.audit_log[-1000:]
 
                 # 清理僵尸进程
-                if "zombie" in issue.lower() and hasattr(self.vm, 'coordinator'):
+                if "zombie" in issue.lower() and hasattr(self.vm, "coordinator"):
                     logger.info("Cleaning up zombie processes")
                     for pid in list(self.vm.coordinator.processes.keys()):
                         if self.vm.coordinator.processes[pid].state.value == "zombie":
@@ -137,5 +136,5 @@ class SemanticWatchdog:
             "is_healthy": self.status.is_healthy,
             "last_check": self.status.last_check.isoformat(),
             "issues": self.status.issues,
-            "metrics": self.status.metrics
+            "metrics": self.status.metrics,
         }

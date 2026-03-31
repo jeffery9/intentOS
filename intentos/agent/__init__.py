@@ -20,20 +20,16 @@ __all__: list[str] = [
     "AgentConfig",
     "AgentContext",
     "AgentResult",
-
     # 注册
     "CapabilityRegistry",
     "Capability",
-
     # 集成
     "MCPIntegration",
     "SkillIntegration",
-
     # 编译执行
     "IntentCompiler",
     "PEF",
     "AgentExecutor",
-
     # Agent
     "AIAgent",
 ]

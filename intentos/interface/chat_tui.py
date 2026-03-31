@@ -149,7 +149,7 @@ class ChatTUI:
                 if not user_input:
                     continue
 
-                if user_input.startswith('/'):
+                if user_input.startswith("/"):
                     self._handle_command(user_input)
                 else:
                     self.loop.run_until_complete(self.process_message(user_input))
@@ -163,20 +163,20 @@ class ChatTUI:
         """处理命令"""
         cmd = command.lower().strip()
 
-        if cmd == '/help':
+        if cmd == "/help":
             self.show_help()
-        elif cmd == '/clear':
+        elif cmd == "/clear":
             self.messages.clear()
             self.console.print("[green]✓ 已清空[/green]")
-        elif cmd == '/status':
+        elif cmd == "/status":
             self.show_status()
-        elif cmd == '/ping':
+        elif cmd == "/ping":
             try:
                 result = self.loop.run_until_complete(self.client.ping())
                 self.console.print(f"[green]✓ 心跳正常：{result}[/green]")
             except Exception as e:
                 self.console.print(f"[red]❌ 心跳失败：{e}[/red]")
-        elif cmd in ['/quit', '/exit', '/q']:
+        elif cmd in ["/quit", "/exit", "/q"]:
             self.console.print("\n[green]👋 再见![/green]")
             self.running = False
         else:
@@ -192,8 +192,9 @@ async def check_connection(client):
 
 def start_chat_tui(args):
     """启动 Chat TUI"""
-    from intentos.interface.ipc import RPCClient, check_kernel_running, wait_for_kernel
     import subprocess
+
+    from intentos.interface.ipc import RPCClient, check_kernel_running, wait_for_kernel
 
     console = Console()
 
@@ -232,7 +233,7 @@ def start_chat_tui(args):
             console.print(f"❌ 连接失败：{result}", style="red")
             sys.exit(1)
 
-        console.print(f"✅ 已连接到 IntentOS 内核", style="green")
+        console.print("✅ 已连接到 IntentOS 内核", style="green")
 
         # 启动 TUI（传入事件循环）
         tui = ChatTUI(client, loop)
@@ -245,7 +246,7 @@ def start_chat_tui(args):
         if client:
             try:
                 loop.run_until_complete(client.disconnect())
-            except:
+            except Exception:
                 pass
         loop.close()
 

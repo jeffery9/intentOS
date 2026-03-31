@@ -11,15 +11,15 @@ import logging
 from typing import Any, Dict, List
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # Placeholder for pricing data. In a real implementation, this would
 # be fetched from the cloud provider's pricing API.
 AWS_PRICING_DATA = {
-    "vpc": 0.0, # VPCs are generally free
-    "ecs_cluster": 0.0, # ECS clusters are free, you pay for resources
-    "t3.micro": 0.0116, # Per hour
-    "gp3_storage_gb": 0.08, # Per GB-month
+    "vpc": 0.0,  # VPCs are generally free
+    "ecs_cluster": 0.0,  # ECS clusters are free, you pay for resources
+    "t3.micro": 0.0116,  # Per hour
+    "gp3_storage_gb": 0.08,  # Per GB-month
 }
 
 
@@ -28,7 +28,7 @@ class CostMonitor:
     Monitors and estimates cloud costs for IntentOS.
     """
 
-    def __init__(self, provider: str = 'aws', region: str = 'us-east-1'):
+    def __init__(self, provider: str = "aws", region: str = "us-east-1"):
         """
         Initializes the cost monitor.
 
@@ -40,7 +40,7 @@ class CostMonitor:
         self.budget = None
         logging.info(f"CostMonitor initialized for provider: {provider}, region: {region}")
 
-    def load_budget(self, file_path: str = 'config/budget.yml') -> None:
+    def load_budget(self, file_path: str = "config/budget.yml") -> None:
         """
         Loads the budget configuration.
 
@@ -62,26 +62,23 @@ class CostMonitor:
         total_monthly_cost = 0.0
         cost_breakdown = {}
 
-        if self.provider == 'aws':
-            for action in plan.get('actions', []):
+        if self.provider == "aws":
+            for action in plan.get("actions", []):
                 # Simple cost estimation based on placeholder data
-                resource_type = action.get('type')
+                resource_type = action.get("type")
                 cost = AWS_PRICING_DATA.get(resource_type, 0.0)
 
                 # A more complex example for an EC2 instance or similar
-                if 'instance_type' in action.get('details', {}):
-                    instance_type = action['details']['instance_type']
-                    cost = AWS_PRICING_DATA.get(instance_type, 0.0) * 24 * 30 # hourly to monthly
+                if "instance_type" in action.get("details", {}):
+                    instance_type = action["details"]["instance_type"]
+                    cost = AWS_PRICING_DATA.get(instance_type, 0.0) * 24 * 30  # hourly to monthly
 
-                cost_breakdown[action['name']] = cost
+                cost_breakdown[action["name"]] = cost
                 total_monthly_cost += cost
         else:
             logging.warning(f"Cost estimation for '{self.provider}' is not implemented.")
 
-        estimate = {
-            "breakdown": cost_breakdown,
-            "total_monthly_cost": round(total_monthly_cost, 2)
-        }
+        estimate = {"breakdown": cost_breakdown, "total_monthly_cost": round(total_monthly_cost, 2)}
         logging.info(f"Estimated monthly cost: ${estimate['total_monthly_cost']}")
         return estimate
 
@@ -93,11 +90,11 @@ class CostMonitor:
         """
         if not self.budget:
             logging.warning("Budget not loaded, cannot check current spend.")
-            return True # Fail open
+            return True  # Fail open
 
         # Placeholder: This would use the AWS Cost Explorer API in a real scenario
-        current_spend = 35.00 # Dummy value
-        limit = self.budget['monthly_spend_limit']
+        current_spend = 35.00  # Dummy value
+        limit = self.budget["monthly_spend_limit"]
 
         logging.info(f"Current monthly spend: ${current_spend} (Budget: ${limit})")
 
@@ -122,11 +119,13 @@ class CostMonitor:
 
         # Rule 1: Check for underutilized ECS services during off-peak hours.
         # Simulating low CPU usage at night.
-        avg_cpu_last_4_hours = 15.0 # Simulating 15% average CPU
+        avg_cpu_last_4_hours = 15.0  # Simulating 15% average CPU
         num_of_instances = 2
 
         if avg_cpu_last_4_hours < 20.0 and num_of_instances > 1:
-            estimated_savings = AWS_PRICING_DATA.get('t3.micro', 0.0) * 24 * 30 * (num_of_instances - 1)
+            estimated_savings = (
+                AWS_PRICING_DATA.get("t3.micro", 0.0) * 24 * 30 * (num_of_instances - 1)
+            )
             suggestion = {
                 "action": "scale_down",
                 "resource_id": "intentos-main-cluster-service",
@@ -134,12 +133,14 @@ class CostMonitor:
                 "proposed_change": {
                     "property": "instance_count",
                     "current_value": num_of_instances,
-                    "new_value": 1
+                    "new_value": 1,
                 },
-                "estimated_monthly_savings": round(estimated_savings, 2)
+                "estimated_monthly_savings": round(estimated_savings, 2),
             }
             suggestions.append(suggestion)
-            logging.info(f"Found optimization: Scale down. Save ~${suggestion['estimated_monthly_savings']}/month.")
+            logging.info(
+                f"Found optimization: Scale down. Save ~${suggestion['estimated_monthly_savings']}/month."
+            )
 
         if not suggestions:
             logging.info("No immediate cost optimization opportunities found.")

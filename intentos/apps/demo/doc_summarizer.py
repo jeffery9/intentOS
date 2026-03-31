@@ -208,7 +208,7 @@ class DocSummarizerApp:
         document_path: str,
         summary_type: str = "abstractive",
         max_length: int = 500,
-        context: Optional[dict[str, Any]] = None
+        context: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """
         总结文档
@@ -226,6 +226,7 @@ class DocSummarizerApp:
 
         # 模拟文档解析
         import time
+
         start_time = time.time()
 
         # 模拟处理
@@ -315,7 +316,7 @@ IntentOS 是一个创新的 AI 原生操作系统，其核心理念是将自然�
         text: str,
         max_length: int = 200,
         language: str = "zh",
-        context: Optional[dict[str, Any]] = None
+        context: Optional[dict[str, Any]] = None,
     ) -> dict[str, Any]:
         """
         总结文本
@@ -354,9 +355,7 @@ IntentOS 是一个创新的 AI 原生操作系统，其核心理念是将自然�
         return response
 
     async def submit_to_intentos(
-        self,
-        intentos_url: str = "http://localhost:8080",
-        api_key: Optional[str] = None
+        self, intentos_url: str = "http://localhost:8080", api_key: Optional[str] = None
     ) -> dict[str, Any]:
         """提交到 IntentOS"""
         from intentos.agent.submission import IntentOSConnector

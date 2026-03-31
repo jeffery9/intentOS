@@ -4,16 +4,13 @@ Social Transmission Module Tests
 测试社会传播模块：传播节点、传播事件、社区管理
 """
 
-import pytest
-from datetime import datetime
-from unittest.mock import MagicMock
 
 from intentos.bootstrap.social_transmission import (
-    TransmissionType,
     AdoptionStage,
-    TransmissionNode,
-    TransmissionEvent,
     Community,
+    TransmissionEvent,
+    TransmissionNode,
+    TransmissionType,
 )
 
 
@@ -90,7 +87,7 @@ class TestTransmissionNode:
             type="individual",
             stage=AdoptionStage.INTERESTED,
             location="San Francisco",
-            influence_score=75.0
+            influence_score=75.0,
         )
 
         assert node.name == "John Doe"
@@ -107,7 +104,7 @@ class TestTransmissionNode:
             stage=AdoptionStage.ADOPTER,
             location="New York",
             influence_score=95.0,
-            metadata={"industry": "Technology", "size": "1000+"}
+            metadata={"industry": "Technology", "size": "1000+"},
         )
 
         assert node.name == "Tech Corp"
@@ -117,10 +114,7 @@ class TestTransmissionNode:
 
     def test_node_connections(self):
         """节点连接"""
-        node = TransmissionNode(
-            name="Connector",
-            connections=["node1", "node2", "node3"]
-        )
+        node = TransmissionNode(name="Connector", connections=["node1", "node2", "node3"])
 
         assert len(node.connections) == 3
         assert "node1" in node.connections
@@ -130,9 +124,7 @@ class TestTransmissionNode:
     def test_node_adopted_at(self):
         """节点采用时间"""
         node = TransmissionNode(
-            name="Adopter",
-            stage=AdoptionStage.ADOPTER,
-            adopted_at="2024-01-15T10:00:00"
+            name="Adopter", stage=AdoptionStage.ADOPTER, adopted_at="2024-01-15T10:00:00"
         )
 
         assert node.adopted_at == "2024-01-15T10:00:00"
@@ -162,7 +154,7 @@ class TestTransmissionEvent:
             channel="twitter",
             reach=10000,
             engagements=500,
-            conversion_rate=0.05
+            conversion_rate=0.05,
         )
 
         assert event.type == TransmissionType.VIRAL
@@ -179,7 +171,7 @@ class TestTransmissionEvent:
             source_node="community_leader",
             target_nodes=["community_members"],
             channel="discord",
-            message="IntentOS community meetup"
+            message="IntentOS community meetup",
         )
 
         assert event.type == TransmissionType.COMMUNITY
@@ -192,7 +184,7 @@ class TestTransmissionEvent:
             source_node="sales_team",
             target_nodes=["enterprise_client"],
             channel="conference",
-            message="Enterprise solution presentation"
+            message="Enterprise solution presentation",
         )
 
         assert event.type == TransmissionType.ENTERPRISE
@@ -222,7 +214,7 @@ class TestCommunity:
             platform="discord",
             members=["user1", "user2", "user3"],
             activity_level=85.0,
-            growth_rate=15.0
+            growth_rate=15.0,
         )
 
         assert community.name == "IntentOS Users"
@@ -239,7 +231,7 @@ class TestCommunity:
             platform="github",
             members=["contributor1", "contributor2"],
             activity_level=95.0,
-            growth_rate=25.0
+            growth_rate=25.0,
         )
 
         assert community.name == "IntentOS Contributors"
@@ -260,10 +252,7 @@ class TestAdoptionStageProgression:
 
     def test_stage_progression_to_adopter(self):
         """阶段进展：到采用者"""
-        node = TransmissionNode(
-            stage=AdoptionStage.INTERESTED,
-            name="Progressive User"
-        )
+        node = TransmissionNode(stage=AdoptionStage.INTERESTED, name="Progressive User")
 
         # 试用
         node.stage = AdoptionStage.TRIAL
@@ -275,10 +264,7 @@ class TestAdoptionStageProgression:
 
     def test_stage_progression_to_advocate(self):
         """阶段进展：到倡导者"""
-        node = TransmissionNode(
-            stage=AdoptionStage.ADOPTER,
-            name="Loyal User"
-        )
+        node = TransmissionNode(stage=AdoptionStage.ADOPTER, name="Loyal User")
 
         # 成为倡导者
         node.stage = AdoptionStage.ADVOCATE
@@ -312,11 +298,7 @@ class TestTransmissionMetrics:
 
     def test_event_conversion_rate(self):
         """事件转化率"""
-        event = TransmissionEvent(
-            reach=1000,
-            engagements=100,
-            conversion_rate=0.1
-        )
+        event = TransmissionEvent(reach=1000, engagements=100, conversion_rate=0.1)
 
         assert event.reach == 1000
         assert event.engagements == 100
@@ -324,20 +306,14 @@ class TestTransmissionMetrics:
 
     def test_event_engagement_rate(self):
         """事件互动率"""
-        event = TransmissionEvent(
-            reach=10000,
-            engagements=500
-        )
+        event = TransmissionEvent(reach=10000, engagements=500)
 
         engagement_rate = event.engagements / event.reach
         assert engagement_rate == 0.05
 
     def test_community_growth(self):
         """社区增长"""
-        community = Community(
-            members=["m1", "m2", "m3"],
-            growth_rate=20.0
-        )
+        community = Community(members=["m1", "m2", "m3"], growth_rate=20.0)
 
         # 计算预期增长
         expected_new_members = len(community.members) * (community.growth_rate / 100)
@@ -349,9 +325,7 @@ class TestNetworkEffects:
 
     def test_node_network_size(self):
         """节点网络规模"""
-        node = TransmissionNode(
-            connections=["c1", "c2", "c3", "c4", "c5"]
-        )
+        node = TransmissionNode(connections=["c1", "c2", "c3", "c4", "c5"])
 
         network_size = len(node.connections)
         assert network_size == 5

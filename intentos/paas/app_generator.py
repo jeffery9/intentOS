@@ -19,8 +19,9 @@ logger: logging.Logger = logging.getLogger(__name__)
 @dataclass
 class GeneratedApp:
     """生成的 App 实例 (运行时实体)"""
-    id: str                          # 实例 ID (通常是 hash(app_id+tenant_id+user_id))
-    app_id: str                      # 指向市场中的 App 定义 ID
+
+    id: str  # 实例 ID (通常是 hash(app_id+tenant_id+user_id))
+    app_id: str  # 指向市场中的 App 定义 ID
     tenant_id: str
     user_id: str
     version: str
@@ -32,8 +33,8 @@ class GeneratedApp:
     resources: dict[str, Any]
 
     # --- 运行时追踪 (对齐内核) ---
-    active_pids: list[str] = field(default_factory=list) # 该实例正在运行的内核进程 PID
-    status: str = "idle"             # idle, running, suspended
+    active_pids: list[str] = field(default_factory=list)  # 该实例正在运行的内核进程 PID
+    status: str = "idle"  # idle, running, suspended
 
     created_at: datetime = field(default_factory=datetime.now)
     expires_at: Optional[datetime] = None
@@ -46,7 +47,7 @@ class GeneratedApp:
             "user_id": self.user_id,
             "app_instance_id": self.id,
             "permissions": self.metadata.get("permissions", []),
-            "gas_limit": self.config.get("gas_limit", 5000)
+            "gas_limit": self.config.get("gas_limit", 5000),
         }
 
     def to_dict(self) -> dict[str, Any]:
@@ -61,11 +62,13 @@ class GeneratedApp:
             "created_at": self.created_at.isoformat(),
         }
         # 补全其他元数据
-        data.update({
-            "name": self.name,
-            "description": self.description,
-            "config": self.config,
-        })
+        data.update(
+            {
+                "name": self.name,
+                "description": self.description,
+                "config": self.config,
+            }
+        )
         return data
 
     def get_capability(self, capability_id: str) -> Optional[Any]:
@@ -80,10 +83,11 @@ class GeneratedApp:
 @dataclass
 class AppGenerationRequest:
     """App 生成请求 (恢复原有设计)"""
-    app_id: str                      # App 定义 ID
-    tenant_id: str                   # 租户 ID
-    user_id: str                     # 用户 ID
-    version: Optional[str] = None    # 指定版本（可选）
+
+    app_id: str  # App 定义 ID
+    tenant_id: str  # 租户 ID
+    user_id: str  # 用户 ID
+    version: Optional[str] = None  # 指定版本（可选）
     context: Optional[dict[str, Any]] = None  # 额外上下文
 
     def to_dict(self) -> dict[str, Any]:
@@ -95,7 +99,9 @@ class AppGenerationRequest:
             "context": self.context,
         }
 
+
 # --- Genesis App Definition (The first Self-Bootstrapped App) ---
+
 
 def get_genesis_app_program() -> Any:
     """
@@ -104,17 +110,17 @@ def get_genesis_app_program() -> Any:
     第一性原理：这个程序是系统内置的、用于创造其他程序的“元程序”。
     它不被创造，而是随系统一同诞生。
     """
-    from intentos.semantic_vm import SemanticProgram, SemanticInstruction, SemanticOpcode
+    from intentos.semantic_vm import SemanticInstruction, SemanticOpcode, SemanticProgram
 
     prog = SemanticProgram(
-        name="genesis-app",
-        description="The AI Native App for building other AI Native Apps."
+        name="genesis-app", description="The AI Native App for building other AI Native Apps."
     )
 
-    prog.add_instruction(SemanticInstruction(
-        opcode=SemanticOpcode.EXECUTE,
-        parameters={
-            "intent": """你是一个 AI Native App 架构师。根据开发者的描述，调用元能力（meta-capabilities）来生成或更新 App 的语义定义。
+    prog.add_instruction(
+        SemanticInstruction(
+            opcode=SemanticOpcode.EXECUTE,
+            parameters={
+                "intent": """你是一个 AI Native App 架构师。根据开发者的描述，调用元能力（meta-capabilities）来生成或更新 App 的语义定义。
 
             ## 可用元能力
             - meta:create_spec(session_id, name, description)
@@ -134,9 +140,11 @@ def get_genesis_app_program() -> Any:
             请分析开发者的要求并决定调用哪个元能力。
             如果开发者想要发布，请调用 meta:publish。
             """
-        }
-    ))
+            },
+        )
+    )
     return prog
+
 
 # 模拟系统启动时加载 Genesis App
 GENESIS_APP_PROGRAM = get_genesis_app_program()
@@ -145,11 +153,13 @@ GENESIS_APP_PROGRAM = get_genesis_app_program()
 @dataclass
 class DevSession:
     """开发者会话"""
+
     session_id: str
     developer_id: str
     current_spec: dict[str, Any] = field(default_factory=dict)
     history: list[dict] = field(default_factory=list)
-    status: str = "ideation" # ideation, drafting, testing, finalized
+    status: str = "ideation"  # ideation, drafting, testing, finalized
+
 
 class AppConversationStudio:
     """
@@ -158,7 +168,7 @@ class AppConversationStudio:
 
     def __init__(self, marketplace: Any, llm_executor: Any):
         self.marketplace = marketplace
-        self.llm_executor = llm_executor # Retained for potential future use
+        self.llm_executor = llm_executor  # Retained for potential future use
         self.sessions: dict[str, DevSession] = {}
 
     async def chat_build_step(self, session_id: str, developer_id: str, message: str) -> str:
@@ -179,10 +189,11 @@ class AppConversationStudio:
             "session_id": session_id,
         }
 
-        # 2. 在内核中执行预加载的“创世 App”
+        # 2. 在内核中执行预加载的"创世 App"
         from intentos.interface.interface import IntentOS
+
         os_instance = IntentOS()
-        os_instance.vm.local_vm.load_program(GENESIS_APP_PROGRAM) # Ensure it's loaded
+        os_instance.vm.local_vm.load_program(GENESIS_APP_PROGRAM)  # Ensure it's loaded
         result = await os_instance.vm.local_vm.execute_program("genesis-app", context)
 
         # 3. 根据执行结果更新会话状态
@@ -194,7 +205,7 @@ class AppConversationStudio:
             if "app_id" in final_data:
                 return f"🚀 App 已成功发布！ID: {final_data['app_id']}"
             else:
-                 return f"✅ 规格已更新。\n\n您可继续提出修改建议，或回复 '发布应用'。"
+                return "✅ 规格已更新。\n\n您可继续提出修改建议，或回复 '发布应用'。"
         else:
             return f"❌ 执行创世 App 失败: {result.get('error')}"
 
@@ -215,8 +226,8 @@ class AppConversationStudio:
             manifest={
                 "pricing": {"model": "pay_per_use"},
                 "permissions": spec.get("permissions", []),
-                "logic": spec.get("logic", [])
-            }
+                "logic": spec.get("logic", []),
+            },
         )
 
         # 模拟自动通过审核并发布
@@ -239,7 +250,7 @@ class AppGenerator:
         tenant_manager: Any,
         capability_binder: Any,
         personalization_manager: Any,
-        version_manager: Any
+        version_manager: Any,
     ) -> None:
         self.tenant_manager = tenant_manager
         self.capability_binder = capability_binder
@@ -248,10 +259,7 @@ class AppGenerator:
         self.generated_apps: dict[str, GeneratedApp] = {}  # app_instance_id -> GeneratedApp
         logger.info("App 生成器初始化完成")
 
-    def generate(
-        self,
-        request: AppGenerationRequest
-    ) -> GeneratedApp:
+    def generate(self, request: AppGenerationRequest) -> GeneratedApp:
         """
         生成 App 实例 (完善权限合成逻辑)
 
@@ -272,26 +280,23 @@ class AppGenerator:
 
         # 3. 【关键对齐】合成权限 (RoleManager + Capability Alignment)
         from .tenant import get_role_manager
+
         role_manager = get_role_manager()
 
         # 创建用户上下文，内部会自动扫描该租户绑定的私有能力并注入权限令牌
         user_context = role_manager.create_user_context(
-            tenant_id=request.tenant_id,
-            user_id=request.user_id
+            tenant_id=request.tenant_id, user_id=request.user_id
         )
 
         # 4. 绑定能力并注入租户资源
         merged_config = self._merge_config(
             app_package.config.get("defaults", {}),
             tenant.config,
-            self.personalization_manager.get_config(request.user_id, request.app_id)
+            self.personalization_manager.get_config(request.user_id, request.app_id),
         )
 
         bound_capabilities = self._bind_capabilities(
-            app_package.capabilities,
-            tenant,
-            merged_config,
-            request.user_id
+            app_package.capabilities, tenant, merged_config, request.user_id
         )
 
         # 5. 生成 App 实例 ID
@@ -314,7 +319,7 @@ class AppGenerator:
             resources={k: v for k, v in tenant.resources.items()},
             metadata={
                 "generated_at": datetime.now().isoformat(),
-                "permissions": user_context.permissions, # 注入合成后的权限
+                "permissions": user_context.permissions,  # 注入合成后的权限
                 "roles": user_context.roles,
                 "tenant_config": tenant.config,
             },
@@ -322,7 +327,9 @@ class AppGenerator:
 
         # 7. 缓存 App 实例
         self.generated_apps[instance_id] = generated_app
-        logger.info(f"🚀 App Instance generated with {len(user_context.permissions)} permissions: {instance_id}")
+        logger.info(
+            f"🚀 App Instance generated with {len(user_context.permissions)} permissions: {instance_id}"
+        )
 
         return generated_app
 
@@ -342,7 +349,8 @@ class AppGenerator:
         """使指定用户的所有 App 实例失效"""
         count = 0
         to_remove = [
-            instance_id for instance_id, app in self.generated_apps.items()
+            instance_id
+            for instance_id, app in self.generated_apps.items()
             if app.user_id == user_id
         ]
         for instance_id in to_remove:
@@ -351,10 +359,7 @@ class AppGenerator:
         return count
 
     def _merge_config(
-        self,
-        defaults: dict[str, Any],
-        tenant_config: dict[str, Any],
-        user_config: dict[str, Any]
+        self, defaults: dict[str, Any], tenant_config: dict[str, Any], user_config: dict[str, Any]
     ) -> dict[str, Any]:
         """
         合并配置
@@ -375,11 +380,7 @@ class AppGenerator:
         return merged
 
     def _bind_capabilities(
-        self,
-        capabilities: dict[str, Any],
-        tenant: Any,
-        config: dict[str, Any],
-        user_id: str
+        self, capabilities: dict[str, Any], tenant: Any, config: dict[str, Any], user_id: str
     ) -> dict[str, Any]:
         """绑定能力"""
         bound = {}
@@ -394,7 +395,7 @@ class AppGenerator:
                     tenant_id=tenant.id,
                     resources=tenant.resources,
                     config={**cap_def.get("config", {}), **config},
-                    user_context=type("UserContext", (), {"user_id": user_id})()
+                    user_context=type("UserContext", (), {"user_id": user_id})(),
                 )
                 bound[cap_id] = bound_cap
             except Exception as e:
@@ -404,15 +405,10 @@ class AppGenerator:
 
         return bound
 
-    def _generate_instance_id(
-        self,
-        app_id: str,
-        tenant_id: str,
-        user_id: str,
-        version: str
-    ) -> str:
+    def _generate_instance_id(self, app_id: str, tenant_id: str, user_id: str, version: str) -> str:
         """生成 App 实例 ID"""
         import hashlib
+
         content = f"{app_id}:{tenant_id}:{user_id}:{version}"
         hash_value = hashlib.sha256(content.encode()).hexdigest()[:16]
         return f"app_{app_id}_{hash_value}"
@@ -471,10 +467,7 @@ class AppInstanceCache:
         if not self.cache:
             return
 
-        oldest_id = min(
-            self.cache.keys(),
-            key=lambda k: self.cache[k][1]
-        )
+        oldest_id = min(self.cache.keys(), key=lambda k: self.cache[k][1])
         self.remove(oldest_id)
         logger.debug(f"缓存驱逐：{oldest_id}")
 
@@ -488,7 +481,7 @@ def get_app_generator(
     tenant_manager: Any = None,
     capability_binder: Any = None,
     personalization_manager: Any = None,
-    version_manager: Any = None
+    version_manager: Any = None,
 ) -> AppGenerator:
     """获取全局 App 生成器"""
     global _global_app_generator
