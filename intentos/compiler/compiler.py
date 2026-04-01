@@ -1,6 +1,12 @@
 """
 意图编译器
 将结构化意图编译为 LLM 可执行的 Prompt
+
+集成改进的提示词生成器，支持：
+- 静态/动态部分分离（缓存优化）
+- 数值化输出约束
+- 代码风格原则
+- 风险控制机制
 """
 
 from __future__ import annotations
@@ -9,6 +15,12 @@ from dataclasses import dataclass
 from typing import Any, Optional
 
 from ..core import Intent, IntentType
+from ..semantic_vm.prompts import (
+    PromptConfig,
+    build_system_prompt,
+    compute_prompt_cache_key,
+    join_prompt_sections,
+)
 
 
 @dataclass
@@ -37,11 +49,26 @@ class IntentCompiler:
     """
     意图编译器
     将结构化意图编译为 LLM Prompt
+    
+    集成改进的提示词生成器，支持缓存优化。
     """
 
-    def __init__(self, registry: Optional[Any] = None):
+    def __init__(
+        self,
+        registry: Optional[Any] = None,
+        prompt_config: Optional[PromptConfig] = None,
+        enable_cache: bool = True,
+    ):
         self.registry = registry
+        self.prompt_config = prompt_config or PromptConfig()
+        self.enable_cache = enable_cache
         self._prompt_templates: dict[str, str] = {}
+        self._prompt_cache: dict[str, str] = {}  # 缓存键 -> 完整提示词
+        self._stats: dict[str, Any] = {
+            "cache_hits": 0,
+            "cache_misses": 0,
+            "compilations": 0,
+        }
         self._register_default_templates()
 
     def _register_default_templates(self) -> None:
@@ -148,12 +175,26 @@ class IntentCompiler:
         Returns:
             编译后的 Prompt
         """
-        # 根据意图类型选择模板
-        template_name = self._get_template_for_intent(intent)
-        template = self._prompt_templates.get(template_name, self._prompt_templates["atomic"])
-
-        # 填充模板
-        system_prompt = self._fill_template(template, intent)
+        self._stats["compilations"] += 1
+        
+        # 使用改进的提示词生成器构建系统提示词
+        prompt_sections = build_system_prompt(self.prompt_config)
+        
+        # 计算缓存键（如果启用缓存）
+        cache_key = ""
+        if self.enable_cache:
+            cache_key = compute_prompt_cache_key(prompt_sections)
+            if cache_key in self._prompt_cache:
+                self._stats["cache_hits"] += 1
+                system_prompt = self._prompt_cache[cache_key]
+            else:
+                self._stats["cache_misses"] += 1
+                system_prompt = join_prompt_sections(prompt_sections)
+                self._prompt_cache[cache_key] = system_prompt
+        else:
+            system_prompt = join_prompt_sections(prompt_sections)
+        
+        # 生成用户提示词
         user_prompt = self._generate_user_prompt(intent)
 
         return CompiledPrompt(
@@ -161,8 +202,10 @@ class IntentCompiler:
             user_prompt=user_prompt,
             intent=intent,
             metadata={
-                "template": template_name,
+                "template": "intentos_improved",
                 "intent_type": intent.intent_type.value,
+                "cache_key": cache_key,
+                "cache_enabled": self.enable_cache,
             },
         )
 
@@ -309,6 +352,20 @@ class IntentCompiler:
             ensure_ascii=False,
             indent=2,
         )
+
+    def get_stats(self) -> dict[str, Any]:
+        """获取编译器统计信息"""
+        return {
+            **self._stats,
+            "cache_size": len(self._prompt_cache),
+            "cache_enabled": self.enable_cache,
+        }
+
+    def clear_cache(self) -> None:
+        """清除提示词缓存"""
+        self._prompt_cache.clear()
+        self._stats["cache_hits"] = 0
+        self._stats["cache_misses"] = 0
 
 
 class PromptTemplate:
