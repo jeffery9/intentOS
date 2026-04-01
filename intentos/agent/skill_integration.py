@@ -1,7 +1,7 @@
 """
 Skill 集成
 
-支持 Claude Skills 规范 (SKILL.md)
+支持 Claude Skills 规范 (SKILL.md) 和 IntentOS 自动提炼技能
 """
 
 from __future__ import annotations
@@ -15,29 +15,56 @@ class SkillIntegration:
     Skill 集成
 
     加载和管理基于 SKILL.md 规范的 Skills
+    整合 intentos/skill/自动提炼的技能系统
     """
 
-    def __init__(self, registry: Any, skills_dir: Optional[str] = None):
+    def __init__(
+        self,
+        registry: Any,
+        skills_dir: Optional[str] = None,
+        skill_store: Optional[Any] = None,  # intentos.skill.store.SkillStore
+    ):
         self.registry = registry
         self.skills_dir: str = skills_dir or os.path.expanduser("~/.claude/skills")
         self.loaded_skills: dict[str, dict[str, Any]] = {}
+        self.skill_store = skill_store  # 整合自动提炼的技能存储
 
     def discover_skills(self) -> list[str]:
-        """发现已安装的 Skills"""
+        """发现已安装的 Skills（包括自动提炼的）"""
         skill_ids: list[str] = []
 
+        # 1. 发现 SKILL.md 规范的 Skills
         if os.path.exists(self.skills_dir):
             for item in os.listdir(self.skills_dir):
                 skill_path: str = os.path.join(self.skills_dir, item)
                 skill_md: str = os.path.join(skill_path, "SKILL.md")
 
                 if os.path.exists(skill_md):
-                    skill_ids.append(item)
+                    skill_ids.append(f"file:{item}")  # 标记为文件来源
+
+        # 2. 发现自动提炼的 Skills
+        if self.skill_store:
+            from intentos.skill.store import SkillStore
+            if isinstance(self.skill_store, SkillStore):
+                for skill in self.skill_store.list_skills(limit=100):
+                    skill_ids.append(f"auto:{skill.id}:{skill.name}")
 
         return skill_ids
 
     async def load_skill(self, skill_id: str) -> bool:
-        """加载 Skill"""
+        """加载 Skill（支持文件来源和自动提炼）"""
+        # 处理文件来源的 Skill
+        if skill_id.startswith("file:"):
+            return await self._load_file_skill(skill_id[5:])
+        
+        # 处理自动提炼的 Skill
+        if skill_id.startswith("auto:"):
+            return await self._load_auto_skill(skill_id[5:])
+        
+        return False
+
+    async def _load_file_skill(self, skill_id: str) -> bool:
+        """加载文件来源的 Skill（原有逻辑）"""
         skill_path: str = os.path.join(self.skills_dir, skill_id)
         skill_md: str = os.path.join(skill_path, "SKILL.md")
 
@@ -56,6 +83,37 @@ class SkillIntegration:
         except Exception as e:
             print(f"加载 Skill 失败：{skill_id}, 错误：{e}")
             return False
+
+    async def _load_auto_skill(self, skill_ref: str) -> bool:
+        """加载自动提炼的 Skill"""
+        if not self.skill_store:
+            return False
+        
+        try:
+            # 解析 skill_ref: id:name
+            parts = skill_ref.split(":", 1)
+            skill_id = parts[0]
+            
+            from intentos.skill.store import SkillStore
+            if isinstance(self.skill_store, SkillStore):
+                skill = self.skill_store.get_skill(skill_id)
+                if not skill:
+                    return False
+                
+                # 注册自动提炼的 Skill
+                await self._register_auto_skill_capabilities(skill)
+                
+                self.loaded_skills[f"auto:{skill_id}"] = {
+                    "name": skill.name,
+                    "description": skill.description,
+                    "steps": len(skill.steps),
+                }
+                return True
+        except Exception as e:
+            print(f"加载自动 Skill 失败：{skill_ref}, 错误：{e}")
+            return False
+        
+        return False
 
     def _parse_skill_md(self, path: str) -> dict[str, Any]:
         """解析 SKILL.md 文件"""
@@ -120,6 +178,31 @@ class SkillIntegration:
             metadata=skill_data,
             source="skill",
         )
+
+    async def _register_auto_skill_capabilities(self, skill: Any) -> None:
+        """注册自动提炼的 Skill 能力"""
+        # 为每个步骤注册能力
+        for i, step in enumerate(skill.steps):
+            step_id = f"skill_{skill.id}_step{i}"
+            
+            async def step_handler(step=step, **kwargs: Any) -> dict[str, Any]:
+                return {
+                    "skill_id": skill.id,
+                    "skill_name": skill.name,
+                    "step": step.name,
+                    "action": step.action,
+                    "kwargs": kwargs,
+                }
+            
+            self.registry.register(
+                id=step_id,
+                name=f"{skill.name} - {step.name}",
+                description=step.description or f"执行 {skill.name} 的步骤 {i+1}",
+                handler=step_handler,
+                tags=["skill", "auto_generated", skill.id],
+                metadata=skill.to_dict(),
+                source="auto_skill",
+            )
 
     def get_loaded_skills(self) -> list[str]:
         """获取已加载的 Skills"""
