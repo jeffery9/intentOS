@@ -8,14 +8,14 @@ PaaS 服务层：多租户管理、计费系统、应用市场、开发者工具
 from .marketplace import AppCategory, AppMarketplace, AppMetadata, AppStatus
 from .metering import MeteringService, UsageMeter, UsageRecord, UsageSummary, UsageUnit
 from .submission import AppSubmissionClient, IntentOSConnector, LocalAppBuilder
-from .tenant import ResourceQuota, RoleManager, Tenant, TenantManager, UserContext
+from .tenant import TenantQuota, RoleManager, Tenant, TenantManager, UserContext
 from .wallet import DigitalWallet, PaymentGateway, SubscriptionManager
 
 __all__ = [
     # Tenant Management
     "TenantManager",
     "Tenant",
-    "ResourceQuota",
+    "TenantQuota",
     "UserContext",
     "RoleManager",
     # Metering & Billing

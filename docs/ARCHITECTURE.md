@@ -1,10 +1,10 @@
 # IntentOS 架构文档
 
-> **分布式语义 VM · 运行时 Agent · PaaS 服务层**
+> **分布式语义 VM · 运行时 Agent · 选举式 PaaS**
 
-**文档版本**: 1.1
+**文档版本**: 2.1
 **创建日期**: 2026-03-21
-**最后更新**: 2026-03-21
+**最后更新**: 2026-04-01
 **状态**: Release Candidate
 
 ---
@@ -13,83 +13,55 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│              PaaS 服务层 (intentos/paas/)                   │
-│          AI Native App 层（构建在 OS 之上的服务层）           │
-│  • 多租户管理 • 计费系统 • 应用市场 • 开发者工具            │
-└────────────────────┬────────────────────────────────────────┘
-                     │ 使用 OS API
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│              接口层 (intentos/interface/)                   │
-│              分布式 OS 对外访问入口                          │
+│         分布式 OS 节点 (可选择性开启 PaaS)                     │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │  REST API                                            │   │
-│  │  • POST /v1/execute - 执行意图                       │   │
-│  │  • GET /v1/status - 查看状态                         │   │
-│  │  • GET /v1/nodes - 查看节点                          │   │
+│  │  接口层 (intentos/interface/)                       │   │
+│  │  • REST API: /v1/execute, /v1/status, /v1/nodes     │   │
+│  │  • Chat Interface: WebSocket                        │   │
 │  └─────────────────────────────────────────────────────┘   │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │  Chat Interface                                      │   │
-│  │  • Shell TUI - 命令行聊天界面                        │   │
-│  │  • WebSocket - 实时聊天                              │   │
-│  │  • Web UI - Web 界面                                 │   │
+│  │  语义 VM (intentos/semantic_vm/)                    │   │
+│  │  • 运行 PEF (Prompt Executable File)                │   │
+│  │  • LLM 执行                                         │   │
 │  └─────────────────────────────────────────────────────┘   │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-┌────────────────────▼────────────────────────────────────────┐
-│         分布式语义 VM 集群 (跨网络组成整体 OS)                │
 │  ┌─────────────────────────────────────────────────────┐   │
-│  │  节点 1 (容器/主机)                                  │   │
+│  │  运行时 Agent (intentos/runtime/)                   │   │
+│  │  • 提供本地能力（shell、文件系统）                   │   │
+│  │  • PaaS 节点选举器 (PaaSNodeElector)                │   │
 │  │  ┌─────────────────────────────────────────────┐   │   │
-│  │  │  语义 VM                                     │   │   │
-│  │  │  • 运行 PEF                                  │   │   │
-│  │  │  • LLM 执行                                  │   │   │
-│  │  │  ┌─────────────────────────────────────┐   │   │   │
-│  │  │  │  AI Agent (智能代理)                │   │   │   │
-│  │  │  │  • 基于 LLM                          │   │   │   │
-│  │  │  │  • 理解意图、规划任务                │   │   │   │
-│  │  │  └─────────────────────────────────────┘   │   │   │
-│  │  └─────────────────────────────────────────────┘   │   │
-│  │  ┌─────────────────────────────────────────────┐   │   │
-│  │  │  运行时 Agent (分布式节点代理)              │   │   │
-│  │  │  • 提供本地能力（shell、文件系统）           │   │   │
-│  │  │  • 管理 Skill 缓存                           │   │   │
-│  │  │  • 分布式运行（Map-Reduce）                  │   │   │
-│  │  │  • 结果汇总（LLM 汇总）                       │   │   │
-│  │  │  • 跨节点通信                                │   │   │
-│  │  └─────────────────────────────────────────────┘   │   │
-│  └─────────────────────────────────────────────────────┘   │
-│                           │                                 │
-│  ┌────────────────────────┼─────────────────────────────┐   │
-│  │                        │ 跨网络通信                   │   │
-│  └────────────────────────┼─────────────────────────────┘   │
-│                           │                                 │
-│  ┌────────────────────────▼─────────────────────────────┐   │
-│  │  节点 2 (容器/主机)                                  │   │
-│  │  ┌─────────────────────────────────────────────┐   │   │
-│  │  │  语义 VM                                     │   │   │
-│  │  │  • 运行 PEF                                  │   │   │
-│  │  │  • LLM 执行                                  │   │   │
-│  │  └─────────────────────────────────────────────┘   │   │
-│  │  ┌─────────────────────────────────────────────┐   │   │
-│  │  │  运行时 Agent                                │   │   │
-│  │  │  • 提供本地能力                              │   │   │
-│  │  │  • 分布式运行                                │   │   │
+│  │  │  可选 PaaS (enable_paas=true 时开启)        │   │   │
+│  │  │  • 多租户管理 • 用量计量 • 钱包 • 市场       │   │   │
 │  │  └─────────────────────────────────────────────┘   │   │
 │  └─────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
+                           │
+┌──────────────────────────┼──────────────────────────────────┐
+│                  跨网络通信                                  │
+└──────────────────────────┼──────────────────────────────────┘
+                           │
+┌──────────────────────────▼──────────────────────────────────┐
+│    节点 1 (PaaS)              │    节点 2 (普通)              │
+│    enable_paas=true          │    enable_paas=false          │
+│    ┌─────────────────┐       │                               │
+│    │ DistributedPaaS │       │   PaaS 请求转发到节点 1        │
+│    │ - 租户管理      │       │                               │
+│    │ - 计量计费      │       │                               │
+│    │ - 钱包市场      │       │                               │
+│    └─────────────────┘       │                               │
+└──────────────────────────────┴───────────────────────────────┘
 
 架构层次:
-1. PaaS 服务层 - AI Native App 层（构建在 OS 之上的服务层）
-2. 接口层 - 分布式 OS 对外访问入口
-3. 分布式语义 VM 集群 - 跨网络组成整体 OS
+1. 分布式 OS 节点 - 每个节点都是全功能实例
+2. 选举式 PaaS - 部分节点开启 PaaS 服务
+3. 跨网络同步 - 节点间数据通过分布式协议同步
 ```
 
 **重要区分**：
 - **AI Agent** (`intentos/agent/`) - 智能代理，基于 LLM，在语义 VM 内部
-- **运行时 Agent** (`intentos/runtime/`) - 分布式节点代理，在语义 VM 外部，是 OS 基础设施
+- **运行时 Agent** (`intentos/runtime/`) - 分布式节点代理，可选择性开启 PaaS
 - **语义 VM** (`intentos/semantic_vm/`) - 在每个节点上运行，跨网络组成整体 OS
 - **接口层** (`intentos/interface/`) - 对外提供 REST API 和 Chat 访问接口
+- **选举式 PaaS** (`intentos/paas/`) - 仅在部分节点开启，通过选举机制管理
 
 ---
 
@@ -466,15 +438,14 @@ intentos/
 │   ├── mcp_integration.py # MCP 集成
 │   └── skill_integration.py # Skill 集成
 │
-├── runtime/               # 运行时 Agent（分布式节点代理）
+├── runtime/               # 运行时 Agent（分布式节点代理，内置 PaaS）
 │   ├── __init__.py
-│   ├── agent.py           # RuntimeAgent 主实现
+│   ├── agent.py           # RuntimeAgent 主实现（内置 DistributedPaaS）
 │   ├── capabilities/      # 本地能力
 │   │   ├── shell.py       # Shell 能力
 │   │   ├── filesystem.py  # 文件系统能力
 │   │   └── network.py     # 网络能力
-│   ├── skill_cache.py     # Skill 缓存管理
-│   └── skill_downloader.py # Skill 下载器
+│   └── skill_cache.py     # Skill 缓存管理
 │
 ├── semantic_vm/           # 语义 VM（在每个节点上运行）
 │   ├── __init__.py
@@ -482,93 +453,147 @@ intentos/
 │   ├── compiler.py        # 意图编译器
 │   └── executor.py        # 执行引擎
 │
-└── paas/                  # PaaS 服务层
+└── paas/                  # PaaS 能力（选举式，非所有节点开启）
+    ├── tenant.py          # 多租户管理
+    ├── metering.py        # 用量计量
+    ├── wallet.py          # 钱包计费
+    └── marketplace.py     # 应用市场
 ```
 
 ---
 
-## 三、PaaS 层：AI Native App 层
+## 三、选举式 PaaS（部分节点开启）
 
-### 3.1 PaaS 层的定位
+### 3.1 选举式 PaaS 的定位
 
-**PaaS 层是在 OS 之外构建的 AI Native App 层**，构建在分布式 OS 之上的服务层：
+**PaaS 能力可选择性开启**，通过选举机制指定部分节点提供 PaaS 服务：
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  PaaS 服务层 (AI Native App 层)                              │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  多租户管理                                          │   │
-│  │  • 租户隔离 • 资源配置 • 配额管理                    │   │
-│  └─────────────────────────────────────────────────────┘   │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  计费系统                                            │   │
-│  │  • 用量计量 • 账单生成 • 支付网关 • 收益分成         │   │
-│  └─────────────────────────────────────────────────────┘   │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  应用市场                                            │   │
-│  │  • App 发布 • 审核 • 上架 • 评价                     │   │
-│  └─────────────────────────────────────────────────────┘   │
-│  ┌─────────────────────────────────────────────────────┐   │
-│  │  开发者工具                                          │   │
-│  │  • SDK • CLI • 调试器 • 文档                         │   │
-│  └─────────────────────────────────────────────────────┘   │
-└────────────────────┬────────────────────────────────────────┘
-                     │ 使用 OS API
-                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│  分布式 OS (接口层 + 语义 VM 集群 + 运行时 Agent)             │
-└─────────────────────────────────────────────────────────────┘
+集群配置示例:
+┌─────────────┐   ┌─────────────┐   ┌─────────────┐
+│   节点 1     │   │   节点 2     │   │   节点 3     │
+│  PaaS 节点   │   │  普通节点   │   │  普通节点   │
+│             │   │             │   │             │
+│ ┌─────────┐ │   │ ┌─────────┐ │   │ ┌─────────┐ │
+│ │ PaaS    │ │   │ │ 转发    │ │   │ │ 转发    │ │
+│ │ 服务    │ │   │ │ PaaS    │ │   │ │ PaaS    │ │
+│ │         │ │   │ │ 请求    │ │   │ │ 请求    │ │
+│ └─────────┘ │   │ └─────────┘ │   │ └─────────┘ │
+│             │   │             │   │             │
+│ 启动：       │   │ 启动：       │   │ 启动：       │
+│ --enable-   │   │ python      │   │ python      │
+│ paas        │   │ agent.py    │   │ agent.py    │
+└─────────────┘   └─────────────┘   └─────────────┘
+      │                  │                 │
+      └──────────────────┼─────────────────┘
+                         │
+              PaaS 请求转发到节点 1
 ```
 
 **关键理解**：
-- ✅ **PaaS 层在 OS 之外** - 不是 OS 的一部分，是构建在 OS 之上的服务层
-- ✅ **AI Native App 层** - 基于 OS API 构建的 AI Native 应用
-- ✅ **使用 OS API** - 通过接口层（REST API + Chat）与 OS 交互
-- ✅ **业务逻辑层** - 处理多租户、计费、市场等业务逻辑
+- ✅ **可选开启** - 通过 `--enable-paas` 参数控制
+- ✅ **选举机制** - `PaaSNodeElector` 管理 PaaS 节点列表
+- ✅ **请求转发** - 普通节点将 PaaS 请求转发到 PaaS 节点
+- ✅ **弹性扩展** - 可动态增加/减少 PaaS 节点
 
-### 3.2 PaaS 层与 OS 的关系
+### 3.2 选举式 PaaS 架构
 
 ```python
-# PaaS 层使用 OS 的 API
-from intentos import Agent, AgentContext
-
-# PaaS 层：多租户管理
-class TenantManager:
-    def __init__(self):
-        # 使用 OS 的 Agent
-        self.agent = Agent()
+# intentos/runtime/agent.py
+class PaaSNodeElector:
+    """PaaS 节点选举器，管理集群中哪些节点开启 PaaS 服务"""
     
-    def execute_intent(self, tenant_id, user_id, intent):
-        # 创建上下文（租户隔离）
-        context = AgentContext(tenant_id=tenant_id, user_id=user_id)
+    def __init__(self, node_id: str, is_paas_node: bool = False):
+        self.node_id = node_id
+        self.is_paas_node = is_paas_node
+        self.paas_nodes: set[str] = set()  # PaaS 节点列表
+        self.primary_paas_node: Optional[str] = None  # 主 PaaS 节点
+    
+    def register_paas_node(self, node_id: str) -> None:
+        """注册 PaaS 节点"""
         
-        # 调用 OS API 执行意图
-        result = await self.agent.execute(intent, context)
+    def unregister_paas_node(self, node_id: str) -> None:
+        """注销 PaaS 节点"""
         
-        # 记录用量（计费）
-        self.billing.record_usage(tenant_id, result.usage)
-        
-        return result
+    def should_forward_paas_request(self) -> bool:
+        """判断是否应该转发 PaaS 请求"""
+        return not self.is_paas_node and len(self.paas_nodes) > 0
+
+
+class DistributedPaaS:
+    """分布式 PaaS 能力集合，仅在选举开启的节点上运行"""
+    
+    def __init__(self, node_id: str):
+        self.tenant_manager = get_tenant_manager()
+        self.metering_service = get_metering_service()
+        self.wallet_manager = get_wallet_manager()
+        self.marketplace = get_marketplace_service()
 ```
 
-### 3.3 PaaS 层的模块
+### 3.3 启动配置
 
-| PaaS 模块 | 功能 | 说明 |
-|----------|------|------|
-| **多租户管理** | 租户隔离、资源配置 | 业务逻辑：管理租户和资源 |
-| **计费系统** | 用量计量、账单生成 | 业务逻辑：计费和收益分成 |
-| **应用市场** | App 发布、审核、分发 | 业务逻辑：AI Native App 市场 |
-| **开发者工具** | SDK、CLI、文档 | 业务逻辑：帮助开发者构建 AI Native App |
+```bash
+# 启动 PaaS 节点（种子节点）
+python -m intentos.runtime.agent 8000 --enable-paas --is-seed
 
-### 3.4 PaaS 层的第一性原理评估
+# 启动 PaaS 节点（加入现有集群）
+python -m intentos.runtime.agent 8001 --enable-paas
 
-| 第一性原理 | PaaS 层设计 | 符合度 |
-|-----------|-----------|--------|
-| **语言即系统** | PaaS 层独立于 OS，通过 OS API 交互 | ✅ |
-| **Prompt 即可执行文件** | PaaS 层管理 App 生命周期，不修改 PEF | ✅ |
-| **语义 VM** | PaaS 层管理资源，不介入语义执行 | ✅ |
+# 启动普通节点（无 PaaS 服务）
+python -m intentos.runtime.agent 8002
 
-**总体评估**：PaaS 层是构建在 OS 之上的 AI Native App 层，通过 OS API 与 OS 交互，处理业务逻辑。
+# 启动普通节点（带 PaaS 请求转发）
+python -m intentos.runtime.agent 8003 --paas-gateway=http://localhost:8000
+```
+
+### 3.4 节点 API 差异
+
+| API | PaaS 节点 | 普通节点 |
+|-----|----------|----------|
+| `GET /v1/tenant/{id}` | ✅ 本地处理 | ➡️ 转发到 PaaS 节点 |
+| `GET /v1/tenant/{id}/usage` | ✅ 本地处理 | ➡️ 转发到 PaaS 节点 |
+| `GET /v1/wallet/{user_id}` | ✅ 本地处理 | ➡️ 转发到 PaaS 节点 |
+| `POST /v1/marketplace/install` | ✅ 本地处理 | ➡️ 转发到 PaaS 节点 |
+| `POST /v1/execute` | ✅ 本地处理 | ✅ 本地处理 |
+| `GET /v1/status` | ✅ 本地处理 | ✅ 本地处理 |
+
+### 3.5 使用示例
+
+```bash
+# 1. 启动 PaaS 节点
+$ python -m intentos.runtime.agent 8000 --enable-paas --is-seed
+✅ Full-Service Node node_abc123 active at http://0.0.0.0:8000
+   状态：开启 PaaS 服务
+   PaaS 能力：多租户、计量、计费、市场
+
+# 2. 创建租户
+$ curl -X POST http://localhost:8000/v1/tenant \
+  -H "Content-Type: application/json" \
+  -d '{"tenant_id": "tenant_001", "name": "测试租户", "plan": "free"}'
+{"status": "created", "tenant": {"id": "tenant_001", ...}}
+
+# 3. 执行意图（带租户验证）
+$ curl -X POST http://localhost:8000/v1/execute \
+  -H "Content-Type: application/json" \
+  -d '{"intent": "分析销售数据", "tenant_id": "tenant_001", "user_id": "user_123"}'
+{"status": "success", "node": "node_abc123", "result": {...}, "usage": {...}}
+
+# 4. 查看用量
+$ curl http://localhost:8000/v1/tenant/tenant_001/usage
+{"usage": {"cpu_seconds": 10, "gas": 5000, ...}}
+```
+
+### 3.6 选举式 PaaS 评估
+
+| 第一性原理 | 选举式 PaaS 设计 | 符合度 |
+|-----------|-----------------|--------|
+| **语言即系统** | PaaS 可选开启，灵活部署 | ✅ |
+| **Prompt 即可执行文件** | PaaS 管理 App 生命周期，不修改 PEF | ✅ |
+| **语义 VM** | PaaS 管理资源，不介入语义执行 | ✅ |
+| **分布式** | 选举机制，弹性扩展 | ✅ |
+| **资源效率** | 仅部分节点运行 PaaS，节省资源 | ✅ |
+
+**总体评估**：选举式 PaaS 提供灵活部署选项，支持资源优化和弹性扩展。
 
 ---
 
