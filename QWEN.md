@@ -2,10 +2,9 @@
 
 > **语言即系统 · Prompt 即可执行文件 · 语义 VM**
 
-**文档版本**: 2.0  
+**文档版本**: 3.0  
 **创建日期**: 2026-03-12  
-**最后更新**: 2026-03-21  
-**状态**: Release Candidate
+**最后更新**: 2026-04-01
 
 ---
 
@@ -29,6 +28,7 @@ IntentOS 是一个 **AI 原生操作系统** 原型，核心是**语义虚拟机
 | [核心原则](./docs/CORE_PRINCIPLES.md) | 语言即系统 · Prompt 即可执行文件 · 语义 VM |
 | [AI Native App](./docs/AI_NATIVE_APP.md) | AI Native App 概念、开发指南 |
 | [ROADMAP.md](./ROADMAP.md) | 项目路线图 |
+| [📋 项目约定](#-项目约定) | 测试路径、代码组织、提交规范 |
 
 ---
 
@@ -95,15 +95,11 @@ IntentOS/
 │   ├── agent/           # AI Agent（智能代理，基于 LLM）
 │   ├── runtime/         # 运行时 Agent（分布式节点代理）
 │   ├── semantic_vm/     # 语义 VM（在每个节点上运行）
+│   ├── compiler/        # 意图编译器
 │   ├── interface/       # 接口层（REST API + Chat）
-│   ├── paas/            # PaaS 服务层（多租户、计费、市场）
+│   └── paas/            # PaaS 服务层（多租户、计费、市场）
 │
 ├── docs/                # 文档
-│   ├── ARCHITECTURE.md  # ⭐ 完整架构说明
-│   ├── CORE_PRINCIPLES.md
-│   ├── AI_NATIVE_APP.md
-│   └── ...
-│
 ├── examples/            # 示例代码
 ├── tests/               # 测试用例
 ├── README.md            # 项目说明
@@ -141,6 +137,74 @@ IntentOS/
 
 ---
 
+## 📋 项目约定
+
+### 测试代码路径
+
+| 测试类型 | 路径 | 说明 |
+|----------|------|------|
+| **单元测试** | `tests/unit/test_*.py` | 针对模块/函数的测试 |
+| **集成测试** | `tests/integration/test_*.py` | 跨模块集成测试 |
+| **端到端测试** | `tests/e2e/test_*.py` | 完整流程测试 |
+
+**命名规范**:
+- 测试文件：`test_<module>.py`
+- 测试函数：`test_<function>_<scenario>()`
+- 测试类：`Test<ClassName>`
+
+**运行测试**:
+```bash
+# 运行所有测试
+pytest
+
+# 运行特定测试
+pytest tests/unit/test_prompts.py -v
+
+# 运行并生成覆盖率报告
+pytest --cov=intentos --cov-report=html
+```
+
+### 代码组织原则
+
+| 原则 | 说明 |
+|------|------|
+| **单一职责** | 每个模块/类/函数只完成一个任务 |
+| **显式优于隐式** | 依赖、类型、错误应明确声明 |
+| **测试驱动** | 新功能先写测试，再实现代码 |
+| **文档即代码** | 关键函数必须有 docstring |
+
+### 提交规范
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+**type 类型**:
+- `feat`: 新功能
+- `fix`: Bug 修复
+- `docs`: 文档更新
+- `style`: 代码格式
+- `refactor`: 重构
+- `test`: 测试相关
+- `chore`: 构建/工具
+
+**示例**:
+```
+feat(prompts): 添加提示词缓存优化
+
+- 实现静态/动态部分分离
+- 使用 Blake2b 哈希计算缓存键
+- 集成到 IntentCompiler
+
+Closes #123
+```
+
+---
+
 ## 参考文档
 
 完整架构说明请参考：[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
@@ -159,7 +223,27 @@ IntentOS/
 
 ## 📜 代码修复律令（不可违背）
 
-在进行任何代码修改、文档更新或 Bug 修复时，必须严格遵守以下原则：
+### ⚠️ 铁律：先读后改
+
+**在任何代码修改前，必须先读取文件内容。**
+
+```
+❌ 禁止：未读取文件就直接编辑
+✅ 必须：read_file → 理解上下文 → edit
+```
+
+**违反示例**:
+- 不读取文件就假设内容并修改
+- 根据猜测的路径直接编辑
+- 不看现有代码结构就重构
+
+**正确做法**:
+1. 使用 `read_file` 读取目标文件
+2. 理解代码结构、风格、依赖
+3. 使用 `edit` 进行精准修改
+4. 必要时使用 `glob`/`grep` 确认影响范围
+
+---
 
 ### 无损修改三原则
 
