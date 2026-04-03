@@ -2,11 +2,22 @@
 
 ---
 
-# IntentOS - AI 原生操作系统
+# IntentOS - 分布式 AI 原生操作系统
 
-> **语言即系统 · Prompt 即可执行文件 · 语义 VM**
+> **语言即系统 · Prompt 即可执行文件 · 分布式语义 VM**
 
-IntentOS 是一个 **AI 原生操作系统** 原型，核心是**语义虚拟机**——将自然语言意图编译为 LLM 可执行的 Prompt，支持 Self-Bootstrap 和分布式部署。
+IntentOS 是一个 **分布式 AI 原生操作系统**, 不是传统的 AI Agent 框架。
+
+核心是**语义虚拟机 (Semantic VM)** —— 将自然语言意图编译为 PEF (Prompt Executable File), 由 LLM 作为处理器执行, 支持 Self-Bootstrap 和跨节点分布式部署。
+
+### 与传统 AI Agent 框架的本质区别
+
+| 传统 AI Agent 框架 | IntentOS |
+|-------------------|----------|
+| 单节点应用层智能代理 | **分布式操作系统内核** |
+| Tool Calling + LLM Loop | **语义 VM + PEF** (Prompt Executable File) |
+| Prompt Engineering | **意图编译 → 语义执行** |
+| 会话级上下文 | **全局语义地址空间** (跨节点) |
 
 ---
 
@@ -21,7 +32,7 @@ IntentOS 是一个 **AI 原生操作系统** 原型，核心是**语义虚拟机
 ![IntentOS 架构图](./docs/images/image.png)
 
 
-## 🧠 核心理念：道即 Meta
+## 🧠 核心理念：道即 Meta-Meta
 
 IntentOS 的设计融合了东方哲学与西方计算机科学的精髓：
 
@@ -31,7 +42,7 @@ IntentOS 的设计融合了东方哲学与西方计算机科学的精髓：
 | **法** (规则) | Meta/Metadata | 意图定义、Prompt 模板、Schema |
 | **道** (本源) | **Meta-Meta** | 语义 VM、Self-Bootstrap、演进算法 |
 
-### 为什么"道"是终极 Meta？
+### 为什么"道"是终极 Meta-Meta？
 
 在 IntentOS 中，"道"不仅是哲学概念，更是**技术架构的终极抽象**：
 
@@ -39,59 +50,83 @@ IntentOS 的设计融合了东方哲学与西方计算机科学的精髓：
 - **道 (Meta-Meta)**：**生成规则的规则**，驱动系统自我演进的元驱动力
 
 ```
-自然语言意图 → [语义编译] → Prompt → [LLM 执行] → 结果
+自然语言意图 → [语义编译] → PEF → [语义 VM 执行] → 结果
       ↓              ↓           ↓          ↓
     器 (Instance)   法 (Meta)   道 (Meta-Meta)  器 (新 Instance)
 ```
 
 IntentOS 的"道"体现在：
 1. **Self-Bootstrap**：系统可以修改自身的指令集和处理器逻辑
-2. **语义 VM**：LLM 作为处理器，自然语言作为"机器码"
+2. **语义 VM**：LLM 作为处理器，PEF 作为机器码
 3. **分布式演进**：多节点集群中，语义一致性驱动系统自发演化
 
-> 💡 **道生一，一生二，二生三，三生万物**  
+> 💡 **道生一，一生二，二生三，三生万物**
 > 在 IntentOS 中：**语义 VM → 意图/能力 → 进程/节点 → 分布式应用生态**
 
 ---
 
 ## 🚀 快速开始
 
-### 安装
+### 核心抽象：用户意图 → PEF → 语义执行
 
-```bash
-pip install pyyaml
+```
+用户输入自然语言意图
+    ↓
+意图编译器编译为 PEF (Prompt Executable File)
+    ↓
+语义 VM 加载并执行 PEF
+    ↓
+LLM 作为处理器执行语义指令
+    ↓
+需要 IO 时 → 查询能力注册中心 → 调用运行时 Agent 提供的能力
+    ↓
+结果返回给用户
 ```
 
 ### 使用语义 VM
 
 ```python
-from intentos import SemanticVM, create_semantic_vm
+from intentos.compiler import IntentCompiler
+from intentos.semantic_vm import SemanticVM
+from intentos.agent import AgentContext
 
-# 创建语义 VM
-vm = create_semantic_vm(llm_executor)
+# 1. 编译用户意图为 PEF
+compiler = IntentCompiler()
+pef = compiler.compile("分析华东区 Q3 销售数据")
 
-# 加载程序
-await vm.load_program(program)
+# 2. 创建语义 VM 和执行上下文
+vm = SemanticVM()
+context = AgentContext(user_id="demo", permissions=["data:read"])
 
-# 执行程序
-result = await vm.execute_program("my_program")
+# 3. 执行 PEF
+result = await vm.execute(pef, context)
+
+print(result.message)  # 自然语言回复
+print(result.data)     # 数据结果
 ```
 
-### 使用意图编译器
+### 分布式执行
 
 ```python
-from intentos import IntentCompiler
+from intentos.runtime import RuntimeAgent
 
-# 创建编译器
-compiler = IntentCompiler()
+# 创建运行时 Agent (节点 Daemon)
+runtime_agent = RuntimeAgent(
+    node_id="node1",
+    cluster_nodes=["node2", "node3"],
+)
 
-# 编译意图
-prompt = compiler.compile("分析华东区 Q3 销售数据")
+# 启动节点
+await runtime_agent.start()
 
-# 查看结果
-print(f"动作：{prompt.intent.action}")
-print(f"目标：{prompt.intent.target}")
-print(f"System Prompt: {prompt.system_prompt[:200]}...")
+# 分布式执行 (Map-Reduce)
+data_partitions = {
+    "node2": {"region": "华东", "period": "Q3"},
+    "node3": {"region": "华南", "period": "Q3"},
+}
+
+results = await runtime_agent.map_reduce(pef, data_partitions)
+summary = await runtime_agent.reduce_results(list(results.values()))
 ```
 
 ### 统一启动入口
@@ -380,13 +415,13 @@ prompt = compiler.compile("查询上季度销售数据", context=context)
 
 ### 核心组件
 
-| 组件 | 位置 | 职责 |
-|------|------|------|
-| **语义 VM** | `intentos/semantic_vm/` | 在每个节点上运行，执行 PEF，LLM 作为处理器 |
-| **AI Agent** | `intentos/agent/` | 智能代理，基于 LLM，在语义 VM 内部，理解意图、规划任务 |
-| **运行时 Agent** | `intentos/runtime/` | 分布式节点代理，在语义 VM 外部，提供本地能力、管理 Skill 缓存 |
-| **接口层** | `intentos/interface/` | 对外提供 REST API 和 Chat 访问接口 |
-| **PaaS 服务层** | `intentos/paas/` | 多租户管理、计费系统、应用市场、开发者工具 |
+| 组件 | 位置 | 职责 | OS 视角 |
+|------|------|------|---------|
+| **语义 VM** | `intentos/semantic_vm/` | 执行 PEF, LLM 作为处理器 | **OS 内核** |
+| **意图编译器** | `intentos/compiler/` | 用户意图 → PEF | **编译器** |
+| **能力注册中心** | `intentos/agent/registry.py` | 管理系统调用能力 | **系统调用表** |
+| **运行时 Agent** | `intentos/runtime/` | 节点 Daemon, 提供本地能力 | **守护进程** |
+| **接口层** | `intentos/interface/` | CLI / API / Chat | **系统调用接口** |
 
 ### Map-Reduce 分布式执行
 
@@ -453,40 +488,42 @@ executor = create_executor(provider="ollama", host="http://localhost:11434")
 
 ## 🎯 核心特性
 
-### 1. 语义 VM (Semantic VM)
+### 1. 语义 VM (Semantic VM) - OS 内核
 
 IntentOS 的本质是一个语义虚拟机：
 - **指令集**：语义指令 (CREATE/MODIFY/QUERY/LOOP/BRANCH...)
 - **处理器**：LLM
+- **机器码**：PEF (Prompt Executable File)
 - **内存**：语义存储 (意图/能力/策略/Prompt/上下文)
 - **图灵完备**：是 (支持循环 + 分支)
 
 **核心洞察**:
 - LLM 是处理器，不是外部工具
-- 语义指令在存储中，可自修改
+- PEF 是编译后的可执行文件，在存储中可自修改
 - Self-Bootstrap 是语义 VM 的自然结果
 
-### 2. 分布式内核
+### 2. 意图编译器
+
+将自然语言编译为 PEF：
+- **输入**：用户自然语言意图
+- **输出**：PEF (Prompt Executable File)
+- **编译过程**：解析意图 → 绑定能力 → 生成 Prompt
+- **优化**：L1/L2/L3 三级缓存, Token 优化, 增量编译
+
+### 3. 分布式内核
 
 - **PCB (Process Control Block)**：追踪进程状态、PC 计数器
 - **Fork/Exec**：分布式进程调度
 - **一致性哈希内存**：跨节点语义存储
 - **HTTP RPC**：节点间通信
+- **Map-Reduce**：分布式数据处理
 
-### 3. Self-Bootstrap
+### 4. Self-Bootstrap
 
 系统可以动态修改自身：
 - **指令扩展**：向 LLM Processor 注入新的 `_handle_<opcode>` 方法
 - **配置同步**：修改 CONFIG 时自动广播到集群
 - **审计轨迹**：`/history` 指令可回溯所有内核自修改动作
-
-### 4. 意图编译器
-
-将自然语言编译为 LLM Prompt：
-- **L1 缓存**：意图解析结果缓存
-- **L2 缓存**：Prompt 模板缓存
-- **L3 缓存**：执行计划缓存
-- **优化器**：Map/Reduce 数据本地性优化
 
 ---
 
@@ -496,10 +533,12 @@ IntentOS 的本质是一个语义虚拟机：
 IntentOS/
 ├── intentos/                # 主包
 │   ├── core/                # 核心数据模型
-│   ├── semantic_vm/         # ⭐ 语义 VM
+│   ├── semantic_vm/         # ⭐ 语义 VM (OS 内核)
+│   ├── compiler/            # ⭐ 意图编译器 (用户意图 → PEF)
+│   ├── agent/               # 能力注册中心 (系统调用表)
+│   ├── runtime/             # ⭐ 运行时 Agent (节点 Daemon)
 │   ├── distributed/         # ⭐ 分布式内核
 │   ├── bootstrap/           # ⭐ Self-Bootstrap
-│   ├── compiler/            # 编译器 (三级缓存 + 优化器)
 │   ├── interface/           # ⭐ Shell + REST API
 │   ├── llm/                 # LLM 后端层
 │   ├── registry/            # 意图仓库

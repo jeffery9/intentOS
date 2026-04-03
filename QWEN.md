@@ -1,22 +1,33 @@
-# IntentOS - AI 原生操作系统
+# IntentOS - 分布式 AI 原生操作系统
 
-> **语言即系统 · Prompt 即可执行文件 · 语义 VM**
+> **语言即系统 · Prompt 即可执行文件 · 分布式语义 VM**
 
-**文档版本**: 3.0  
-**创建日期**: 2026-03-12  
-**最后更新**: 2026-04-01
+**文档版本**: 3.1
+**创建日期**: 2026-03-12
+**最后更新**: 2026-04-03
 
 ---
 
 ## 项目概述
 
-IntentOS 是一个 **AI 原生操作系统** 原型，核心是**语义虚拟机 (Semantic VM)**——将自然语言意图编译为 LLM 可执行的 Prompt，支持 Self-Bootstrap 和分布式部署。
+IntentOS 是一个 **分布式 AI 原生操作系统**, 不是传统的 AI Agent 框架。
+
+核心是**语义虚拟机 (Semantic VM)** —— 将自然语言意图编译为 PEF (Prompt Executable File), 由 LLM 作为处理器执行, 支持 Self-Bootstrap 和跨节点分布式部署。
+
+### 与传统 AI Agent 框架的本质区别
+
+| 传统 AI Agent 框架 | IntentOS |
+|-------------------|----------|
+| 单节点应用层智能代理 | **分布式操作系统内核** |
+| Tool Calling + LLM Loop | **语义 VM + PEF** (Prompt Executable File) |
+| Prompt Engineering | **意图编译 → 语义执行** |
+| 会话级上下文 | **全局语义地址空间** (跨节点) |
 
 ### 核心理念
 
-- **语义 VM**: LLM 作为处理器，语义指令作为"机器码"
-- **分布式**: 多节点集群，语义 VM 跨网络组成整体 OS
-- **运行时 Agent**: 在每个节点上提供本地能力，管理 Skill 缓存
+- **语义 VM**: LLM 作为处理器, PEF 作为机器码, 跨网络组成整体 OS
+- **分布式**: 多节点集群, 语义 VM 跨节点执行, Map-Reduce 汇总结果
+- **运行时 Agent**: 节点 Daemon, 为本地语义 VM 提供能力, 管理 Skill 缓存
 - **接口层**: 对外提供 REST API 和 Chat 访问接口
 - **PaaS 服务层**: 多租户、计费、应用市场（独立于 OS 核心层）
 
@@ -50,17 +61,22 @@ PYTHONPATH=. python intentos/interface/api.py
 ### 2. 使用示例
 
 ```python
-from intentos import Agent, AgentContext
+from intentos.compiler import IntentCompiler
+from intentos.semantic_vm import SemanticVM
+from intentos.agent import AgentContext
 
-# 创建 Agent
-agent = Agent()
-await agent.initialize()
+# 创建编译器 (加载已注册的能力)
+compiler = IntentCompiler()
 
-# 创建上下文
-context = AgentContext(user_id="demo")
+# 编译用户意图为 PEF (Prompt Executable File)
+pef = compiler.compile("分析华东区 Q3 销售数据")
 
-# 执行意图
-result = await agent.execute("分析华东区 Q3 销售数据", context)
+# 创建语义 VM 和执行上下文
+vm = SemanticVM()
+context = AgentContext(user_id="demo", permissions=["data:read"])
+
+# 执行 PEF
+result = await vm.execute(pef, context)
 
 print(result.message)  # 自然语言回复
 print(result.data)     # 数据结果
@@ -92,39 +108,45 @@ result = await runtime_agent.map_reduce(pef, data_partitions)
 ```
 IntentOS/
 ├── intentos/
-│   ├── agent/           # AI Agent（智能代理，基于 LLM）
-│   ├── runtime/         # 运行时 Agent（分布式节点代理）
-│   ├── semantic_vm/     # 语义 VM（在每个节点上运行）
-│   ├── compiler/        # 意图编译器
-│   ├── interface/       # 接口层（REST API + Chat）
-│   └── paas/            # PaaS 服务层（多租户、计费、市场）
+│   ├── agent/           # 能力注册中心 (系统调用表)
+│   ├── runtime/         # 运行时 Agent (分布式节点代理)
+│   ├── semantic_vm/     # 语义 VM (OS 内核, 在每个节点运行)
+│   ├── compiler/        # 意图编译器 (用户意图 → PEF)
+│   ├── interface/       # 接口层 (REST API + Chat)
+│   └── paas/            # PaaS 服务层 (多租户、计费、市场)
 │
 ├── docs/                # 文档
 ├── examples/            # 示例代码
 ├── tests/               # 测试用例
 ├── README.md            # 项目说明
 ├── ROADMAP.md           # 项目路线图
-└── QWEN.md              # 本文件（项目概括）
+└── QWEN.md              # 本文件 (项目概括)
 ```
 
 ---
 
 ## 核心概念（简要）
 
-### 语义 VM
-- **LLM 作为处理器**，执行语义指令
-- **PEF (Prompt Executable File)** 是语义 VM 的"机器码"
-- 在每个节点上运行，跨网络组成整体 OS
+### 语义 VM (OS 内核)
+- **LLM 作为处理器**, PEF (Prompt Executable File) 作为机器码
+- 在每个节点上运行, 跨网络组成整体 OS
+- 执行流程: 加载 PEF → LLM 处理 → 需要能力时查询注册中心 → 执行 → 生成结果
 
-### AI Agent
-- **基于 LLM**，理解意图、规划任务、调用工具
-- 在语义 VM 内部，是语义执行的一部分
+### 意图编译器
+- **用户自然语言意图 → PEF (Prompt Executable File)**
+- 编译时将能力描述注入到 Prompt
+- PEF 可缓存、可分发、可跨节点执行
 
-### 运行时 Agent
-- **分布式节点代理**，在每个节点上运行
-- 提供本地能力（shell、文件系统）
+### 能力注册中心 (系统调用表)
+- 管理所有 OS 级能力 (Shell/FileSystem/Network/自定义)
+- 能力声明输入输出 Schema 和所需权限
+- 执行前受 Capability Gate (能力门控) 保护
+
+### 运行时 Agent (节点 Daemon)
+- **分布式节点代理**, 在每个节点上运行
+- 为本地语义 VM 提供能力实现
 - 管理 Skill 缓存
-- 分布式运行（Map-Reduce）、结果汇总
+- 分布式运行 (Map-Reduce)、结果汇总
 
 ### 接口层
 - **对外提供 REST API 和 Chat 访问接口**
@@ -132,7 +154,7 @@ IntentOS/
 - Chat Interface: Shell TUI, WebSocket, Web UI
 
 ### PaaS 服务层
-- **独立于 OS 核心层**，处理业务逻辑
+- **独立于 OS 核心层**, 处理业务逻辑
 - 多租户管理、计费系统、应用市场、开发者工具
 
 ---
