@@ -30,6 +30,126 @@ from .safe_eval import SafeConditionEvaluator
 logger = logging.getLogger(__name__)
 
 # =============================================================================
+# IO 能力层集成
+# =============================================================================
+
+
+class IOCapabilityIntegration:
+    """
+    IO 能力层集成 - 语义 VM 的 IO 接口
+    
+    语义 VM 通过此层调用 Skill 和 MCP 工具，类似 Linux 的系统调用接口。
+    
+    架构:
+    ┌─────────────────────────────────────────┐
+    │  语义 VM (OS 内核)                       │
+    │  ↓ 调用 IO 能力                         │
+    ├─────────────────────────────────────────┤
+    │  IO Capability Integration              │
+    │  ├─ skill_io: 调用 Skill                │
+    │  └─ mcp_io: 调用 MCP 工具               │
+    ├─────────────────────────────────────────┤
+    │  Capability Registry (系统调用表)        │
+    └─────────────────────────────────────────┘
+    """
+    
+    def __init__(self, registry: Any):
+        """
+        初始化 IO 能力集成
+        
+        Args:
+            registry: 能力注册中心
+        """
+        self.registry = registry
+        self.skill_io = None
+        self.mcp_io = None
+        
+        # 延迟导入 IO 能力层
+        try:
+            from intentos.agent.io_capabilities import IOCapabilityLayer
+            self.io_layer = IOCapabilityLayer(registry)
+            self.io_layer.register_all()
+            self.skill_io = self.io_layer.skill_io
+            self.mcp_io = self.io_layer.mcp_io
+            logger.info("IO 能力层集成完成")
+        except Exception as e:
+            logger.warning(f"IO 能力层加载失败: {e}")
+            self.io_layer = None
+    
+    async def call_skill(
+        self,
+        skill_id: Optional[str] = None,
+        skill_name: Optional[str] = None,
+        intent: Optional[str] = None,
+        **kwargs: Any,
+    ) -> Any:
+        """
+        调用 Skill (通过 IO 能力)
+        
+        Args:
+            skill_id: Skill ID (精确匹配)
+            skill_name: Skill 名称 (模糊匹配)
+            intent: 用户意图 (自动匹配)
+            **kwargs: Skill 执行参数
+        
+        Returns:
+            Skill 执行结果
+        """
+        if not self.skill_io:
+            raise RuntimeError("Skill IO 能力未初始化")
+        
+        return await self.skill_io.skill_io_handler(
+            skill_id=skill_id,
+            skill_name=skill_name,
+            intent=intent,
+            **kwargs,
+        )
+    
+    async def call_mcp_tool(
+        self,
+        server_name: str,
+        tool_name: str,
+        **kwargs: Any,
+    ) -> Any:
+        """
+        调用 MCP 工具 (通过 IO 能力)
+        
+        Args:
+            server_name: MCP 服务器名称
+            tool_name: MCP 工具名称
+            **kwargs: 工具参数
+        
+        Returns:
+            MCP 工具执行结果
+        """
+        if not self.mcp_io:
+            raise RuntimeError("MCP IO 能力未初始化")
+        
+        return await self.mcp_io.mcp_io_handler(
+            server_name=server_name,
+            tool_name=tool_name,
+            **kwargs,
+        )
+    
+    def list_available_skills(self) -> list[dict[str, Any]]:
+        """列出可用 Skill"""
+        if self.skill_io:
+            return self.skill_io.list_skills()
+        return []
+    
+    def match_skills(self, intent: str) -> list[dict[str, Any]]:
+        """根据意图匹配 Skill"""
+        if self.skill_io:
+            return self.skill_io.match_skills(intent)
+        return []
+    
+    def list_mcp_servers(self) -> list[str]:
+        """列出已连接 MCP 服务器"""
+        if self.mcp_io:
+            return self.mcp_io.list_servers()
+        return []
+
+# =============================================================================
 # 语义指令类型
 # =============================================================================
 
@@ -555,10 +675,18 @@ class SemanticVM:
     语义虚拟机
 
     执行语义程序的完整虚拟机
+    
+    集成 IO 能力层，支持:
+    - 通过 IO 能力调用 Skill
+    - 通过 IO 能力调用 MCP 工具
+    - 所有 IO 能力受 Capability Gate 保护
     """
 
     def __init__(
-        self, llm_executor: Optional[Any] = None, mode: PrivilegeLevel = PrivilegeLevel.USER
+        self,
+        llm_executor: Optional[Any] = None,
+        mode: PrivilegeLevel = PrivilegeLevel.USER,
+        registry: Optional[Any] = None,
     ):
         """
         初始化 VM
@@ -566,6 +694,7 @@ class SemanticVM:
         Args:
             llm_executor: LLM 执行器 (可选)
             mode: 执行模式 (内核态/用户态)
+            registry: 能力注册中心 (可选，用于 IO 能力集成)
         """
         self.memory = SemanticMemory()
         self.processor = LLMProcessor(llm_executor) if llm_executor else None
@@ -573,6 +702,9 @@ class SemanticVM:
         self.running = False
         self.mode = mode
         self._llm_executor = llm_executor
+        
+        # IO 能力集成 (OS 内核级)
+        self.io_capabilities = IOCapabilityIntegration(registry) if registry else None
 
     async def initialize(self) -> None:
         """初始化 VM"""
