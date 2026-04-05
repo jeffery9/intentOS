@@ -1,0 +1,101 @@
+# PEF v2.0 示例：销售数据分析
+# 这是一个人类可读的 Prompt Executable File
+# 可以直接编辑、使用 Git 版本控制
+
+version: "2.0"
+id: "pef_sales_analysis_q3_2024"
+compiled_at: "2026-04-05T14:30:25+08:00"
+
+# 意图声明
+intent:
+  goal: "分析华东区 Q3 销售数据并生成报告"
+  description: >
+    查询华东区域 2024 年第三季度的销售数据，
+    分析销售趋势，识别异常，生成 Markdown 格式的分析报告。
+  output_format: "markdown"
+
+# 上下文绑定
+context:
+  user_id: "sales_manager_001"
+  session_id: "sess_20260405_001"
+  business_context:
+    region: "华东"
+    period: "Q3"
+    year: 2024
+    department: "sales"
+  technical_context:
+    data_source: "sales_database"
+    api_version: "v2"
+
+# 能力绑定
+capabilities:
+  - name: "query_sales_data"
+    version: ">=1.0"
+    params:
+      region: "${context.business_context.region}"
+      period: "${context.business_context.period}"
+      year: "${context.business_context.year}"
+  
+  - name: "analyze_trends"
+    version: "*"
+    params:
+      data: "${steps.query_data.output}"
+      metrics:
+        - "revenue"
+        - "growth_rate"
+        - "customer_count"
+  
+  - name: "generate_report"
+    version: "*"
+    params:
+      analysis: "${steps.analyze_trends.output}"
+      format: "${intent.output_format}"
+
+# 约束条件
+constraints:
+  resource_limits:
+    max_tokens: 8192
+    timeout_seconds: 600
+    max_api_calls: 50
+  execution:
+    temperature: 0.3
+    top_p: 0.9
+    max_iterations: 10
+
+# 工作流定义（DAG）
+workflow:
+  steps:
+    - id: "query_data"
+      name: "查询销售数据"
+      capability: "query_sales_data"
+      output_var: "sales_data"
+    
+    - id: "analyze_trends"
+      name: "分析销售趋势"
+      capability: "analyze_trends"
+      depends_on: ["query_data"]
+      output_var: "analysis_result"
+    
+    - id: "generate_report"
+      name: "生成分析报告"
+      capability: "generate_report"
+      depends_on: ["analyze_trends"]
+      output_var: "final_report"
+  
+  on_error:
+    - action: "retry"
+      max_attempts: 3
+    - action: "notify"
+      channel: "slack"
+
+# 元数据
+metadata:
+  tags:
+    - "sales"
+    - "analysis"
+    - "q3"
+    - "华东"
+  author: "intentos"
+  description: "Q3 销售数据分析 PEF 示例"
+  cache_key: "abc123def456"
+  token_count: 2048
