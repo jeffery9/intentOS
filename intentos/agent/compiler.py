@@ -2,6 +2,14 @@
 意图编译器（优化版）
 
 支持 PEF 缓存、优化和增量编译
+
+PEF 格式版本:
+- v1.0: 简化版（当前默认，向后兼容）
+- v2.0: 人类可读的 YAML/JSON 格式（推荐）
+
+参考:
+- docs/PEF_FORMAT_SPEC.md (v2.0 规范)
+- intentos/compiler/pef_format.py (v2.0 实现)
 """
 
 from __future__ import annotations
@@ -12,10 +20,18 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Optional
 
+# 导入 v2.0 PEF 格式
+from intentos.compiler.pef_format import PEF as PEFv2
+
 
 @dataclass
 class PEF:
-    """Prompt Executable File"""
+    """
+    Prompt Executable File v1.0（向后兼容）
+    
+    注意: 新项目推荐使用 PEF v2.0 (intentos.compiler.pef_format.PEF)
+    此类保留用于向后兼容。
+    """
 
     version: str = "1.0"
     id: str = field(default_factory=lambda: f"pef_{datetime.now().strftime('%Y%m%d%H%M%S')}")
@@ -46,6 +62,10 @@ class PEF:
             "cache_key": self.cache_key,
             "token_count": self.token_count,
         }
+
+    def to_v2(self) -> PEFv2:
+        """转换为 v2.0 格式"""
+        return PEFv2.from_v1(self)
 
 
 @dataclass
