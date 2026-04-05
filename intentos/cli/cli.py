@@ -12,6 +12,7 @@ import asyncio
 import cmd
 import json
 import os
+import yaml
 
 # =============================================================================
 # IPC/RPC 通信层（简化版，内联到 CLI）
@@ -385,18 +386,235 @@ def start_cli(args=None):
 
 
 # =============================================================================
+# 非交互式执行函数
+# =============================================================================
+
+def execute_non_interactive(args):
+    """非交互式执行意图"""
+    import sys
+
+    # 检查环境变量
+    plain_mode = args.plain or os.environ.get("INTENTOS_PLAIN") == "1"
+
+    # 获取输入命令
+    if args.command:
+        if len(args.command) == 1 and args.command[0] == "-":
+            # 从 stdin 读取
+            input_text = sys.stdin.read().strip()
+        else:
+            # 从命令行参数读取
+            input_text = " ".join(args.command)
+    else:
+        # 从 stdin 读取
+        input_text = sys.stdin.read().strip()
+
+    # 验证输入
+    if not input_text:
+        if not plain_mode:
+            console = Console()
+            console.print("❌ 错误：未提供有效的命令", style="red")
+        else:
+            print("错误：未提供有效的命令", file=sys.stderr)
+        sys.exit(3)
+
+    # 检查内核是否运行
+    if not check_kernel_running():
+        if not plain_mode:
+            console = Console()
+            console.print("⚠️  IntentOS 内核未运行", style="yellow")
+            console.print("正在自动启动内核进程...", style="dim")
+        else:
+            print("IntentOS 内核未运行，正在自动启动...", file=sys.stderr)
+
+        # 在后台启动 daemon 进程
+        subprocess.Popen(
+            [sys.executable, "-m", "intentos", "daemon"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+
+        if not plain_mode:
+            console.print("等待内核初始化...", style="dim")
+        else:
+            print("等待内核初始化...", file=sys.stderr)
+
+        if not wait_for_kernel(timeout=15.0):
+            if not plain_mode:
+                console.print("❌ 内核启动超时", style="red")
+                console.print("请手动启动内核：[bold]intentos daemon[/bold]", style="red")
+            else:
+                print("❌ 内核启动超时", file=sys.stderr)
+                print("请手动启动内核：intentos daemon", file=sys.stderr)
+            sys.exit(1)
+
+        if not plain_mode:
+            console.print("✅ 内核已启动", style="green")
+        else:
+            print("✅ 内核已启动", file=sys.stderr)
+
+    # 创建事件循环和客户端
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    client = None
+
+    try:
+        # 连接
+        client = RPCClient()
+        loop.run_until_complete(client.connect())
+
+        if not plain_mode:
+            console = Console()
+            console.print(f"✅ 已连接到 IntentOS 内核", style="green")
+
+        # 执行意图
+        result = loop.run_until_complete(client.execute(input_text))
+
+        # 输出结果
+        if args.json:
+            output_data = {
+                "status": "success",
+                "result": result,
+                "command": input_text,
+                "timestamp": datetime.now().isoformat()
+            }
+            if plain_mode:
+                print(json.dumps(output_data, ensure_ascii=False, indent=2))
+            else:
+                console = Console()
+                console.print_json(json.dumps(output_data, ensure_ascii=False, indent=2))
+        elif args.yaml:
+            output_data = {
+                "status": "success",
+                "result": result,
+                "command": input_text,
+                "timestamp": datetime.now().isoformat()
+            }
+            yaml_output = yaml.dump(output_data, allow_unicode=True, default_flow_style=False)
+            if plain_mode:
+                print(yaml_output)
+            else:
+                console = Console()
+                console.print(yaml_output)
+        else:
+            # 纯文本输出
+            if plain_mode:
+                print(result)
+            else:
+                console = Console()
+                console.print(result)
+
+        # 成功退出
+        sys.exit(0)
+
+    except Exception as e:
+        # 错误处理
+        error_msg = str(e)
+
+        # 尝试识别错误类型
+        exit_code = 1
+        if "permission" in error_msg.lower() or "denied" in error_msg.lower():
+            exit_code = 2
+        elif "invalid" in error_msg.lower() or "usage" in error_msg.lower():
+            exit_code = 3
+
+        if args.json:
+            error_data = {
+                "status": "error",
+                "error": error_msg,
+                "command": input_text,
+                "timestamp": datetime.now().isoformat()
+            }
+            if plain_mode:
+                print(json.dumps(error_data, ensure_ascii=False, indent=2), file=sys.stderr)
+            else:
+                console = Console()
+                console.print_json(json.dumps(error_data, ensure_ascii=False, indent=2), file=sys.stderr)
+        elif args.yaml:
+            error_data = {
+                "status": "error",
+                "error": error_msg,
+                "command": input_text,
+                "timestamp": datetime.now().isoformat()
+            }
+            yaml_output = yaml.dump(error_data, allow_unicode=True, default_flow_style=False)
+            if plain_mode:
+                print(yaml_output, file=sys.stderr)
+            else:
+                console = Console()
+                console.print(yaml_output, file=sys.stderr)
+        else:
+            if plain_mode:
+                print(f"❌ Error: {error_msg}", file=sys.stderr)
+            else:
+                console = Console()
+                console.print(f"❌ Error: {error_msg}", style="red", file=sys.stderr)
+
+        sys.exit(exit_code)
+    finally:
+        if client:
+            try:
+                loop.run_until_complete(client.disconnect())
+            except Exception:
+                pass
+        loop.close()
+
+
+# =============================================================================
 # 主入口
 # =============================================================================
 
 
-def main():
+def main(args=None):
     """CLI 主函数"""
-    # 检查是否是子命令调用
-    if len(sys.argv) > 1 and sys.argv[1] in ["shell", "chat", "tui"]:
-        # 启动交互式 CLI
+    # 如果 args 为 None，说明是从 __main__ 直接调用（旧方式）
+    if args is None:
+        # 检查是否是子命令调用（向后兼容）
+        if len(sys.argv) > 1 and sys.argv[1] in ["shell", "chat", "tui"]:
+            # 启动交互式 CLI
+            start_cli()
+        elif len(sys.argv) > 1 and sys.argv[1] == "status":
+            # 查看状态
+            console = Console()
+            if not check_kernel_running():
+                console.print("❌ 内核未运行", style="red")
+                sys.exit(1)
+
+            loop = asyncio.new_event_loop()
+            client = RPCClient()
+            try:
+                loop.run_until_complete(client.connect())
+                status = loop.run_until_complete(client.get_status())
+                kernel_status = loop.run_until_complete(client.get_kernel_status())
+
+                console.print("\n[bold blue]IntentOS 内核状态[/bold blue]")
+                console.print(f"运行状态：{'✓' if status.get('running') else '✗'}")
+                console.print(f"初始化：{'✓' if status.get('initialized') else '✗'}")
+
+                reg = kernel_status.get("registry", {})
+                console.print(f"能力数：{len(reg.get('capabilities', []))}")
+                console.print(f"模板数：{len(reg.get('templates', []))}")
+            except Exception as e:
+                console.print(f"❌ Error: {e}", style="red")
+                sys.exit(1)
+            finally:
+                if client:
+                    loop.run_until_complete(client.disconnect())
+                loop.close()
+        else:
+            # 默认启动交互式 CLI
+            start_cli()
+        return
+
+    # 新的参数处理方式（从 __main__.py 调用）
+    if args.non_interactive or args.json or args.yaml or (args.command and len(args.command) > 0):
+        # 非交互模式 - 如果 command exists and is not empty, or any output format flags are set
+        execute_non_interactive(args)
+    elif args.command and len(args.command) == 1 and args.command[0] in ["shell", "chat", "tui"]:
+        # 交互式 CLI（通过新参数）
         start_cli()
-    elif len(sys.argv) > 1 and sys.argv[1] == "status":
-        # 查看状态
+    elif args.command and len(args.command) == 1 and args.command[0] == "status":
+        # 状态查看（通过新参数）
         console = Console()
         if not check_kernel_running():
             console.print("❌ 内核未运行", style="red")
