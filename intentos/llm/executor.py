@@ -20,6 +20,7 @@ from .backends.base import (
     LLMBackend,
     LLMError,
     LLMResponse,
+    LLMRole,
     Message,
     RateLimitError,
     TimeoutError,
@@ -40,6 +41,7 @@ class BackendConfig:
     weight: float = 1.0  # 权重 (用于负载均衡)
     max_qps: float = float("inf")  # 最大每秒请求数
     enabled: bool = True  # 是否启用
+    is_consultant: bool = False  # 是否作为顾问模型 (用于顾问测试模式)
 
     # 重试配置
     max_retries: int = 3
@@ -123,7 +125,10 @@ class LLMRouter:
     - weighted: 加权随机
     - latency: 最低延迟优先
     - cost: 成本优化
+    - consultant: 顾问策略 (常规模型执行，遇难转向高精度模型)
     """
+
+    CONSULTANT_TAG = "[HARD_TASK]"
 
     def __init__(self, configs: list[BackendConfig]):
         self.configs = configs
@@ -176,22 +181,44 @@ class LLMRouter:
 
         self.backends[config.name] = backend
 
-    def select_backend(self, strategy: str = "priority") -> tuple[str, LLMBackend]:
-        """选择后端"""
-        available = [
-            (name, backend)
+    def select_backend(
+        self, strategy: str = "priority", filter_consultants: Optional[bool] = None
+    ) -> tuple[str, LLMBackend]:
+        """
+        选择后端
+
+        Args:
+            strategy: 路由策略
+            filter_consultants: 是否只选择顾问模型 (True) 或非顾问模型 (False)
+        """
+        available_names = [
+            name
             for name, backend in self.backends.items()
             if self.stats[name].requests_last_second < self._get_config(name).max_qps
         ]
 
+        if filter_consultants is not None:
+            available_names = [
+                name
+                for name in available_names
+                if self._get_config(name).is_consultant == filter_consultants
+            ]
+
+        available = [(name, self.backends[name]) for name in available_names]
+
         if not available:
-            # 如果所有后端都限流，返回优先级最高的
+            # 如果按过滤条件找不到，且有过滤条件，则抛出异常
+            if filter_consultants is not None:
+                type_str = "顾问" if filter_consultants else "专家"
+                raise LLMError(f"没有可用的{type_str}后端")
+
+            #  fallback 到所有可用后端
             available = list(self.backends.items())
 
         if not available:
             raise LLMError("没有可用的后端")
 
-        if strategy == "priority":
+        if strategy == "priority" or strategy == "consultant":
             return self._select_by_priority(available)
         elif strategy == "round_robin":
             return self._select_round_robin(available)
@@ -254,8 +281,13 @@ class LLMRouter:
         **kwargs,
     ) -> LLMResponse:
         """
-        生成响应 (带故障转移)
+        生成响应 (支持故障转移与顾问策略)
         """
+        if strategy == "consultant":
+            return await self._generate_with_consultant_strategy(
+                messages, tools, temperature, max_tokens, **kwargs
+            )
+
         last_error: Optional[LLMError] = None
         tried_backends: list[str] = []
 
@@ -311,6 +343,99 @@ class LLMRouter:
             f"所有后端都失败：{last_error}",
             raw_error=last_error,
         )
+
+    async def _generate_with_consultant_strategy(
+        self,
+        messages: list[Message],
+        tools: Optional[list[ToolDefinition]] = None,
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = None,
+        **kwargs,
+    ) -> LLMResponse:
+        """顾问策略具体实现：常规模型处理，难题请教高精度专家"""
+        # 1. 尝试常规模型 (标记为 is_consultant=True)
+        try:
+            name, backend = self.select_backend(strategy="priority", filter_consultants=True)
+
+            # 为常规模型增加指令，明确告知如果任务复杂请返回特定标记
+            consultant_messages = list(messages)
+            system_instruction = (
+                f"你是一个常规任务处理器。如果接下来的任务非常复杂、需要极高精度的逻辑推理、"
+                f"或者你认为当前任务超出了你的可靠处理范围，请务必在回复的开头包含标记 '{self.CONSULTANT_TAG}'。"
+            )
+
+            # 检查是否已有系统消息
+            has_system = False
+            for msg in consultant_messages:
+                if msg.role == LLMRole.SYSTEM:
+                    msg.content = system_instruction + "\n" + msg.content
+                    has_system = True
+                    break
+
+            if not has_system:
+                consultant_messages.insert(0, Message.system(system_instruction))
+
+            response = await backend.generate(
+                messages=consultant_messages,
+                tools=tools,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                **kwargs,
+            )
+
+            # 记录成功
+            self.stats[name].record_success(
+                latency_ms=response.latency_ms,
+                tokens=response.usage.total_tokens,
+            )
+
+            # 2. 检查是否需要转向高精度专家模型
+            if self.CONSULTANT_TAG in response.content:
+                # 识别为难题，转向高精度专家模型
+                try:
+                    expert_name, expert_backend = self.select_backend(
+                        strategy="priority", filter_consultants=False
+                    )
+
+                    # 调用专家模型（使用原始消息，确保高精度）
+                    expert_response = await expert_backend.generate(
+                        messages=messages,
+                        tools=tools,
+                        temperature=temperature,
+                        max_tokens=max_tokens,
+                        **kwargs,
+                    )
+
+                    # 记录成功
+                    self.stats[expert_name].record_success(
+                        latency_ms=expert_response.latency_ms,
+                        tokens=expert_response.usage.total_tokens,
+                    )
+
+                    return expert_response
+                except LLMError:
+                    # 如果高精度专家不可用，回退到常规模型的原始响应
+                    return response
+
+            return response
+
+        except LLMError:
+            # 如果没有常规模型或失败，直接尝试高精度专家
+            expert_name, expert_backend = self.select_backend(
+                strategy="priority", filter_consultants=False
+            )
+            expert_response = await expert_backend.generate(
+                messages=messages,
+                tools=tools,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                **kwargs,
+            )
+            self.stats[expert_name].record_success(
+                latency_ms=expert_response.latency_ms,
+                tokens=expert_response.usage.total_tokens,
+            )
+            return expert_response
 
     def get_stats(self) -> dict[str, dict]:
         """获取所有后端统计"""
