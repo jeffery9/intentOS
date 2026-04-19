@@ -637,6 +637,23 @@ class LLMProcessor:
             if name:
                 memory.set("TEMPLATE", name, parameters)
 
+        elif operation == "modify_template":
+            name = parameters.get("name")
+            if name:
+                existing = memory.get("TEMPLATE", name) or {}
+                existing.update(parameters)
+                memory.set("TEMPLATE", name, existing)
+
+        elif operation == "delete_template":
+            name = parameters.get("name")
+            if name:
+                memory.delete("TEMPLATE", name)
+
+        elif operation == "create_capability":
+            name = parameters.get("name")
+            if name:
+                memory.set("CAPABILITY", name, parameters)
+
         elif operation == "modify_config":
             key = parameters.get("key")
             value = parameters.get("value")
@@ -644,10 +661,34 @@ class LLMProcessor:
                 memory.set("CONFIG", key, value)
 
         elif operation == "query_status":
-            # 查询结果已包含在 result 中
-            pass
+            # 查询结果已包含在 result.result 中
+            target = parameters.get("target", "TEMPLATE")
+            condition = parameters.get("condition")
+            result["result"] = memory.query(target, condition)
 
-        # 添加更多操作处理...
+    async def _handle_define_instruction(
+        self, params: dict, memory: SemanticMemory
+    ) -> dict[str, Any]:
+        """元指令：定义新指令 (Self-Bootstrap)"""
+        name = params.get("name")
+        handler_code = params.get("handler")
+        if name and handler_code:
+            # 动态注入处理器方法
+            method_name = f"_handle_{name.lower()}"
+            # 注意：此处仅为架构演示，实际应使用更安全的沙箱加载机制
+            setattr(self, method_name, handler_code)
+            return {"success": True, "message": f"Instruction {name} defined"}
+        return {"success": False, "error": "Missing name or handler"}
+
+    async def _handle_modify_processor(
+        self, params: dict, memory: SemanticMemory
+    ) -> dict[str, Any]:
+        """元指令：修改处理器 Prompt (Self-Bootstrap)"""
+        new_prompt = params.get("prompt")
+        if new_prompt:
+            self.update_processor_prompt(new_prompt)
+            return {"success": True, "message": "Processor prompt updated"}
+        return {"success": False, "error": "Missing prompt"}
 
     async def execute_llm(self, prompt: str, memory: SemanticMemory) -> dict[str, Any]:
         """执行原始 LLM 提示"""
@@ -899,6 +940,20 @@ class SemanticVM:
             # 跳回循环开始
             return {"success": True, "jump": self._find_loop_start(program.instructions, self.pc)}
 
+        # 处理子程序调用
+        elif instruction.opcode == SemanticOpcode.CALL:
+            sub_program_name = instruction.target_name
+            if not sub_program_name:
+                return {"success": False, "error": "CALL instruction requires target_name"}
+            
+            # 递归执行子程序 (简单实现，实际可维护调用栈)
+            sub_result = await self.execute_program(
+                sub_program_name, 
+                context=instruction.parameters,
+                mode=self.mode
+            )
+            return sub_result
+
         # 处理跳转
         elif instruction.opcode == SemanticOpcode.JUMP:
             jump_target = instruction.jump_target
@@ -925,7 +980,34 @@ class SemanticVM:
                 program.variables[name] = value
             return {"success": True}
 
-        # 处理基础指令 (CREATE/MODIFY/QUERY/EXECUTE)
+        # 处理物理执行指令 (EXECUTE)
+        elif instruction.opcode == SemanticOpcode.EXECUTE:
+            # 优先尝试 IO 能力层 (物理世界交互)
+            if self.io_capabilities:
+                try:
+                    params = dict(instruction.parameters)
+                    intent = params.pop("intent", None)
+                    skill_name = params.pop("skill_name", None)
+                    mcp_tool = params.pop("mcp_tool", None)
+                    mcp_server = params.pop("mcp_server", None)
+
+                    if mcp_tool and mcp_server:
+                        result = await self.io_capabilities.call_mcp_tool(
+                            mcp_server, mcp_tool, **params
+                        )
+                    else:
+                        result = await self.io_capabilities.call_skill(
+                            skill_name=skill_name, intent=intent, **params
+                        )
+                    
+                    return {"success": True, "result": result}
+                except Exception as e:
+                    logger.warning(f"物理执行失败，转向 LLM 解析: {e}")
+
+            # 如果物理执行失败或不可用，回退到 LLM 处理器
+            return await self.processor.execute(instruction, self.memory)
+
+        # 处理基础指令 (CREATE/MODIFY/QUERY)
         else:
             result = await self.processor.execute(instruction, self.memory)
 
