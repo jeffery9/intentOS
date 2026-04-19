@@ -6,12 +6,14 @@ LLM 执行器和路由器
 - 故障转移
 - 负载均衡
 - 成本优化路由
+- 顾问策略 (常规模型优先，遇难转大模型)
 """
 
 from __future__ import annotations
 
 import random
 import time
+import logging
 from dataclasses import dataclass
 from typing import Any, AsyncIterator, Optional
 
@@ -27,6 +29,8 @@ from .backends.base import (
     ToolDefinition,
 )
 from .backends.mock_backend import MockBackend
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -95,10 +99,10 @@ class BackendStats:
 
     @property
     def success_rate(self) -> float:
-        """计算成功率"""
+        """获取成功率"""
         if self.total_requests == 0:
-            return 0.0
-        return self.successful_requests / self.total_requests
+            return 100.0
+        return self.successful_requests / self.total_requests * 100
 
     def to_dict(self) -> dict[str, Any]:
         """转换为字典"""
@@ -356,6 +360,7 @@ class LLMRouter:
         # 1. 尝试常规模型 (标记为 is_consultant=True)
         try:
             name, backend = self.select_backend(strategy="priority", filter_consultants=True)
+            logger.info(f"[Router] 顾问策略: 优先尝试常规模型 '{name}'")
 
             # 为常规模型增加指令，明确告知如果任务复杂请返回特定标记
             consultant_messages = list(messages)
@@ -391,11 +396,13 @@ class LLMRouter:
 
             # 2. 检查是否需要转向高精度专家模型
             if self.CONSULTANT_TAG in response.content:
+                logger.info(f"[Router] 触发升级: 常规模型 '{name}' 请求高精度专家支援")
                 # 识别为难题，转向高精度专家模型
                 try:
                     expert_name, expert_backend = self.select_backend(
                         strategy="priority", filter_consultants=False
                     )
+                    logger.info(f"[Router] 切换至专家模型 '{expert_name}'")
 
                     # 调用专家模型（使用原始消息，确保高精度）
                     expert_response = await expert_backend.generate(
@@ -413,10 +420,11 @@ class LLMRouter:
                     )
 
                     return expert_response
-                except LLMError:
-                    # 如果高精度专家不可用，回退到常规模型的原始响应
+                except LLMError as e:
+                    logger.warning(f"[Router] 专家模型不可用，回退常规模型响应: {e}")
                     return response
 
+            logger.info(f"[Router] 顾问策略: 常规模型成功解决任务")
             return response
 
         except LLMError:

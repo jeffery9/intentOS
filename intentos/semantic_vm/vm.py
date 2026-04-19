@@ -563,6 +563,7 @@ class LLMProcessor:
         self,
         instruction: SemanticInstruction,
         memory: SemanticMemory,
+        strategy: str = "priority",
     ) -> dict[str, Any]:
         """
         执行语义指令
@@ -586,6 +587,7 @@ class LLMProcessor:
             instruction_json=json.dumps(instruction.to_dict(), indent=2, ensure_ascii=False),
             memory_state=json.dumps(memory.get_state(), indent=2),
         )
+        logger.debug(f"[Processor] 构建 Prompt (长度: {len(exec_prompt)})")
 
         # LLM 执行
         from intentos.llm.backends.base import Message
@@ -595,10 +597,17 @@ class LLMProcessor:
             Message.user(exec_prompt),
         ]
 
-        response = await self.llm_executor.execute(messages)
+        logger.debug(f"[Processor] 发起 LLM 调用 (Strategy: {strategy})")
+        response = await self.llm_executor.execute(messages, strategy=strategy)
+        logger.debug(f"[Processor] LLM 响应已接收 (Token: {response.usage.total_tokens})")
 
         # 解析结果
         result = self._parse_response(response.content)
+        logger.debug(f"[Processor] 响应解析结果: {result.get('operation', 'text_response')}")
+        
+        # 确保原始内容在结果中
+        if "content" not in result:
+            result["content"] = response.content
 
         # 执行操作
         if result.get("success", True):
@@ -610,17 +619,24 @@ class LLMProcessor:
         """解析 LLM 响应"""
         try:
             json_str = content.strip()
+            # 提取 JSON 块
             if "```json" in json_str:
                 json_str = json_str.split("```json")[1].split("```")[0]
             elif "```" in json_str:
                 json_str = json_str.split("```")[1].split("```")[0]
 
-            return json.loads(json_str)
-        except Exception as e:
+            data = json.loads(json_str)
+            if isinstance(data, dict):
+                if "content" not in data:
+                    data["content"] = content
+                return data
+            return {"success": True, "content": content, "data": data}
+        except Exception:
+            # 如果不是 JSON，视为纯文本响应
             return {
-                "success": False,
-                "error": f"解析失败：{e}",
-                "raw_content": content,
+                "success": True,
+                "content": content,
+                "operation": "text_response"
             }
 
     async def _apply_operation(
@@ -767,6 +783,7 @@ class SemanticVM:
         program_name: str,
         context: Optional[dict] = None,
         mode: Optional[PrivilegeLevel] = None,
+        strategy: str = "priority",
     ) -> dict[str, Any]:
         """
         执行程序 (集成 Gas 计量与熔断)
@@ -796,25 +813,31 @@ class SemanticVM:
         try:
             while self.pc < len(program.instructions) and self.running:
                 instruction = program.instructions[self.pc]
+                logger.debug(f"[VM] === 执行步骤 {self.pc}: {instruction.opcode.value} ===")
 
                 # 3. Gas 预扣除 (Pre-execution Metering)
                 gas_amount = self._calculate_instruction_gas(instruction)
                 gas_tracker.consume(gas_amount)
+                logger.debug(f"[VM] Gas 消耗: {gas_amount}, 剩余: {gas_tracker.remaining}")
 
                 # 4. 执行指令
-                result = await self._execute_instruction(instruction, program)
+                result = await self._execute_instruction(instruction, program, strategy=strategy)
 
                 # 5. 后扣除 (针对 LLM 调用等动态成本)
                 if result.get("operation") == "llm_call":
                     gas_tracker.consume(GasCost.LLM_CALL.value)
+                    logger.debug(f"[VM] 追加 LLM 调用 Gas 消耗")
 
                 results.append(result)
 
                 # 更新程序计数器
-                if result.get("jump"):
+                if result.get("jump") is not None:
+                    old_pc = self.pc
                     self.pc = result["jump"]
+                    logger.debug(f"[VM] 逻辑跳转: {old_pc} -> {self.pc}")
                 else:
                     self.pc += 1
+                    logger.debug(f"[VM] PC 下移: {self.pc-1} -> {self.pc}")
 
                 iterations += 1
 
@@ -861,6 +884,7 @@ class SemanticVM:
         self,
         instruction: SemanticInstruction,
         program: SemanticProgram,
+        strategy: str = "priority",
     ) -> dict[str, Any]:
         """执行单条指令"""
 
@@ -950,7 +974,8 @@ class SemanticVM:
             sub_result = await self.execute_program(
                 sub_program_name, 
                 context=instruction.parameters,
-                mode=self.mode
+                mode=self.mode,
+                strategy=strategy
             )
             return sub_result
 
@@ -1005,11 +1030,12 @@ class SemanticVM:
                     logger.warning(f"物理执行失败，转向 LLM 解析: {e}")
 
             # 如果物理执行失败或不可用，回退到 LLM 处理器
-            return await self.processor.execute(instruction, self.memory)
+            result = await self.processor.execute(instruction, self.memory, strategy=strategy)
+            return result
 
         # 处理基础指令 (CREATE/MODIFY/QUERY)
         else:
-            result = await self.processor.execute(instruction, self.memory)
+            result = await self.processor.execute(instruction, self.memory, strategy=strategy)
 
             # 记录审计
             self.memory.log_audit(
