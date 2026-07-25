@@ -4,13 +4,13 @@
 
 ```mermaid
 flowchart TB
-    subgraph L3["Layer 3: Application Layer (应用层)"]
+    subgraph Layer3["Layer 3: Application Layer (应用层)"]
         A1[CRM App]
         A2[Sales App]
         A3[BI App]
     end
     
-    subgraph L2["Layer 2: Intent Layer (意图层)"]
+    subgraph Layer2["Layer 2: Intent Layer (意图层)"]
         subgraph L7["7 Level 处理流程"]
             direction TB
             L1["[L1] 意图解析<br/>功能意图 + 操作意图"]
@@ -23,23 +23,35 @@ flowchart TB
         end
     end
     
-    subgraph L1["Layer 1: Model Layer (模型层)"]
+    subgraph Layer1["Layer 1: Model Layer (模型层)"]
         M1[OpenAI GPT-4/4o]
         M2[Anthropic Claude 3/3.5]
         M3[Ollama Llama 3.1]
     end
     
-    subgraph INFRA["Cloud Infrastructure"]
+    subgraph Infra["Cloud Infrastructure"]
         K8s[Kubernetes/ECS]
         Redis[Redis: 短期记忆]
         S3[S3: 长期记忆]
         APIGW[API Gateway]
     end
     
-    L3 -->|调用意图 | L2
-    L2 -->|执行 Prompt| L1
-    L1 -->|Token Stream| L2
-    L2 --> INFRA
+    A1 -->|调用意图| L1
+    A2 -->|调用意图| L1
+    A3 -->|调用意图| L1
+    
+    L6 -->|执行 Prompt| M1
+    L6 -->|执行 Prompt| M2
+    L6 -->|执行 Prompt| M3
+    
+    M1 -->|Token Stream| L6
+    M2 -->|Token Stream| L6
+    M3 -->|Token Stream| L6
+    
+    L3_ -->|缓存检索| Redis
+    L6 -->|持久化| S3
+    L6 -->|部署容器| K8s
+    L6 -->|对外发布| APIGW
 ```
 
 ---
@@ -316,8 +328,10 @@ flowchart LR
         Model[LLM 后端<br/>GPT-4/Claude/Ollama]
     end
     
-    Inject --> Memory
-    Memory --> Inject
+    Inject <--> WM
+    Inject <--> SM
+    Inject <--> LM
+    
     Execute --> Model
     Model --> Writeback
 
@@ -352,12 +366,14 @@ flowchart TB
         VM[语义 VM]
     end
 
-    Def --> Registry
-    Schema --> Registry
-    Impl --> Registry
+    Def --> Cap1
+    Schema --> Cap2
+    Impl --> Cap3
 
     Parse --> Linker
-    Linker -->|符号绑定 | Registry
+    Linker -->|符号绑定| Cap1
+    Linker -->|符号绑定| Cap2
+    Linker -->|符号绑定| Cap3
     Linker --> PEF
     PEF --> VM
     VM -->|调用 | Cap1
@@ -395,9 +411,9 @@ flowchart TB
         Channel[对等握手 / 技能广播]
     end
     
-    Engine1 <-->|双向发现 & 心跳 | Channel
-    Engine2 <-->|语义广播 & 匹配 | Channel
-    Engine3 <-->|意图接力 (Relay) | Channel
+    Engine1 <-->|双向发现 & 心跳| Channel
+    Engine2 <-->|双向发现 & 心跳| Channel
+    Engine3 <-->|双向发现 & 心跳| Channel
 ```
 
 ---
@@ -436,14 +452,14 @@ flowchart TB
         E3[返回结果]
     end
 
-    Loop5 -->|系统收敛优化 | Level3
-    Level3 -->|全网同步 | Level2
-    Level2 -->|约束定义 | Level1
-    Level1 -->|调度控制 | Level0
-    Level0 -->|状态监控 | Level1
-    Level1 -->|演化数据 | Level2
-    Level2 -->|自举压力 | Level3
-    Level3 -->|熵增触发 | Loop5
+    A3 -->|系统收敛优化| D3
+    D3 -->|全网同步| I3
+    I3 -->|约束定义| R3
+    R3 -->|调度控制| E1
+    E3 -->|执行反馈| R2
+    R2 -->|演化数据| I2
+    I2 -->|自举压力| D2
+    D2 -->|熵增触发| A1
 ```
 
 ---
@@ -507,7 +523,7 @@ flowchart TB
         IO1[语义 VM]
         IO2[意图编译器 (PEF 标准)]
         IO3[Self-Bootstrap (5 Loops)]
-        IO4[P2P 分布式社会化传输]
+        IO4[P2P 分布式 social 传输]
         IO5[形式化验证引擎 (Z3/Coq)]
     end
     
@@ -519,10 +535,10 @@ flowchart TB
         H5[配置文件化 API]
     end
     
-    IntentOS -->|超越并封装 | Harness
-    IO2 -->|降维编译 | H1
-    IO3 -->|动态替代 | H2
-    IO4 -->|扩展 | H4
+    IO1 -->|超越并封装| H4
+    IO2 -->|降维编译| H1
+    IO3 -->|动态替代| H2
+    IO4 -->|扩展| H4
 ```
 
 ---
@@ -553,8 +569,14 @@ flowchart LR
         H3[运行时 GasException]
     end
 
-    T1 --> Dynamic
-    T2 -.->|指导| Static
-    Dynamic --> Halt
-    Static -->|优先拦截| Halt
+    T1 --> B1
+    T1 --> B2
+    T1 --> B3
+    T2 -.->|指导| S1
+    T2 -.->|指导| S2
+    B1 --> H1
+    B2 --> H1
+    B3 --> H3
+    S1 --> H2
+    S2 --> H2
 ```
