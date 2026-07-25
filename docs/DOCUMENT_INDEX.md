@@ -4,9 +4,9 @@
 > **增强原则**: 在原有文档基础上增强，不创建新文档
 > **去重原则**: 删除合并版 *_COMPLETE.md 文档，增强原始文档
 
-**总文档数**: 67 篇 (去重后)
-**总字数**: ~75,000 字
-**最后更新**: 2026-03-27
+**总文档数**: 68 篇 (去重后)
+**总字数**: ~78,000 字
+**最后更新**: 2026-07-25
 
 ---
 
@@ -188,10 +188,11 @@
 
 ---
 
-### 📜 其他文档 (5 篇)
+### 📜 其他文档 (6 篇)
 
 | 文档 | 行数 | 说明 |
 |------|------|------|
+| [INTENTOS_VS_REACT_LOOP.md](./INTENTOS_VS_REACT_LOOP.md) | 220 | IntentOS SVM vs 传统 AI Agent ReAct 循环对比 |
 | [INTENTOS_VS_OPENCLAW.md](./INTENTOS_VS_OPENCLAW.md) | 262 | IntentOS vs OpenClaw 对比 |
 | [startup-growth-strategy/intentos-integrated-evaluation.md](./startup-growth-strategy/intentos-integrated-evaluation.md) | 127 | IntentOS 综合评估 (英文) |
 | [startup-growth-strategy/intentos-integrated-evaluation-zh.md](./startup-growth-strategy/intentos-integrated-evaluation-zh.md) | 127 | IntentOS 综合评估 (中文) |
@@ -216,8 +217,8 @@
 | **应用层架构** | 3 | 2,001 | 7.2% |
 | **Self-Bootstrap** | 4 | 2,041 | 7.4% |
 | **部署与入门** | 3 | 1,823 | 6.6% |
-| **其他文档** | 5 | 889 | 3.2% |
-| **总计** | **62** | **27,773** | **100%** |
+| **其他文档** | 6 | 1,109 | 3.9% |
+| **总计** | **63** | **27,993** | **100%** |
 
 ---
 

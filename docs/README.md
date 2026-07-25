@@ -11,6 +11,7 @@
 | 文档 | 说明 |
 |------|------|
 | [📋 完整文档索引](./DOCUMENT_INDEX.md) | ⭐ **60+ 篇完整文档分类索引**，按主题组织，不损失任何内容 |
+| [🔄 与 ReAct 对比](./INTENTOS_VS_REACT_LOOP.md) | **SVM 与传统 AI Agent ReAct 循环对比** (核心微架构与设计范式差别) |
 | [📖 入门指南](#第一部分入门-introduction) | 快速开始和基础概念 |
 | [🏗️ 架构文档](#第二部分架构-architecture) | 核心架构和设计原理 |
 | [🤖 AI Native App](#ai-native-app-文档体系) | App 开发完整指南 |
