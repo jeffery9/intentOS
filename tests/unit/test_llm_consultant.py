@@ -4,7 +4,7 @@ import asyncio
 from intentos.llm.executor import BackendConfig, LLMRouter
 from intentos.llm.backends.base import Message, LLMRole
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_consultant_strategy_easy_task():
     """测试顾问策略：简单任务（由常规模型处理）"""
     
@@ -40,7 +40,7 @@ async def test_consultant_strategy_easy_task():
     assert stats["regular_model"]["total_requests"] == 1
     assert stats["high_precision_model"]["total_requests"] == 0
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_consultant_strategy_hard_task():
     """测试顾问策略：困难任务（由常规模型转向高精度专家）"""
     
@@ -87,7 +87,7 @@ async def test_consultant_strategy_hard_task():
     assert stats["regular"]["total_requests"] == 1
     assert stats["expert"]["total_requests"] == 1
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_consultant_strategy_no_experts():
     """测试顾问测试模式：没有专家模型时的情况"""
     

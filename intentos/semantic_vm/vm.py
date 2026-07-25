@@ -815,6 +815,19 @@ class SemanticVM:
                 instruction = program.instructions[self.pc]
                 logger.debug(f"[VM] === 执行步骤 {self.pc}: {instruction.opcode.value} ===")
 
+                # UNIX 语义管道: 隐式 STDIN 注入
+                last_result = program.variables.get("_last_result")
+                if last_result is not None:
+                    # 注入 _stdin 参数
+                    instruction.parameters["_stdin"] = last_result
+                    # 如果是 EXECUTE 指令且有 intent 意图，自动追加管道上下文
+                    if instruction.opcode == SemanticOpcode.EXECUTE and "intent" in instruction.parameters:
+                        original_intent = instruction.parameters["intent"]
+                        # 防止重复追加
+                        if " (管道输入:" not in original_intent:
+                            instruction.parameters["intent"] = f"{original_intent} (管道输入: {last_result})"
+                    logger.debug(f"[VM] 语义管道: 注入输入上下文到步骤 {self.pc}")
+
                 # 3. Gas 预扣除 (Pre-execution Metering)
                 gas_amount = self._calculate_instruction_gas(instruction)
                 gas_tracker.consume(gas_amount)
@@ -829,6 +842,14 @@ class SemanticVM:
                     logger.debug(f"[VM] 追加 LLM 调用 Gas 消耗")
 
                 results.append(result)
+
+                # UNIX 语义管道: 隐式 STDOUT 捕获
+                if result.get("success", True):
+                    # 提取具体结果内容
+                    out_val = result.get("result") or result.get("content")
+                    if out_val is not None:
+                        program.variables["_last_result"] = out_val
+                        logger.debug(f"[VM] 语义管道: 捕获输出 ➔ '_last_result'")
 
                 # 更新程序计数器
                 if result.get("jump") is not None:
@@ -1007,6 +1028,13 @@ class SemanticVM:
 
         # 处理物理执行指令 (EXECUTE)
         elif instruction.opcode == SemanticOpcode.EXECUTE:
+            # 语义管道智能阻抗匹配：如果是管道后续节点，需要将上游输出映射为下游参数字典
+            if "_stdin" in instruction.parameters:
+                stdin_val = instruction.parameters["_stdin"]
+                matched_params = await self._match_impedance(str(stdin_val), instruction)
+                # 使用匹配后的参数对 instruction.parameters 进行热装载
+                instruction.parameters.update(matched_params)
+
             # 优先尝试 IO 能力层 (物理世界交互)
             if self.io_capabilities:
                 try:
@@ -1105,6 +1133,72 @@ class SemanticVM:
             if instr.label == label:
                 return i
         return self.pc + 1
+
+    async def _match_impedance(
+        self,
+        last_result: str,
+        instruction: SemanticInstruction,
+    ) -> dict[str, Any]:
+        """
+        [阶段 1] 智能阻抗匹配器 (Semantic Impedance Matcher)
+        
+        利用 LLM 作为万能适配层，将上游非结构化文本翻译并提取为下游 Skill 所需的严格强类型 JSON 参数字典。
+        """
+        if not self._llm_executor:
+            return instruction.parameters
+            
+        logger.info(f"[VM] ⛓️ 触发管道智能阻抗匹配 ➔ 对接步骤 {instruction.opcode.value}")
+        
+        # 组装高度对齐的 Prompt 模板
+        prompt = f"""
+你是一个操作系统的“语义阻抗匹配器 (Semantic Impedance Matcher)”。
+在流水线中，上游节点的输出（Output）与下游节点的输入参数（Input Parameters）存在格式不匹配。
+你的任务是：读取上游的文本内容，并根据下游任务的要求，智能提取并翻译为符合要求的 JSON 参数字典。
+
+## 上游输出 (Output / STDIN)
+{last_result}
+
+## 下游指令操作码
+{instruction.opcode.value}
+
+## 下游已有入参 (若有)
+{json.dumps(instruction.parameters, ensure_ascii=False)}
+
+## 输出格式要求
+你必须且只能返回一个合法的 JSON 参数字典（以 {{ 开头，以 }} 结尾），不要包含任何 Markdown 标记或额外解释。
+示例:
+{{
+    "param1": "值1",
+    "param2": 100
+}}
+"""
+        try:
+            from ..llm.backends.base import Message, LLMRole
+            messages = [Message(role=LLMRole.USER, content=prompt)]
+            
+            # 执行大模型匹配
+            response = await self._llm_executor.execute(messages)
+            content = response.content.strip()
+            
+            # 兼容 Markdown 代码块包裹的返回
+            if content.startswith("```"):
+                lines = content.split("\n")
+                if lines[0].startswith("```json"):
+                    content = "\n".join(lines[1:-1])
+                elif lines[0].startswith("```"):
+                    content = "\n".join(lines[1:-1])
+                    
+            extracted_params = json.loads(content)
+            if isinstance(extracted_params, dict):
+                # 融合原先已有的参数（保留原本硬编码参数的最高优先级）
+                merged = dict(extracted_params)
+                merged.update(instruction.parameters)
+                logger.debug(f"[VM] 阻抗匹配完美成功！合并后入参: {merged}")
+                return merged
+        except Exception as e:
+            logger.warning(f"[VM] 阻抗匹配抛出异常，降级回退至默认参数: {e}")
+            
+        return instruction.parameters
 
 
 # =============================================================================

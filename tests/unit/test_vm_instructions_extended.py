@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, AsyncMock
 from intentos.semantic_vm.vm import SemanticVM, SemanticProgram, SemanticInstruction, SemanticOpcode
 from intentos.kernel.core import PrivilegeLevel
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_vm_call_instruction():
     """测试 CALL 指令：子程序嵌套执行"""
     vm = SemanticVM()
@@ -35,7 +35,7 @@ async def test_vm_call_instruction():
     assert vm.memory.get("VARIABLE", "x") == 10
     assert vm.memory.get("VARIABLE", "y") == 20
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_vm_execute_with_io_capabilities():
     """测试 EXECUTE 指令：集成物理 IO (Skill)"""
     # 模拟能力注册中心和 IO 层
@@ -60,7 +60,7 @@ async def test_vm_execute_with_io_capabilities():
     assert result["results"][0]["result"] == "Physical Result"
     vm.io_capabilities.skill_io.skill_io_handler.assert_called_once()
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_vm_meta_instructions_privilege():
     """测试元指令权限：用户态应禁止执行"""
     vm = SemanticVM(mode=PrivilegeLevel.USER)
@@ -79,7 +79,7 @@ async def test_vm_meta_instructions_privilege():
     assert result["success"] is False
     assert "禁止执行特权指令" in result["results"][0]["error"]
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_processor_apply_operation_extended():
     """测试 LLMProcessor 扩展的 CRUD 操作"""
     from intentos.llm import LLMExecutor
