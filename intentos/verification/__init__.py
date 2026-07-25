@@ -27,6 +27,7 @@ from .formal import (
     create_execution_trace,
     create_formal_verifier,
 )
+from .symbolic import SymbolicVerifier
 
 __all__ = [
     # 执行轨迹
@@ -45,6 +46,8 @@ __all__ = [
     "TraceReplayer",
     # 形式化验证
     "FormalVerifier",
+    # 符号化形式化验证
+    "SymbolicVerifier",
     # 工厂函数
     "create_execution_trace",
     "create_dag_node",
