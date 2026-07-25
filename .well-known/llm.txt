@@ -5,19 +5,19 @@
 # ==================== 项目信息 ====================
 
 name: IntentOS
-tagline: AI 原生分布式操作系统
+tagline: AI 时代的 UNIX · 分布式 AI 原生操作系统
 description: |
-  IntentOS 是一个 AI 原生分布式操作系统，将大语言模型（LLM）视为"语义 CPU"，
-  将自然语言意图视为驱动系统的第一性原理。通过套娃分层架构和 PEF 指令集，
-  它实现了软件从"人工编写"到"意图生长"的范式转移。
-version: 9.0.0
+  IntentOS 是一个分布式 AI 原生操作系统，将大语言模型（LLM）视为"语义 CPU"，
+  将自然语言意图视为驱动系统的第一性原理。系统通过万能语义阻抗匹配器抹平物理设备与
+  大模型间的数据接口摩擦，利用 P2P 网络实现认知的 Gossip 社会化传染，并通过 Loop 5
+  细胞凋亡引擎实现自发的熵减整理，成功完成了软件从"人工编写"到"意图生长"的 UNIX 级范式转移。
+version: 9.5.0
 license: MIT
 language: zh-CN, en
 author: jeffery9
 repository: https://github.com/jeffery9/intentOS
 homepage: https://github.com/jeffery9/intentOS
 documentation: https://github.com/jeffery9/intentOS/tree/main/docs
-issues: https://github.com/jeffery9/intentOS/issues
 
 # ==================== 核心文档 ====================
 
@@ -25,7 +25,7 @@ documentation:
   # 入门文档
   - path: /README.md
     title: IntentOS 项目说明
-    description: 快速了解 IntentOS 的核心概念和使用方法
+    description: 快速了解 IntentOS 作为“AI 时代 UNIX”的哲学、级联图表与使用方法
     priority: 1.0
     
   - path: /docs/GET_STARTED.md
@@ -33,10 +33,10 @@ documentation:
     description: IntentOS 安装和使用指南
     priority: 0.9
     
-  - path: /docs/DOCUMENT_INDEX.md
-    title: 文档索引
-    description: 完整的文档目录和导航
-    priority: 0.8
+  - path: /docs/CORE_PRINCIPLES.md
+    title: 核心原则 (v3.0 升华版)
+    description: 深入阐述创世与凋亡双螺旋（Loop 5 冥想）以及第一推动力（意图奇点）的哲学设计
+    priority: 0.95
     
   # 架构文档
   - path: /docs/ARCHITECTURE.md
@@ -44,32 +44,10 @@ documentation:
     description: IntentOS 完整架构说明
     priority: 0.9
     
-  - path: /docs/CORE_PRINCIPLES.md
-    title: 核心原则
-    description: 语言即系统，Prompt 即可执行文件，语义 VM
-    priority: 0.9
-    
   - path: /docs/LAYERED_ARCHITECTURE.md
     title: 分层架构
     description: 3 层/7 级处理流程详解
     priority: 0.8
-    
-  # 技术文档
-  - path: /docs/SELF_BOOTSTRAP.md
-    title: Self-Bootstrap
-    description: 系统自我演进机制
-    priority: 0.8
-    
-  - path: /docs/DISTRIBUTED_VM.md
-    title: 分布式语义 VM
-    description: 跨节点的语义虚拟机
-    priority: 0.8
-    
-  # API 文档
-  - path: /docs/06-api/README.md
-    title: API 文档
-    description: REST API 和使用示例
-    priority: 0.7
 
 # ==================== 示例代码 ====================
 
@@ -81,10 +59,6 @@ examples:
   - path: /examples/basic_usage.py
     title: 基础使用示例
     description: IntentOS 基础 API 使用
-    
-  - path: /examples/distributed_demo.py
-    title: 分布式示例
-    description: 多节点分布式执行演示
 
 # ==================== 核心概念 ====================
 
@@ -95,41 +69,41 @@ concepts:
       语义 VM 是 IntentOS 的核心，它将自然语言意图编译为 LLM 可执行的 Prompt。
     keywords: [LLM, Prompt, PEF, 语义编译]
     
-  - name: Self-Bootstrap
+  - name: 意图奇点第一推动力 (IntentSingularity)
     description: |
-      系统可以修改自身的指令集、编译规则和执行逻辑。
-      通过元意图（Meta-Intent）驱动系统自我演进。
-    keywords: [自我演进，元意图，自修改]
+      系统不主动产生自身意志，人类是唯一的“第一推动力（Prime Mover）”。
+      奇点对象只读且被冻结，包含断言约束，作为分布式接力中的全局一致性绝对参照系。
+    keywords: [第一推动力, 意图奇点, 现实坍缩器]
     
-  - name: 分布式内核
+  - name: 万能语义阻抗匹配器 (_match_impedance)
     description: |
-      多节点集群中，每个节点运行独立的语义 VM，
-      通过 HTTP RPC 通信，跨网络组成整体 OS。
-    keywords: [分布式，集群，RPC, Map-Reduce]
+      在 Pipeline（|）级联中，利用 LLM 在运行时将上游非结构化文本动态清洗、
+      提炼、坍缩为下游物理 Skill 所需的严格 JSON 参数，免去人类手写任何胶水代码。
+    keywords: [阻抗匹配, 管道级联, 胶水代码, 参数对齐]
     
-  - name: 意图编译器
+  - name: 常驻事件守护进程 (DaemonRunner)
     description: |
-      将自然语言编译为 LLM Prompt，支持三级缓存和优化器。
-      7 层套娃分层处理：意图解析 → 任务规划 → 上下文收集 → 安全验证 → 能力绑定 → 执行 → 改进
-    keywords: [编译器，缓存，优化，7 层处理]
+      事件驱动的操作系统常驻调度器，支持轮询网卡 Webhook、Cron 定时和物理文件 Watcher 触发，
+      事件爆发时瞬间注入 Pipeline 首层 STDIN 激活 VM。
+    keywords: [Daemon, 事件轮询, 守护进程, 触发器]
     
-  - name: PEF (Prompt Executable File)
+  - name: 分布式语义 P2P 网络
     description: |
-      语义 VM 的"机器码"，包含系统 Prompt、意图指令和上下文。
-      可跨节点传输和执行。
-    keywords: [可执行文件，语义指令]
+      多节点全息集群。支持 PING/PONG 双向自发注册、技能 GOSSIP 病毒式传染实现全网认知对齐、
+      以及 `relay_intent` 意图弹性接力将 Pipeline 步骤跨机器委托执行。
+    keywords: [P2P, 路由表, Gossip 传染, 意图接力]
     
-  - name: 7 层套娃分层编译器
+  - name: Loop 5 细胞凋亡与数字冥想
     description: |
-      L1: 意图解析 → L2: 任务规划 → L3: 上下文收集 → 
-      L4: 安全验证 → L5: 能力绑定 → L6: 执行 → L7: 改进
-    keywords: [分层，编译器，处理流程]
+      系统自发的去熵整理。在闲时启动 Meditation 分析技能重合度，通过大模型进行高维抽象合并，
+      并对冲突或冗余的 Skill 进行物理注销与裁剪（Apoptosis），对抗生命系统的无限膨胀。
+    keywords: [熵减, 数字冥想, 细胞凋亡, 技能合并]
 
 # ==================== 技术栈 ====================
 
 tech_stack:
   - name: Python
-    version: 3.9+
+    version: 3.14+ (测试完美通过)
     description: 主要编程语言
     
   - name: LLM Backends
@@ -137,13 +111,10 @@ tech_stack:
       - OpenAI (GPT-4o, GPT-4)
       - Anthropic (Claude 3/3.5)
       - Ollama (Llama 3.1)
-    description: 支持多种 LLM 后端
+    description: 支持多种 LLM 后端与顾问（Consultant）高精专家路由策略
     
-  - name: asyncio
-    description: 异步 IO 框架
-    
-  - name: aiohttp
-    description: HTTP 客户端/服务器
+  - name: anyio / asyncio
+    description: 高并发异步 IO 基础设施
     
   - name: PyYAML
     description: YAML 配置文件解析
@@ -151,113 +122,71 @@ tech_stack:
 # ==================== 代码结构 ====================
 
 code_structure:
-  - path: /intentos/semantic_vm/
-    description: 语义虚拟机核心实现
+  - path: /intentos/core/singularity.py
+    description: 意图奇点第一推动力不可变模型
     
-  - path: /intentos/distributed/
-    description: 分布式内核实现
+  - path: /intentos/semantic_vm/vm.py
+    description: 语义虚拟机核心及阻抗匹配适配器实现
     
-  - path: /intentos/bootstrap/
-    description: Self-Bootstrap 模块
+  - path: /intentos/runtime/daemon.py
+    description: 常驻事件调度守护进程 DaemonRunner
     
-  - path: /intentos/compiler/
-    description: 意图编译器
+  - path: /intentos/distributed/p2p.py
+    description: 分布式 P2P 双向路由、Gossip 传染与意图接力协议
     
-  - path: /intentos/interface/
-    description: Shell、REST API、Chat 接口
+  - path: /intentos/meditation/engine.py
+    description: 技能凋亡引擎（SkillApoptosisEngine）及冥想管理器
     
-  - path: /intentos/llm/
-    description: LLM 后端层
-    
-  - path: /intentos/agent/
-    description: AI Agent 实现
-    
-  - path: /intentos/runtime/
-    description: 运行时 Agent
+  - path: /intentos/skill/
+    description: 物理技能装载与存储中心
 
 # ==================== 快速开始 ====================
 
 quick_start:
-  # 安装
   install: |
-    pip install pyyaml
+    pip install pyyaml anyio
     
-  # 启动 Shell
   run_shell: |
     PYTHONPATH=. python intentos/interface/shell.py
     
-  # 启动 API 服务器
   run_api: |
     PYTHONPATH=. python intentos/interface/api.py
     
-  # Python 代码使用
   code_example: |
     from intentos import SemanticVM, create_executor
     
-    # 创建执行器
     executor = create_executor(provider="openai", api_key="sk-...")
-    
-    # 创建语义 VM
     vm = SemanticVM(executor)
-    
-    # 执行程序
     result = await vm.execute_program("my_program")
 
-# ==================== 联系信息 ====================
-
-contact:
-  github: https://github.com/jeffery9/intentOS
-  issues: https://github.com/jeffery9/intentOS/issues
-  discussions: https://github.com/jeffery9/intentOS/discussions
-  
 # ==================== 相关项目 ====================
 
 related_projects:
-  - name: Dify
-    url: https://dify.ai/
-    description: AI 应用开发平台
-    
-  - name: LangChain
-    url: https://langchain.com/
-    description: LLM 应用开发框架
-    
-  - name: Open Interpreter
-    url: https://openinterpreter.com/
-    description: 自然语言代码执行
-
-# ==================== 许可证 ====================
-
-license_info:
-  type: MIT
-  url: https://opensource.org/licenses/MIT
-  summary: |
-    允许任何人免费使用、复制、修改、合并、发布、销售、
-    复制本软件的副本和授权。
+  - name: UNIX
+    url: https://bell-labs.com/usr/dmr/www/index.html
+    description: 字节流作为通用介质、一切皆文件的管道化操作系统先驱
 
 # ==================== 更新日志 ====================
 
 changelog:
+  - version: 9.5.0
+    date: 2026-07-25
+    highlights:
+      - 常驻事件守护进程 (DaemonRunner)
+      - 管道隐式阻抗匹配器 (_match_impedance)
+      - 分布式 P2P 全息网络、社会化 Gossip 传染与意图接力
+      - Loop 5 冥想与技能细胞凋亡引擎 (SkillApoptosisEngine)
+      - 意图奇点第一推动力 (IntentSingularity)
+      
   - version: 9.0.0
     date: 2026-03-15
     highlights:
       - 分布式进程管理与 PCB
       - Shell、API 及真实分布式 RPC
-      
-  - version: 8.5.0
-    date: 2026-03-13
-    highlights:
-      - Map/Reduce 数据本地性优化
-      
-  - version: 8.0.0
-    date: 2026-03-13
-    highlights:
-      - 编译器优化系统（三级缓存）
 
 # ==================== AI 爬虫说明 ====================
 
 # 本文件遵循 LLM robots.txt 规范
-# 参考：https://llmrobots.txt/
-# 
 # AI 爬虫可以抓取本文件中列出的所有内容用于：
 # - 理解和索引 IntentOS 项目
 # - 训练 AI 模型
