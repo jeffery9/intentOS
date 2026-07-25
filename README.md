@@ -4,11 +4,31 @@
 
 # IntentOS - 分布式 AI 原生操作系统
 
-> **语言即系统 · Prompt 即可执行文件 · 分布式语义 VM**
+> **AI 时代的 UNIX · 语言即系统 · Prompt 即可执行文件 · 分布式语义 VM**
 
 IntentOS 是一个 **分布式 AI 原生操作系统**, 不是传统的 AI Agent 框架。
 
 核心是**语义虚拟机 (Semantic VM)** —— 将自然语言意图编译为 PEF (Prompt Executable File), 由 LLM 作为处理器执行, 支持 Self-Bootstrap 和跨节点分布式部署。
+
+---
+
+### 🌌 AI 时代的 UNIX (The UNIX of the AI Era)
+
+如果说 1969 年诞生的 UNIX 确立了以 **“字节流 (Bytes) 作为最小通用介质”** 和 **“一切皆文件 (Everything is a File)”** 的管道联结哲学；
+那么 2026 年的 IntentOS 则确立了以 **“高维语义 (Semantics) 作为最小通用介质”** 和 **“一切皆意图 (Everything is an Intent)”** 的全新管道演进：
+
+```
+                    UNIX (1969)                  │               IntentOS (2026)
+────────────────────────────────────────────────┼────────────────────────────────────────────────
+ 最小通用介质 │  Bytes / Text (字节/纯文本)      │  Semantics / Intent (高维语义/意图)
+ 核心管道连接 │  cat data.txt | grep "error"    │  Read Watcher | Analyze Log | Apoptosis Skill
+ 阻抗对齐方式 │  手动编写 sed/awk/cut 胶水代码   │  _match_impedance (大模型动态热阻抗转换)
+ 通信与分发   │  TCP Sockets / IPC 进程间通信   │  SemanticP2P (社会化认知 Gossip / 意图 Relay)
+```
+
+通过 **「语义阻抗匹配器」**（`_match_impedance`），任意两个物理隔离、接口不对称的 I/O 节点在通过管道（`|`）连接时，都无需定义静态的 API 契约或编写手写胶水代码，操作系统会自动利用 LLM 将上游的非结构化输出在执行前夜智能转换、映射为下游物理 Skill/MCP 工具所需的强类型参数，真正实现万物在语义层面的“天下大同”与即插即用流水线拼装。
+
+---
 
 ### 与传统 AI Agent 框架的本质区别
 
