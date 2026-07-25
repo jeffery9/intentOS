@@ -40,11 +40,6 @@ flowchart TB
     L2 -->|执行 Prompt| L1
     L1 -->|Token Stream| L2
     L2 --> INFRA
-
-    style L3 fill:#e1f5fe
-    style L2 fill:#fff3e0
-    style L1 fill:#f3e5f5
-    style INFRA fill:#e8f5e9
 ```
 
 ---
@@ -326,9 +321,6 @@ flowchart LR
     Execute --> Model
     Model --> Writeback
 
-    style SVM fill:#ffe0b2
-    style Memory fill:#e8f5e9
-    style LLM fill:#e1f5fe
     style Matcher fill:#c8e6c9
 ```
 
@@ -372,7 +364,6 @@ flowchart TB
     VM -->|调用 | Cap2
     VM -->|调用 | Cap3
 
-    style Registry fill:#c8e6c9
     style Linker fill:#ffcc80
 ```
 
@@ -407,11 +398,6 @@ flowchart TB
     Engine1 <-->|双向发现 & 心跳 | Channel
     Engine2 <-->|语义广播 & 匹配 | Channel
     Engine3 <-->|意图接力 (Relay) | Channel
-    
-    style Node1 fill:#e1f5fe
-    style Node2 fill:#e1f5fe
-    style Node3 fill:#e1f5fe
-    style Protocol fill:#ffcc80
 ```
 
 ---
@@ -458,12 +444,6 @@ flowchart TB
     Level1 -->|演化数据 | Level2
     Level2 -->|自举压力 | Level3
     Level3 -->|熵增触发 | Loop5
-
-    style Loop5 fill:#d1c4e9
-    style Level3 fill:#f3e5f5
-    style Level2 fill:#e1f5fe
-    style Level1 fill:#fff3e0
-    style Level0 fill:#e8f5e9
 ```
 
 ---
@@ -515,12 +495,6 @@ stateDiagram-v2
     
     Completed --> Result: 输出 _last_result
     Result --> [*]
-
-    style Parsing fill:#e1f5fe
-    style Planning fill:#e1f5fe
-    style Context fill:#fff3e0
-    style FormalCheck fill:#ffcc80
-    style Refinement fill:#c8e6c9
 ```
 
 ---
@@ -549,9 +523,6 @@ flowchart TB
     IO2 -->|降维编译 | H1
     IO3 -->|动态替代 | H2
     IO4 -->|扩展 | H4
-    
-    style IntentOS fill:#e1f5fe
-    style Harness fill:#f3e5f5
 ```
 
 ---
@@ -586,9 +557,4 @@ flowchart LR
     T2 -.->|指导| Static
     Dynamic --> Halt
     Static -->|优先拦截| Halt
-
-    style Theoretical fill:#f3e5f5
-    style Dynamic fill:#c8e6c9
-    style Static fill:#ffcc80
-    style Halt fill:#e1f5fe
 ```
