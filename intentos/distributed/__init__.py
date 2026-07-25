@@ -41,6 +41,11 @@ from .vm import (
     create_distributed_vm,
     create_node,
 )
+from .p2p import (
+    SemanticP2P,
+    P2PNode,
+    P2PNodeManager,
+)
 
 __all__ = [
     # 分布式 VM
@@ -52,6 +57,10 @@ __all__ = [
     "DistributedOpcode",
     "create_distributed_vm",
     "create_node",
+    # 语义 P2P
+    "SemanticP2P",
+    "P2PNode",
+    "P2PNodeManager",
     # VM 社区（单归属约束）
     "VMCommunity",
     "ClusterMembership",
