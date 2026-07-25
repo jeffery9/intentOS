@@ -12,6 +12,7 @@ from .models import (
     IntentTemplate,
     IntentType,
 )
+from .singularity import IntentSingularity
 
 __all__ = [
     "Intent",
@@ -22,4 +23,5 @@ __all__ = [
     "IntentExecutionResult",
     "Capability",
     "Context",
+    "IntentSingularity",
 ]
