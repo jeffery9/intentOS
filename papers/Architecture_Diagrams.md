@@ -1,4 +1,4 @@
-# IntentOS 架构图集
+# IntentOS 架构图集 (v9.5.0)
 
 ## 图 1：套娃分层架构总览
 
@@ -16,10 +16,10 @@ flowchart TB
             L1["[L1] 意图解析<br/>功能意图 + 操作意图"]
             L2_["[L2] 任务规划<br/>任务 DAG + Ops Model"]
             L3_["[L3] 上下文收集<br/>多模态事件图"]
-            L4["[L4] 安全验证<br/>权限校验 + HITL"]
+            L4["[L4] 安全验证<br/>权限校验 + Z3 静态分析"]
             L5["[L5] 能力绑定<br/>Linker 符号链接"]
-            L6["[L6] 执行<br/>分布式调度"]
-            L7_["[L7] 改进<br/>意图漂移检测 + 自愈"]
+            L6["[L6] 执行<br/>P2P 分布式调度"]
+            L7_["[L7] 改进<br/>意图漂移检测 + 技能细胞凋亡 (Apoptosis)"]
         end
     end
     
@@ -296,7 +296,7 @@ flowchart TB
 
 ---
 
-## 图 9：语义 CPU 执行模型
+## 图 9：语义 CPU 执行模型 (隐式 UNIX 管道)
 
 ```mermaid
 flowchart LR
@@ -304,9 +304,10 @@ flowchart LR
         direction TB
         PC[PC 计数器] --> Fetch[取指]
         Fetch --> Decode[译码：Prompt 组装]
-        Decode --> Inject[上下文注入]
-        Inject --> Execute[执行：LLM 调用]
-        Execute --> Writeback[写回：Token 解析]
+        Decode --> Inject[上下文注入 <br/>(含 _last_result STDIN)]
+        Inject --> Matcher[语义阻抗匹配器 <br/>(Impedance Match)]
+        Matcher --> Execute[执行：LLM 调用]
+        Execute --> Writeback[写回：更新 _last_result STDOUT]
         Writeback --> PC
     end
     
@@ -328,6 +329,7 @@ flowchart LR
     style SVM fill:#ffe0b2
     style Memory fill:#e8f5e9
     style LLM fill:#e1f5fe
+    style Matcher fill:#c8e6c9
 ```
 
 ---
@@ -376,85 +378,88 @@ flowchart TB
 
 ---
 
-## 图 11：分布式记忆同步架构
+## 图 11：去中心化 P2P 语义节点网络
 
 ```mermaid
 flowchart TB
-    subgraph Node1["节点 1"]
-        LocalMem1[本地记忆后端]
-        Pub1[Publisher]
-        Sub1[Subscriber]
+    subgraph Node1["P2P Node 1 (Router)"]
+        Mem1[本地记忆图谱]
+        Skill1[本地能力池]
+        Engine1[P2P 传播引擎]
     end
     
-    subgraph Node2["节点 2"]
-        LocalMem2[本地记忆后端]
-        Pub2[Publisher]
-        Sub2[Subscriber]
+    subgraph Node2["P2P Node 2 (Agent)"]
+        Mem2[本地记忆图谱]
+        Skill2[本地能力池]
+        Engine2[P2P 传播引擎]
     end
     
-    subgraph Node3["节点 3"]
-        LocalMem3[本地记忆后端]
-        Pub3[Publisher]
-        Sub3[Subscriber]
+    subgraph Node3["P2P Node 3 (Agent)"]
+        Mem3[本地记忆图谱]
+        Skill3[本地能力池]
+        Engine3[P2P 传播引擎]
     end
     
-    subgraph Redis["Redis Pub/Sub"]
-        Channel[sync 频道]
+    subgraph Protocol["Social Transmission (Gossip)"]
+        Channel[对等握手 / 技能广播]
     end
     
-    Pub1 -->|发布更新 | Channel
-    Pub2 -->|发布更新 | Channel
-    Pub3 -->|发布更新 | Channel
+    Engine1 <-->|双向发现 & 心跳 | Channel
+    Engine2 <-->|语义广播 & 匹配 | Channel
+    Engine3 <-->|意图接力 (Relay) | Channel
     
-    Channel -->|广播 | Sub1
-    Channel -->|广播 | Sub2
-    Channel -->|广播 | Sub3
-    
-    Sub1 -->|更新 | LocalMem1
-    Sub2 -->|更新 | LocalMem2
-    Sub3 -->|更新 | LocalMem3
-    
-    style Redis fill:#ffcc80
-    style Channel fill:#ffe0b2
+    style Node1 fill:#e1f5fe
+    style Node2 fill:#e1f5fe
+    style Node3 fill:#e1f5fe
+    style Protocol fill:#ffcc80
 ```
 
 ---
 
-## 图 12：Self-Bootstrap 层级实现
+## 图 12：Self-Bootstrap 演进循环 (Loop 1 - 5)
 
 ```mermaid
 flowchart TB
-    subgraph Level3["Level 3: 分布式自举"]
+    subgraph Loop5["Loop 5: 凋亡与熵减 (Apoptosis)"]
+        A1[知识蒸馏]
+        A2[冗余技能修剪]
+        A3[泛化抽象合并]
+    end
+
+    subgraph Level3["Loop 4: 分布式自举"]
         D1[自我复制]
-        D2[自动扩缩容]
-        D3[跨节点同步]
+        D2[跨节点意图接力]
+        D3[分布式知识广播]
     end
 
-    subgraph Level2["Level 2: 指令集扩展"]
-        I1[扩展指令集]
-        I2[修改系统策略]
-        I3[注册新能力]
+    subgraph Level2["Loop 3: 协议自扩展"]
+        I1[扩展核心指令集]
+        I2[创建新意图模板]
+        I3[注册物理能力]
     end
 
-    subgraph Level1["Level 1: 规则修改"]
-        R1[修改解析 Prompt]
-        R2[修改执行规则]
-        R3[更新意图模板]
+    subgraph Level1["Loop 2: 执行流自适应"]
+        R1[动态负载路由]
+        R2[异常捕获与重试]
+        R3[性能驱动优化]
     end
 
-    subgraph Level0["Level 0: 基础执行"]
+    subgraph Level0["Loop 1: 核心执行闭环"]
         E1[加载 PEF]
-        E2[驱动 LLM]
+        E2[驱动 LLM (Semantic CPU)]
         E3[返回结果]
     end
 
-    Level3 -->|编排 | Level2
-    Level2 -->|定义 | Level1
-    Level1 -->|控制 | Level0
-    Level0 -->|执行反馈 | Level1
-    Level1 -->|演化记录 | Level2
-    Level2 -->|自举历史 | Level3
+    Loop5 -->|系统收敛优化 | Level3
+    Level3 -->|全网同步 | Level2
+    Level2 -->|约束定义 | Level1
+    Level1 -->|调度控制 | Level0
+    Level0 -->|状态监控 | Level1
+    Level1 -->|演化数据 | Level2
+    Level2 -->|自举压力 | Level3
+    Level3 -->|熵增触发 | Loop5
 
+    style Loop5 fill:#d1c4e9
     style Level3 fill:#f3e5f5
     style Level2 fill:#e1f5fe
     style Level1 fill:#fff3e0
@@ -492,29 +497,29 @@ stateDiagram-v2
     Received --> Parsing: L1 解析
     Parsing --> Planning: L2 规划
     Planning --> Context: L3 上下文注入
-    Context --> Security: L4 安全验证
+    Context --> FormalCheck: L4 Z3 符号静态检查
     
-    Security --> Approved: 通过
-    Security --> Rejected: 拒绝
-    Rejected --> [*]: 返回错误
+    FormalCheck --> Approved: 安全证明通过
+    FormalCheck --> Rejected: 发现内存/Gas漏洞
+    Rejected --> [*]: 抛出隔离异常
     
-    Approved --> Binding: L5 能力绑定
-    Binding --> Execution: L6 执行
-    Execution --> Monitoring: L7 监控
+    Approved --> Binding: L5 动态能力绑定
+    Binding --> Execution: L6 语义虚拟执行
+    Execution --> Monitoring: L7 运行时监控
     
-    Monitoring --> DriftDetected: 检测漂移
-    Monitoring --> Completed: 无漂移
+    Monitoring --> DriftDetected: 检测漂移/低效
+    Monitoring --> Completed: 正常结束
     
-    DriftDetected --> Refinement: 生成修复意图
-    Refinement --> Planning: 重新规划
+    DriftDetected --> Refinement: 触发自愈意图
+    Refinement --> Planning: 重新规划流
     
-    Completed --> Result: 返回结果
+    Completed --> Result: 输出 _last_result
     Result --> [*]
 
     style Parsing fill:#e1f5fe
     style Planning fill:#e1f5fe
     style Context fill:#fff3e0
-    style Security fill:#ffcc80
+    style FormalCheck fill:#ffcc80
     style Refinement fill:#c8e6c9
 ```
 
@@ -526,24 +531,24 @@ stateDiagram-v2
 flowchart TB
     subgraph IntentOS["IntentOS (操作系统层)"]
         IO1[语义 VM]
-        IO2[意图编译器]
-        IO3[Self-Bootstrap]
-        IO4[分布式执行]
-        IO5[PEF 标准]
+        IO2[意图编译器 (PEF 标准)]
+        IO3[Self-Bootstrap (5 Loops)]
+        IO4[P2P 分布式社会化传输]
+        IO5[形式化验证引擎 (Z3/Coq)]
     end
     
     subgraph Harness["Agent Harness (支撑层)"]
-        H1[工具编排]
-        H2[安全护栏 Guardrails]
-        H3[记忆管理]
-        H4[观测层 Observability]
-        H5[配置文件 AGENTS.md]
+        H1[静态工具调用 (Function Calling)]
+        H2[预设系统 Prompt]
+        H3[静态知识库 (RAG)]
+        H4[单体执行循环]
+        H5[配置文件化 API]
     end
     
-    IntentOS -->|包含 | Harness
-    IO5 -->|执行 | H1
-    IO3 -->|使用 | H2
-    IO1 -->|依赖 | H3
+    IntentOS -->|超越并封装 | Harness
+    IO2 -->|降维编译 | H1
+    IO3 -->|动态替代 | H2
+    IO4 -->|扩展 | H4
     
     style IntentOS fill:#e1f5fe
     style Harness fill:#f3e5f5
@@ -551,34 +556,39 @@ flowchart TB
 
 ---
 
-## 图 16：图灵完备性与停机机制平衡
+## 图 16：图灵完备性与双层安全停机机制 (Formal Verification)
 
 ```mermaid
 flowchart LR
-    subgraph TC["图灵完备性"]
-        TC1[条件分支]
-        TC2[无限迭代]
-        TC3[数据操纵]
+    subgraph Theoretical["理论证明 (Coq Theorems)"]
+        T1["Theorem B.1<br/>图灵完备等价 (UTM)"]
+        T2["Theorem B.4<br/>有限 Gas 强停机"]
     end
 
-    subgraph Balance["平衡机制"]
-        B1[Gas 燃料机制]
-        B2[DAG 无环约束]
-        B3[有界递归]
-        B4[外部监控]
+    subgraph Dynamic["运行时机制 (Runtime)"]
+        B1[指令级 Gas 扣减]
+        B2[内存沙箱隔离 (Memory Bounds)]
+        B3[有界调用栈 (Max Recursion)]
     end
 
-    subgraph Halt["合理停机"]
-        H1[正常完成]
-        H2[资源耗尽]
-        H3[外部干预]
-        H4[异常捕获]
+    subgraph Static["静态符号验证 (Z3 SMT Solver)"]
+        S1["verify_gas_bounded<br/>阻断 Gas 溢出路径"]
+        S2["verify_memory_isolation<br/>阻断沙箱逃逸"]
     end
 
-    TC --> Balance
-    Balance --> Halt
+    subgraph Halt["执行结果"]
+        H1[安全返回 STDOUT]
+        H2[Z3 静态拦截 (未运行)]
+        H3[运行时 GasException]
+    end
 
-    style TC fill:#ffcc80
-    style Balance fill:#c8e6c9
+    T1 --> Dynamic
+    T2 -.指导.-> Static
+    Dynamic --> Halt
+    Static -->|优先拦截| Halt
+
+    style Theoretical fill:#f3e5f5
+    style Dynamic fill:#c8e6c9
+    style Static fill:#ffcc80
     style Halt fill:#e1f5fe
 ```
