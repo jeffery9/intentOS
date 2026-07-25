@@ -583,7 +583,7 @@ flowchart LR
     end
 
     T1 --> Dynamic
-    T2 -.指导.-> Static
+    T2 -.->|指导| Static
     Dynamic --> Halt
     Static -->|优先拦截| Halt
 
