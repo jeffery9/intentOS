@@ -1,0 +1,101 @@
+app_id: "crm_pipeline"
+name: "CRM 运作流水线"
+version: "1.0.0"
+description: "AI 驱动并具备 L4 安全环的人机交接 CRM 流水线"
+author: "IntentOS Team"
+license: "MIT"
+
+intents:
+  - name: "analyze_lead"
+    description: "分析客户消息并进行线索打分和情绪评估"
+    patterns:
+      - "分析客户 {customer_id} 消息: {message}"
+      - "评估线索 {customer_id}"
+    parameters:
+      - name: "customer_id"
+        type: "string"
+        required: true
+      - name: "message"
+        type: "string"
+        required: true
+
+  - name: "generate_quote"
+    description: "为客户生成报价方案与折扣"
+    patterns:
+      - "给客户 {customer_id} 报价, 报价额 {amount}, 折扣 {discount}"
+    parameters:
+      - name: "customer_id"
+        type: "string"
+        required: true
+      - name: "amount"
+        type: "number"
+        required: true
+      - name: "discount"
+        type: "number"
+        required: true
+
+  - name: "request_refund"
+    description: "处理客户退款申请"
+    patterns:
+      - "帮客户 {customer_id} 申请退款 {amount}"
+    parameters:
+      - name: "customer_id"
+        type: "string"
+        required: true
+      - name: "amount"
+        type: "number"
+        required: true
+
+capabilities:
+  - name: "lead_analyzer"
+    description: "线索属性打分与情感分析能力"
+    type: "io"
+    interface:
+      input:
+        type: "object"
+        properties:
+          customer_id: { type: "string" }
+          message: { type: "string" }
+        required: ["customer_id", "message"]
+      output:
+        type: "object"
+        properties:
+          customer_id: { type: "string" }
+          score: { type: "integer" }
+          sentiment: { type: "string" }
+          anger_score: { type: "number" }
+
+  - name: "quote_generator"
+    description: "报价生成及高折扣安全限制能力"
+    type: "io"
+    interface:
+      input:
+        type: "object"
+        properties:
+          customer_id: { type: "string" }
+          amount: { type: "number" }
+          discount: { type: "number" }
+        required: ["customer_id", "amount", "discount"]
+      output:
+        type: "object"
+        properties:
+          quote_id: { type: "string" }
+          final_price: { type: "number" }
+          requires_approval: { type: "boolean" }
+
+  - name: "refund_handler"
+    description: "退款流程控制与审批门控能力"
+    type: "io"
+    interface:
+      input:
+        type: "object"
+        properties:
+          customer_id: { type: "string" }
+          amount: { type: "number" }
+        required: ["customer_id", "amount"]
+      output:
+        type: "object"
+        properties:
+          refund_id: { type: "string" }
+          status: { type: "string" }
+          requires_approval: { type: "boolean" }
