@@ -1,0 +1,10 @@
+app_id: "marketing_pipeline"
+name: "CRM 营销投放流水线"
+version: "1.0.0"
+description: "AI-driven closed-loop automated marketing campaign pipeline."
+intents:
+  - name: "enroll_campaign"
+    description: "Enroll a customer manually in a marketing campaign"
+capabilities:
+  - name: "campaign_manager"
+    description: "Manage enrollment, campaign status and voucher generation"

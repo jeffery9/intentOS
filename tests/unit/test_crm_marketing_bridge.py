@@ -27,3 +27,11 @@ def test_crm_app_hook_triggers():
     assert len(triggered_leads) == 1
     assert triggered_leads[0][0] == "cust_123"
 
+
+def test_marketing_manifest_loading():
+    from pathlib import Path
+    app_dir = Path(__file__).parent.parent.parent / "intentos" / "apps" / "marketing_pipeline"
+    manifest_path = app_dir / "manifest.yaml"
+    assert manifest_path.exists()
+
+
