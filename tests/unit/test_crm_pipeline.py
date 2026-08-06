@@ -5,7 +5,6 @@ CRM Pipeline Verification Tests
 Tests loading, registering, and running safe & high-risk CRM workflows with L4 Security Gate human-in-the-loop intercept.
 """
 
-import os
 from pathlib import Path
 import pytest
 
@@ -160,6 +159,14 @@ async def test_crm_l4_security_gate_intercepts(crm_app_dir):
     assert "Reason      : High Discount Request (>20%)" in summary_quote
     assert "final: $3500.0" in summary_quote
 
+    # Programmatic check for quote generator capability evaluation
+    gate_res_quote = await gate.evaluate(
+        capability_id="quote_generator",
+        context=context,
+        input_data={"customer_id": "cust_angry", "amount": 5000.0, "discount": 30.0}
+    )
+    assert gate_res_quote.decision in [GateDecision.ALLOW, GateDecision.ASK]
+
     # Scenario C: Refund Request (Any amount)
     refund_res = crm_app.refund_handler(
         customer_id="cust_angry",
@@ -174,3 +181,32 @@ async def test_crm_l4_security_gate_intercepts(crm_app_dir):
     )
     assert "Reason      : Refund Requested" in summary_refund
     assert "Process Refund of $1200.0" in summary_refund
+
+    # Programmatic check for refund handler capability evaluation
+    gate_res_refund = await gate.evaluate(
+        capability_id="refund_handler",
+        context=context,
+        input_data={"customer_id": "cust_angry", "amount": 1200.0}
+    )
+    assert gate_res_refund.decision in [GateDecision.ALLOW, GateDecision.ASK]
+
+
+def test_crm_defensive_bounds_checks():
+    """Verify that CRM pipeline throws errors for invalid business parameter boundaries."""
+    crm_app = create_crm_pipeline_app()
+
+    # Negative amount quote
+    with pytest.raises(ValueError, match="Invalid amount or discount bounds"):
+        crm_app.quote_generator("cust_1", -100.0, 10.0)
+
+    # Invalid bounds discount (>100%)
+    with pytest.raises(ValueError, match="Invalid amount or discount bounds"):
+        crm_app.quote_generator("cust_1", 500.0, 150.0)
+
+    # Invalid bounds discount (<0%)
+    with pytest.raises(ValueError, match="Invalid amount or discount bounds"):
+        crm_app.quote_generator("cust_1", 500.0, -10.0)
+
+    # Negative refund amount
+    with pytest.raises(ValueError, match="Invalid refund amount"):
+        crm_app.refund_handler("cust_1", -50.0)

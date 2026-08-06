@@ -68,6 +68,8 @@ class CRMPipelineApp:
         """
         Prepares a discount quote. High discount (>20%) requires manual approval.
         """
+        if amount < 0 or not (0.0 <= discount <= 100.0):
+            raise ValueError("Invalid amount or discount bounds.")
         final_price = amount * (1.0 - (discount / 100.0))
         quote_id = f"Q-{uuid.uuid4().hex[:8].upper()}"
 
@@ -88,6 +90,8 @@ class CRMPipelineApp:
         """
         Requests a customer refund. All refunds require manual approval.
         """
+        if amount < 0:
+            raise ValueError("Invalid refund amount.")
         refund_id = f"RF-{uuid.uuid4().hex[:8].upper()}"
 
         # All refunds trigger L4 gate (human in the loop fallback)
