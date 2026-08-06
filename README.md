@@ -598,6 +598,7 @@ ruff format --check .
 
 - **架构蓝图**: [docs/IntentOS_Architecture_Blueprint.pdf](./docs/IntentOS_Architecture_Blueprint.pdf)
 - **技术文档**: [docs/](./docs/)
+  - [CRM 与营销闭环管道说明书](./docs/CRM_MARKETING_CLOSED_LOOP.md)
 - **研究论文**: [papers/](./papers/)
 
 ---
