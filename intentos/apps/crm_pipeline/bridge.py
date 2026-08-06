@@ -14,15 +14,24 @@ class CRMBridge:
 
     @classmethod
     def register_lead_listener(cls, callback: Callable[[str, dict[str, Any]], None]) -> None:
-        cls._lead_listeners.append(callback)
+        if callback not in cls._lead_listeners:
+            cls._lead_listeners.append(callback)
 
     @classmethod
     def register_quote_listener(cls, callback: Callable[[str, dict[str, Any]], None]) -> None:
-        cls._quote_listeners.append(callback)
+        if callback not in cls._quote_listeners:
+            cls._quote_listeners.append(callback)
 
     @classmethod
     def register_refund_listener(cls, callback: Callable[[str, dict[str, Any]], None]) -> None:
-        cls._refund_listeners.append(callback)
+        if callback not in cls._refund_listeners:
+            cls._refund_listeners.append(callback)
+
+    @classmethod
+    def clear_listeners(cls) -> None:
+        cls._lead_listeners.clear()
+        cls._quote_listeners.clear()
+        cls._refund_listeners.clear()
 
     @classmethod
     def notify_lead_analyzed(cls, customer_id: str, analysis_data: dict[str, Any]) -> None:
