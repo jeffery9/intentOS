@@ -112,3 +112,16 @@ def test_crm_pipeline_app_refund_handler_and_handoff():
     assert "Action      : 需要人工审批退款额 $500.0" in summary
     assert "Context     : 产品不好用 | 退钱！" in summary
 
+
+def test_crm_pipeline_imports_and_exports():
+    """Verify that CRMPipelineApp and create_crm_pipeline_app are exported from the package init."""
+    from intentos.apps.crm_pipeline import CRMPipelineApp as ExposedApp, create_crm_pipeline_app
+    from intentos.apps.crm_pipeline.app import CRMPipelineApp as BaseApp
+
+    assert ExposedApp is BaseApp
+
+    app = create_crm_pipeline_app()
+    assert isinstance(app, BaseApp)
+    assert app.app_id == "crm_pipeline"
+
+
