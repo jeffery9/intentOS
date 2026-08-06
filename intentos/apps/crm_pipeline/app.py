@@ -11,6 +11,8 @@ import logging
 import uuid
 from typing import Any
 
+from intentos.apps.crm_pipeline.bridge import CRMBridge
+
 logger: logging.Logger = logging.getLogger(__name__)
 
 
@@ -62,6 +64,7 @@ class CRMPipelineApp:
             "message": message
         }
         self.leads[customer_id] = result
+        CRMBridge.notify_lead_analyzed(customer_id, result)
         return result
 
     def quote_generator(self, customer_id: str, amount: float, discount: float) -> dict[str, Any]:
@@ -84,6 +87,7 @@ class CRMPipelineApp:
             "requires_approval": requires_approval
         }
         self.quotes[quote_id] = result
+        CRMBridge.notify_quote_generated(customer_id, result)
         return result
 
     def refund_handler(self, customer_id: str, amount: float) -> dict[str, Any]:
@@ -105,6 +109,7 @@ class CRMPipelineApp:
             "requires_approval": requires_approval
         }
         self.refunds[refund_id] = result
+        CRMBridge.notify_refund_requested(customer_id, result)
         return result
 
     def generate_handoff_summary(self, customer_id: str, reason: str, action_details: str) -> str:

@@ -13,3 +13,17 @@ def test_crm_bridge_registration():
 
     assert len(triggered) == 1
     assert triggered[0] == ("cust_abc", {"val": 123})
+
+
+def test_crm_app_hook_triggers():
+    from intentos.apps.crm_pipeline.app import CRMPipelineApp
+    triggered_leads = []
+    CRMBridge._lead_listeners.clear()
+    CRMBridge.register_lead_listener(lambda cid, data: triggered_leads.append((cid, data)))
+
+    app = CRMPipelineApp()
+    app.lead_analyzer("cust_123", "我想咨询购买产品")
+
+    assert len(triggered_leads) == 1
+    assert triggered_leads[0][0] == "cust_123"
+
