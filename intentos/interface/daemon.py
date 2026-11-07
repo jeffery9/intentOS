@@ -185,9 +185,12 @@ class IntentOSDaemon:
 def start_daemon(args):
     """启动守护进程"""
     daemon = IntentOSDaemon(
-        enable_api=args.api,
-        api_host=args.api_host,
-        api_port=args.api_port,
+        enable_api=getattr(args, "api", False),
+        api_host=getattr(args, "api_host", "localhost"),
+        api_port=getattr(args, "api_port", 8080),
+        enable_web=getattr(args, "web", False),
+        web_host=getattr(args, "web_host", "localhost"),
+        web_port=getattr(args, "web_port", 8000),
     )
     daemon.run()
 
@@ -197,5 +200,8 @@ if __name__ == "__main__":
     parser.add_argument("--api", action="store_true", help="启动 API 网关")
     parser.add_argument("--api-host", default="localhost", help="API 监听地址")
     parser.add_argument("--api-port", type=int, default=8080, help="API 监听端口")
+    parser.add_argument("--web", action="store_true", help="同时启动 Web Console（网页界面）")
+    parser.add_argument("--web-host", default="localhost", help="Web Console 监听地址")
+    parser.add_argument("--web-port", type=int, default=8000, help="Web Console 监听端口")
     args = parser.parse_args()
     start_daemon(args)

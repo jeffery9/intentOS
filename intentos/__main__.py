@@ -40,6 +40,22 @@ def start_web(args):
     _start_web(args)
 
 
+def start_desktop(args):
+    """启动桌面应用（内嵌内核 + Web Console + 原生窗口）"""
+    from intentos.desktop import main as _desktop_main
+
+    argv = []
+    if getattr(args, "host", None):
+        argv += ["--host", args.host]
+    if getattr(args, "port", None) is not None:
+        argv += ["--port", str(args.port)]
+    if getattr(args, "api_port", None) is not None:
+        argv += ["--api-port", str(args.api_port)]
+    if getattr(args, "backend", None):
+        argv += ["--backend", args.backend]
+    _desktop_main(argv)
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="intentos",
@@ -78,6 +94,24 @@ def main():
     p_web.add_argument("--port", type=int, default=8000, help="监听端口 (默认：8000)")
     p_web.add_argument("--api-port", type=int, default=8080, help="API Gateway 端口 (默认：8080)")
     p_web.set_defaults(func=start_web)
+
+    # desktop 命令（桌面应用模式）
+    p_desktop = subparsers.add_parser(
+        "desktop",
+        help="启动桌面应用（内嵌内核 + Web Console + 原生窗口）",
+        description="单进程桌面体验：自动启动内核与本地服务，打开原生窗口。"
+        "配合 desktop/ 目录可打包为 Electron dmg/exe/AppImage。",
+    )
+    p_desktop.add_argument("--host", default="127.0.0.1", help="监听地址 (默认：127.0.0.1)")
+    p_desktop.add_argument("--port", type=int, default=0, help="Web 端口 (0=自动选择)")
+    p_desktop.add_argument("--api-port", type=int, default=0, help="API 端口 (0=自动选择)")
+    p_desktop.add_argument(
+        "--backend",
+        choices=["browser", "webview", "none"],
+        default="browser",
+        help="窗口后端：browser=系统浏览器App模式(默认)，webview=pywebview原生窗口，none=仅服务(供Electron/Tauri壳)",
+    )
+    p_desktop.set_defaults(func=start_desktop)
 
     # cli 命令（包含 shell、chat 等）
     p_cli = subparsers.add_parser(
@@ -130,6 +164,11 @@ def main():
             print("   intentos web                 # 独立启动（自动拉起内核）")
             print("   intentos daemon --api --web  # 集成启动")
             print("   打开浏览器访问 http://localhost:8000")
+            print()
+            print("6. Desktop（桌面应用模式）:")
+            print("   intentos desktop             # 原生窗口体验（浏览器App模式）")
+            print("   intentos desktop --backend webview  # pywebview 原生窗口")
+            print("   cd desktop && npm install && npm run build  # 打包 Electron dmg/exe/AppImage")
             print("=" * 60)
             sys.exit(0)
 
