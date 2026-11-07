@@ -26,13 +26,18 @@ class IntentOSDaemon:
     运行内核并提供 RPC 服务，可选择启动 API 网关
     """
 
-    def __init__(self, enable_api=False, api_host="localhost", api_port=8080):
+    def __init__(self, enable_api=False, api_host="localhost", api_port=8080,
+                 enable_web=False, web_host="localhost", web_port=8000):
         self.os = None
         self.rpc_server = None
         self.api_gateway = None
         self.enable_api = enable_api
         self.api_host = api_host
         self.api_port = api_port
+        self.enable_web = enable_web
+        self.web_host = web_host
+        self.web_port = web_port
+        self.web_console = None
         self.start_time = None
         self._should_run = True
         self._background_tasks = []
@@ -62,6 +67,10 @@ class IntentOSDaemon:
         if self.enable_api:
             await self._start_api_gateway()
 
+        # 可选：启动 Web Console（网页界面）
+        if self.enable_web:
+            await self._start_web_console()
+
     async def _start_api_gateway(self) -> None:
         """启动 API 网关"""
         from intentos.interface.api import IntentOSGateway
@@ -70,6 +79,21 @@ class IntentOSDaemon:
         self.api_gateway = IntentOSGateway(self.os, self.api_host, self.api_port)
         # 异步启动 API 服务器
         self.api_runner = await self.api_gateway.start_server()
+
+    async def _start_web_console(self) -> None:
+        """启动 Web Console（复用内核实例，服务器模式）"""
+        from intentos.interface.web.server import IntentOSWebConsole
+
+        print(f"🖥️  Starting Web Console on http://{self.web_host}:{self.web_port}")
+        self.web_console = IntentOSWebConsole(
+            gateway=self.api_gateway, host=self.web_host, port=self.web_port
+        )
+        # 若未启用 API 网关，则创建一个仅供内部调用（不监听端口）的网关实例
+        if self.web_console.gateway is None:
+            from intentos.interface.api import IntentOSGateway
+
+            self.web_console.gateway = IntentOSGateway(self.os)
+        self.web_runner = await self.web_console.start_server()
 
     def _signal_handler(self, sig, frame):
         """处理中断信号"""
@@ -103,6 +127,13 @@ class IntentOSDaemon:
             loop.run_until_complete(self.api_runner.cleanup())
             loop.close()
 
+        # 停止 Web Console
+        if hasattr(self, "web_runner") and self.web_runner:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            loop.run_until_complete(self.web_runner.cleanup())
+            loop.close()
+
         # 停止 RPC 服务器
         if self.rpc_server:
             loop = asyncio.new_event_loop()
@@ -133,6 +164,8 @@ class IntentOSDaemon:
         print(f"  PID: {os.getpid()}")
         if self.enable_api:
             print(f"  API: http://{self.api_host}:{self.api_port}")
+        if self.enable_web:
+            print(f"  Web Console: http://{self.web_host}:{self.web_port}")
         print("=" * 60)
         print("\nPress Ctrl+C to stop\n")
         print("连接方式:")
@@ -152,9 +185,12 @@ class IntentOSDaemon:
 def start_daemon(args):
     """启动守护进程"""
     daemon = IntentOSDaemon(
-        enable_api=args.api,
-        api_host=args.api_host,
-        api_port=args.api_port,
+        enable_api=getattr(args, "api", False),
+        api_host=getattr(args, "api_host", "localhost"),
+        api_port=getattr(args, "api_port", 8080),
+        enable_web=getattr(args, "web", False),
+        web_host=getattr(args, "web_host", "localhost"),
+        web_port=getattr(args, "web_port", 8000),
     )
     daemon.run()
 
@@ -164,5 +200,8 @@ if __name__ == "__main__":
     parser.add_argument("--api", action="store_true", help="启动 API 网关")
     parser.add_argument("--api-host", default="localhost", help="API 监听地址")
     parser.add_argument("--api-port", type=int, default=8080, help="API 监听端口")
+    parser.add_argument("--web", action="store_true", help="同时启动 Web Console（网页界面）")
+    parser.add_argument("--web-host", default="localhost", help="Web Console 监听地址")
+    parser.add_argument("--web-port", type=int, default=8000, help="Web Console 监听端口")
     args = parser.parse_args()
     start_daemon(args)

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IntentOS · Web Console</title>
+  <link rel="stylesheet" href="/assets/style.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- ===== 左侧活动栏 ===== -->
+    <nav class="activitybar" aria-label="视图切换">
+      <button class="ab-btn active" data-view="chat" title="意图对话 (Ctrl+L)">
+        <svg viewBox="0 0 24 24"><path d="M4 5h16v11H8l-4 4V5z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="ab-btn" data-view="tasks" title="任务流">
+        <svg viewBox="0 0 24 24"><path d="M5 7h14M5 12h14M5 17h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" fill="none"/></svg>
+      </button>
+      <button class="ab-btn" data-view="monitor" title="系统监控">
+        <svg viewBox="0 0 24 24"><path d="M3 13h4l2.5-6 4 11L16 13h5" stroke="currentColor" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="ab-spacer"></div>
+      <button class="ab-btn" id="theme-toggle" title="切换主题">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5" stroke="currentColor" stroke-width="1.8" fill="none"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </nav>
+
+    <!-- ===== 主区域 ===== -->
+    <main class="main">
+      <header class="topbar">
+        <div class="crumb"><span class="logo-dot"></span><strong>IntentOS</strong><span class="crumb-sep">/</span><span id="view-title">意图对话</span></div>
+        <div class="topbar-right">
+          <span class="status-pill" id="conn-pill"><i class="dot offline"></i><span id="conn-text">连接中…</span></span>
+        </div>
+      </header>
+
+      <!-- ===== Chat 视图 ===== -->
+      <section class="view active" id="view-chat">
+        <div class="chat-scroll" id="chat-scroll">
+          <div class="welcome" id="welcome">
+            <div class="welcome-logo">◐</div>
+            <h1>IntentOS Web Console</h1>
+            <p>用自然语言表达意图 —— 语义 VM 将其编译为 PEF 并执行。</p>
+            <div class="suggestions" id="suggestions">
+              <button class="chip" data-text="查询数据源 users 中今天的注册量">📊 查询 users 今日注册量</button>
+              <button class="chip" data-text="分析最近的销售数据并生成报告">📈 分析销售数据并生成报告</button>
+              <button class="chip" data-text="查看系统状态">⚙️ 查看系统状态</button>
+              <button class="chip" data-text="注册一个数据查询能力">🧩 注册一个数据查询能力</button>
+            </div>
+          </div>
+          <div id="messages"></div>
+        </div>
+
+        <footer class="composer-wrap">
+          <div class="composer" id="composer">
+            <div class="cmdk" id="cmdk" hidden>
+              <div class="cmdk-list" id="cmdk-list"></div>
+              <div class="cmdk-foot">↑↓ 选择 · Enter 确认 · Esc 关闭</div>
+            </div>
+            <textarea id="input" rows="1" placeholder="描述你的意图，Enter 发送 / Shift+Enter 换行；输入 / 打开命令面板" autofocus></textarea>
+            <div class="composer-bar">
+              <span class="hint">Enter 发送 · Shift+Enter 换行 · ↑↓ 翻阅历史</span>
+              <span class="model-tag">semantic-vm</span>
+              <button class="send-btn" id="send" title="发送 (Enter)" disabled>
+                <svg viewBox="0 0 24 24"><path d="M4 12l16-7-5 16-3.5-6L4 12z" fill="currentColor"/></svg>
+              </button>
+            </div>
+          </div>
+        </footer>
+      </section>
+
+      <!-- ===== Tasks 视图 ===== -->
+      <section class="view" id="view-tasks">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>任务流</h2>
+            <button class="btn ghost" id="clear-tasks">清空</button>
+          </div>
+          <div class="table-wrap">
+            <table class="tbl" id="tasks-table">
+              <thead><tr><th>#</th><th>时间</th><th>意图</th><th>状态</th><th>耗时</th><th>结果摘要</th></tr></thead>
+              <tbody id="tasks-body"></tbody>
+            </table>
+            <div class="empty" id="tasks-empty">暂无任务。在「意图对话」中执行一条意图后将在此登记。</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Monitor 视图 ===== -->
+      <section class="view" id="view-monitor">
+        <div class="grid-cards">
+          <div class="card"><div class="card-k">内核</div><div class="card-v" id="m-kernel">—</div><div class="card-s" id="m-kernel-sub"></div></div>
+          <div class="card"><div class="card-k">集群节点</div><div class="card-v" id="m-nodes">—</div><div class="card-s">distributed semantic vm</div></div>
+          <div class="card"><div class="card-k">进程</div><div class="card-v" id="m-procs">—</div><div class="card-s">intent processes</div></div>
+          <div class="card"><div class="card-k">能力 / 模板</div><div class="card-v" id="m-reg">—</div><div class="card-s">registry introspect</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-head"><h2>节点列表</h2><button class="btn ghost" id="refresh-monitor">刷新</button></div>
+            <ul class="node-list" id="node-list"></ul>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h2>原始状态 (GET /v1/status)</h2></div>
+            <pre class="json-view" id="raw-status">{}</pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ===== 右侧检查器 ===== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sb-head"><span>检查器</span><button class="icon-btn" id="sb-close" title="收起">✕</button></div>
+      <div class="sb-body" id="sb-body">
+        <div class="sb-empty">点击任意回复中的「详情」查看步骤轨迹与原始输出。</div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="toast-stack" id="toasts"></div>
+  <script src="/assets/app.js"></script>
+</body>
+</html>
