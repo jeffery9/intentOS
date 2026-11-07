@@ -33,6 +33,13 @@ def run_unix_cli(args):
     unix_cli_entry()
 
 
+def start_web(args):
+    """启动 Web Console（网页版交互界面）"""
+    from intentos.interface.web.server import start_web as _start_web
+
+    _start_web(args)
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="intentos",
@@ -54,9 +61,23 @@ def main():
         description="启动 IntentOS 内核并监听 RPC 请求",
     )
     p_daemon.add_argument("--api", action="store_true", help="同时启动 API 网关")
+    p_daemon.add_argument("--web", action="store_true", help="同时启动 Web Console（网页界面）")
+    p_daemon.add_argument("--web-host", default="localhost", help="Web Console 监听地址 (默认：localhost)")
+    p_daemon.add_argument("--web-port", type=int, default=8000, help="Web Console 监听端口 (默认：8000)")
     p_daemon.add_argument("--api-host", default="localhost", help="API 监听地址 (默认：localhost)")
     p_daemon.add_argument("--api-port", type=int, default=8080, help="API 监听端口 (默认：8080)")
     p_daemon.set_defaults(func=start_daemon)
+
+    # web 命令（独立 Web Console）
+    p_web = subparsers.add_parser(
+        "web",
+        help="启动 Web Console（网页版交互界面，参考 Codex/Cursor UX）",
+        description="在浏览器中提供意图对话、任务流与系统监控界面",
+    )
+    p_web.add_argument("--host", default="localhost", help="监听地址 (默认：localhost)")
+    p_web.add_argument("--port", type=int, default=8000, help="监听端口 (默认：8000)")
+    p_web.add_argument("--api-port", type=int, default=8080, help="API Gateway 端口 (默认：8080)")
+    p_web.set_defaults(func=start_web)
 
     # cli 命令（包含 shell、chat 等）
     p_cli = subparsers.add_parser(
@@ -104,6 +125,11 @@ def main():
             print("   intentos daemon --api")
             print()
             print("   curl http://localhost:8080/v1/status")
+            print()
+            print("5. Web Console（网页界面，参考 Codex/Cursor UX）:")
+            print("   intentos web                 # 独立启动（自动拉起内核）")
+            print("   intentos daemon --api --web  # 集成启动")
+            print("   打开浏览器访问 http://localhost:8000")
             print("=" * 60)
             sys.exit(0)
 
